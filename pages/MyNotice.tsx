@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link } from "react-router-dom";
@@ -8,75 +7,6 @@ import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../co
 import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown } from 'lucide-react';
 import { Notice, User, UserRole, AppPermissions, NoticeType } from '../types';
 import clsx from 'clsx';
-
-// Fix: Moved NoteCard above MyNotice and typed as React.FC to resolve "key" property type errors
-const NoteCard: React.FC<{ note: Notice, onEdit: (n: Notice) => void, onDelete: (id: string) => void, isStaff: boolean }> = ({ note, onEdit, onDelete, isStaff }) => (
-  <Card className={clsx(
-    "p-6 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white rounded-2xl group flex flex-col justify-between border-t-2 relative",
-    note.pinned ? "border-blue-600 shadow-blue-50" : "border-transparent hover:border-blue-500"
-  )}>
-     {note.pinned && (
-       <div className="absolute top-4 right-4 text-blue-600 bg-blue-50 p-1.5 rounded-lg shadow-sm">
-         <Pin size={14} className="fill-current" />
-       </div>
-     )}
-     <div>
-        <div className="flex items-center justify-between mb-5">
-           <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0">
-                 {note.authorAvatar ? <img src={note.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2 text-slate-300 w-full h-full" />}
-              </div>
-              <div>
-                 <p className="text-[11px] font-black text-slate-900 leading-none">{note.authorName}</p>
-                 <p className="text-[10px] font-medium text-slate-400 mt-1.5">
-                   {new Date(note.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(note.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                 </p>
-              </div>
-           </div>
-           
-           {isStaff && (
-             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-14">
-                <button onClick={() => onEdit(note)} className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><Edit2 size={16}/></button>
-                <button onClick={() => onDelete(note.id)} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"><Trash2 size={16}/></button>
-             </div>
-           )}
-        </div>
-
-        <h4 className="text-[15px] font-black text-slate-800 mb-3 tracking-tight line-clamp-2 leading-snug">
-           {note.subject}
-        </h4>
-        <div 
-          className="text-sm text-slate-500 leading-relaxed note-preview-content h-20" 
-          dangerouslySetInnerHTML={{ __html: note.details }} 
-        />
-     </div>
-
-     <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Badge color={note.type === 'PUBLIC' ? 'green' : 'blue'} className="text-[8px] py-0.5 px-2 rounded-md">
-             {note.type}
-          </Badge>
-          {note.pinned && <Badge color="yellow" className="text-[8px] py-0.5 px-2 rounded-md">PINNED</Badge>}
-        </div>
-        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">REF-{note.id.substring(0, 5)}</span>
-     </div>
-  </Card>
-);
-
-// Fix: Moved ToolbarButton above MyNotice and maintained typing for props compatibility
-const ToolbarButton = ({ icon: Icon, label, onClick, className, title }: any) => (
-  <button 
-    type="button" 
-    onClick={onClick}
-    title={title}
-    className={clsx(
-      "w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all text-slate-600 active:scale-90",
-      className
-    )}
-  >
-    {Icon ? <Icon size={16} /> : <span className="text-xs font-black">{label}</span>}
-  </button>
-);
 
 export const MyNotice = () => {
   const { user } = useAuth();
@@ -375,3 +305,70 @@ export const MyNotice = () => {
     </div>
   );
 };
+
+const NoteCard = ({ note, onEdit, onDelete, isStaff }: { note: Notice, onEdit: (n: Notice) => void, onDelete: (id: string) => void, isStaff: boolean }) => (
+  <Card className={clsx(
+    "p-6 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white rounded-2xl group flex flex-col justify-between border-t-2 relative",
+    note.pinned ? "border-blue-600 shadow-blue-50" : "border-transparent hover:border-blue-500"
+  )}>
+     {note.pinned && (
+       <div className="absolute top-4 right-4 text-blue-600 bg-blue-50 p-1.5 rounded-lg shadow-sm">
+         <Pin size={14} className="fill-current" />
+       </div>
+     )}
+     <div>
+        <div className="flex items-center justify-between mb-5">
+           <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0">
+                 {note.authorAvatar ? <img src={note.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2 text-slate-300 w-full h-full" />}
+              </div>
+              <div>
+                 <p className="text-[11px] font-black text-slate-900 leading-none">{note.authorName}</p>
+                 <p className="text-[10px] font-medium text-slate-400 mt-1.5">
+                   {new Date(note.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(note.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                 </p>
+              </div>
+           </div>
+           
+           {isStaff && (
+             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-14">
+                <button onClick={() => onEdit(note)} className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                <button onClick={() => onDelete(note.id)} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"><Trash2 size={16}/></button>
+             </div>
+           )}
+        </div>
+
+        <h4 className="text-[15px] font-black text-slate-800 mb-3 tracking-tight line-clamp-2 leading-snug">
+           {note.subject}
+        </h4>
+        <div 
+          className="text-sm text-slate-500 leading-relaxed note-preview-content h-20" 
+          dangerouslySetInnerHTML={{ __html: note.details }} 
+        />
+     </div>
+
+     <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge color={note.type === 'PUBLIC' ? 'green' : 'blue'} className="text-[8px] py-0.5 px-2 rounded-md">
+             {note.type}
+          </Badge>
+          {note.pinned && <Badge color="yellow" className="text-[8px] py-0.5 px-2 rounded-md">PINNED</Badge>}
+        </div>
+        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">REF-{note.id.substring(0, 5)}</span>
+     </div>
+  </Card>
+);
+
+const ToolbarButton = ({ icon: Icon, label, onClick, className, title }: any) => (
+  <button 
+    type="button" 
+    onClick={onClick}
+    title={title}
+    className={clsx(
+      "w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all text-slate-600 active:scale-90",
+      className
+    )}
+  >
+    {Icon ? <Icon size={16} /> : <span className="text-xs font-black">{label}</span>}
+  </button>
+);

@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
+// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link } from "react-router-dom";
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
@@ -32,10 +32,12 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
       if (data) setConfig(prev => ({
         ...prev,
         ...data,
-        navbarLinks: (data.navbarLinks && data.navbarLinks.length > 0) ? data.navbarLinks : prev.navbarLinks,
-        footerLinks: (data.footerLinks && data.footerLinks.length > 0) ? data.footerLinks : prev.footerLinks,
+        navbarLinks: data.navbarLinks || prev.navbarLinks,
+        footerLinks: data.footerLinks || prev.footerLinks,
+        footerCopyright: data.footerCopyright || prev.footerCopyright,
+        footerTagline: data.footerTagline || prev.footerTagline
       }));
-    }).catch(() => {});
+    });
   }, []);
 
   return (
@@ -53,29 +55,31 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
               {link.label}
             </Link>
           ))}
-          <Link 
-            to="/login" 
-            className="shimmer-effect relative flex items-center gap-2.5 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-black hover:scale-[1.03] shadow-lg transition-all active:scale-95 group"
-          >
-            <LogIn size={18} className="relative z-10 group-hover:translate-x-1 transition-all" /> 
-            <span className="relative z-10 tracking-tight">সাইন ইন</span>
-          </Link>
+          <div className="flex items-center">
+            <Link 
+              to="/login" 
+              className="shimmer-effect relative flex items-center gap-2.5 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-black hover:scale-[1.03] hover:shadow-2xl hover:shadow-slate-400/30 transition-all duration-300 active:scale-95 group"
+            >
+              <LogIn size={18} className="relative z-10 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-500 ease-out" /> 
+              <span className="relative z-10 tracking-tight">সাইন ইন</span>
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="pt-16 lg:pt-20 min-h-[60vh]">
+      <main className="pt-10 lg:pt-10 min-h-[60vh]">
         {children}
       </main>
 
-      <footer className="bg-white border-t border-slate-100 py-10 px-6 flex flex-col items-center">
-        <Link to="/" className="flex items-center gap-2 mb-6 group">
-          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-md">
+      <footer className="bg-white border-t border-slate-100 py-6 px-[5%] flex flex-col items-center">
+        <Link to="/" className="flex items-center gap-2 mb-4 group transition-all hover:brightness-110 active:scale-95">
+          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-200 group-hover:rotate-12 transition-transform">
             <Droplet className="text-white fill-current" size={18} />
           </div>
           <span className="text-lg font-black text-slate-900 tracking-tighter">BloodLink</span>
         </Link>
         
-        <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-6">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
           {config.footerLinks?.map((link, idx) => (
             <Link key={idx} to={link.path} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors">
               {link.label}
@@ -83,10 +87,16 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
           ))}
         </div>
 
-        <div className="w-full max-w-4xl pt-6 border-t border-slate-50 text-center">
-           <p className="text-[10px] font-black uppercase tracking-[0.1em] text-slate-400">
-             {config.footerCopyright} — <span className="opacity-70">{config.footerTagline}</span>
-           </p>
+        <div className="w-full max-w-4xl pt-4 border-t border-slate-50 text-center">
+           <div className="flex flex-col md:flex-row items-center justify-center gap-2 text-slate-400">
+             <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.1em]">
+               {config.footerCopyright}
+             </span>
+             <span className="hidden md:inline-block opacity-30">—</span>
+             <span className="text-[9px] md:text-[10px] font-bold text-slate-400 opacity-80">
+               {config.footerTagline}
+             </span>
+           </div>
         </div>
       </footer>
     </div>
