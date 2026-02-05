@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { useParams, useNavigate, useLocation } from "react-router-dom";
@@ -179,7 +180,7 @@ export const VerifyMember = () => {
   const rank = getRankData(donationCount);
 
   return (
-    <div className={clsx("px-6", !isAdminView && "py-12")}>
+    <div className={clsx("px-4 lg:px-6", !isAdminView && "py-8 lg:py-12")}>
       <div className="max-w-xl mx-auto space-y-8 animate-in fade-in duration-700">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
            <div className="flex items-center gap-4">
@@ -192,13 +193,13 @@ export const VerifyMember = () => {
            </div>
         </div>
 
-        <Card className="p-10 border-0 shadow-2xl rounded-[1.5rem] bg-white relative overflow-hidden text-center">
+        <Card className="p-6 lg:p-10 border-0 shadow-2xl rounded-[1.5rem] bg-white relative overflow-hidden text-center">
           <div className={`absolute top-0 left-0 w-full h-2 ${eligible ? 'bg-green-500' : 'bg-red-500'}`}></div>
           
-          <div className="mb-8 relative">
+          <div className="mb-8 relative mt-4">
              <div className={clsx(
-               "w-32 h-32 rounded-xl bg-slate-100 mx-auto overflow-hidden border-4 border-white shadow-xl relative transition-all",
-               rank ? `ring-4 ${rank.color.replace('text-', 'ring-')}` : ""
+               "w-32 h-32 rounded-full bg-slate-100 mx-auto overflow-hidden border-[6px] shadow-xl relative transition-all isolation-auto",
+               rank ? rank.color.replace('text-', 'border-') : "border-white"
              )}>
                {member.avatar ? (
                  <img src={member.avatar} className="w-full h-full object-cover" alt={member.name} />
@@ -206,15 +207,17 @@ export const VerifyMember = () => {
                  <div className="w-full h-full flex items-center justify-center"><UserIcon size={48} className="text-slate-200" /></div>
                )}
              </div>
+             
              <div className={clsx(
                "absolute -bottom-3 left-1/2 -translate-x-1/2 text-white w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
                eligible ? 'bg-green-500' : 'bg-red-500'
              )}>
                 <CheckCircle2 size={20} />
              </div>
+             
              {rank && (
                <div className={clsx(
-                 "absolute -top-3 right-[25%] lg:right-[30%] w-10 h-10 rounded-xl flex items-center justify-center shadow-xl border-2 border-white animate-bounce",
+                 "absolute top-0 right-[20%] lg:right-[30%] w-10 h-10 rounded-xl flex items-center justify-center shadow-xl border-2 border-white animate-bounce",
                  rank.bg, rank.color, rank.shadow
                )}>
                  <rank.icon size={20} fill="currentColor" />

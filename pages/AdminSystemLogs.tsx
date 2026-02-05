@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { getLogs, deleteLogEntry } from '../services/api';
 import { Card, Badge, Button, Toast, useToast, ConfirmModal } from '../components/UI';

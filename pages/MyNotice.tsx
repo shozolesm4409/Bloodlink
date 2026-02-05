@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link } from "react-router-dom";
@@ -45,9 +46,13 @@ export const MyNotice = () => {
   // Filter notices based on role and tab
   const filteredNotices = notices.filter(n => {
     const matchesSearch = n.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = n.type === activeTab;
-    const canSee = n.type === NoticeType.PUBLIC || isStaff;
-    return matchesSearch && matchesType && canSee;
+    // Public notices are visible to everyone. Private notices only to Staff.
+    // If the tab is PRIVATE, only show PRIVATE notices if the user is staff.
+    if (activeTab === NoticeType.PRIVATE) {
+        return matchesSearch && n.type === NoticeType.PRIVATE && isStaff;
+    }
+    // If tab is PUBLIC, show all PUBLIC notices.
+    return matchesSearch && n.type === NoticeType.PUBLIC;
   }).sort((a, b) => {
     // Pinned notices first
     if (a.pinned && !b.pinned) return -1;
@@ -133,19 +138,9 @@ export const MyNotice = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pt-4">
         <div>
            <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-             Notes
+             Official Board
            </h1>
            <div className="flex items-center gap-6 mt-4 border-b border-slate-200">
-              <button 
-                onClick={() => setActiveTab(NoticeType.PRIVATE)} 
-                disabled={!isStaff}
-                className={clsx(
-                  "pb-2 text-sm font-bold transition-all px-1 disabled:opacity-30 disabled:cursor-not-allowed",
-                  activeTab === NoticeType.PRIVATE ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Private
-              </button>
               <button 
                 onClick={() => setActiveTab(NoticeType.PUBLIC)} 
                 className={clsx(
@@ -155,6 +150,17 @@ export const MyNotice = () => {
               >
                 Public
               </button>
+              {isStaff && (
+                <button 
+                    onClick={() => setActiveTab(NoticeType.PRIVATE)} 
+                    className={clsx(
+                    "pb-2 text-sm font-bold transition-all px-1",
+                    activeTab === NoticeType.PRIVATE ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
+                    )}
+                >
+                    Private
+                </button>
+              )}
            </div>
         </div>
 
@@ -163,7 +169,7 @@ export const MyNotice = () => {
             onClick={() => setShowCreate(true)} 
             className="rounded-xl px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-xs shadow-md border-0"
           >
-            <Plus size={18} className="mr-2" /> Create a {activeTab.toLowerCase()} note
+            <Plus size={18} className="mr-2" /> Post Notice
           </Button>
         )}
       </div>
@@ -201,7 +207,7 @@ export const MyNotice = () => {
             {filteredNotices.length === 0 && (
               <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50">
                 <Newspaper size={48} className="mx-auto text-slate-200 mb-4" />
-                <p className="text-slate-400 font-bold italic text-sm">No notes found in this category.</p>
+                <p className="text-slate-400 font-bold italic text-sm">No notices found in this category.</p>
               </div>
             )}
           </div>
@@ -222,8 +228,8 @@ export const MyNotice = () => {
                       value={subject} 
                       onChange={e => setSubject(e.target.value)} 
                       required 
-                      rows={1}
-                      className="flex-1 bg-transparent border-0 border-b-2 border-slate-100 rounded-none px-0 shadow-none text-lg font-bold placeholder:text-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar py-1" 
+                      rows={2}
+                      className="flex-1 bg-transparent border-0 border-b-2 border-slate-100 rounded-none px-0 shadow-none text-lg font-bold placeholder:text-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar py-2" 
                     />
                     <div className="flex items-center gap-3">
                       <select 
@@ -290,7 +296,7 @@ export const MyNotice = () => {
 
                  <div className="flex justify-end pt-4 border-t border-slate-100">
                     <Button type="submit" isLoading={isPosting} className="rounded-xl px-10 py-3.5 bg-blue-600 hover:bg-blue-700 shadow-xl text-sm">
-                       {editModeId ? 'Update Official Note' : 'Post Announcement'}
+                       {editModeId ? 'Update Notice' : 'Post Notice'}
                     </Button>
                  </div>
               </form>

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { getLandingConfig, updateLandingConfig } from '../services/api';
@@ -69,7 +70,7 @@ export const AdminPageCustomizer = () => {
         <div className="flex bg-slate-100 p-1.5 rounded-2xl lg:rounded-3xl shadow-inner border border-slate-200 w-full lg:w-auto overflow-x-auto no-scrollbar">
           <TabButton active={activeTab === 'landing'} onClick={() => setActiveTab('landing')} icon={Globe} label="Landing" />
           <TabButton active={activeTab === 'auth'} onClick={() => setActiveTab('auth')} icon={Key} label="Auth Screens" />
-          <TabButton active={activeTab === 'privacy'} onClick={() => setActiveTab('privacy'} icon={ShieldCheck} label="Privacy" />
+          <TabButton active={activeTab === 'privacy'} onClick={() => setActiveTab('privacy')} icon={ShieldCheck} label="Privacy" />
           <TabButton active={activeTab === 'footer'} onClick={() => setActiveTab('footer')} icon={Layout} label="Footer" />
         </div>
         <Button onClick={handleSave} isLoading={saving} className="px-10 py-5 rounded-[1.5rem] shadow-2xl bg-red-600 hover:bg-red-700 transition-all border-0 mx-4 lg:mx-0">
