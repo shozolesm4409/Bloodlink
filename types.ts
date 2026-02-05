@@ -5,6 +5,11 @@ export enum UserRole {
   USER = 'USER'
 }
 
+export enum NoticeType {
+  PUBLIC = 'PUBLIC',
+  PRIVATE = 'PRIVATE'
+}
+
 export enum BloodGroup {
   A_POS = 'A+',
   A_NEG = 'A-',
@@ -41,6 +46,8 @@ export interface Notice {
   authorName: string;
   authorAvatar?: string;
   timestamp: string;
+  type: NoticeType;
+  pinned?: boolean;
   mentions?: string[];
 }
 

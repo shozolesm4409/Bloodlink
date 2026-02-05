@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { submitFeedback, getAllFeedbacks, updateFeedbackStatus, updateFeedbackMessage, toggleFeedbackVisibility, deleteFeedback, subscribeToApprovedFeedbacks, getCachedFeedbacks, requestFeedbackAccess } from '../services/api';
 import { Card, Button, Badge, Toast, useToast, ConfirmModal } from '../components/UI';
-import { MessageSquareQuote, Check, X, User as UserIcon, Eye, EyeOff, Trash2, Calendar, ArrowLeft, Activity, Edit3, Lock, ShieldAlert, Quote } from 'lucide-react';
+import { MessageSquareQuote, Check, X, User as UserIcon, Eye, EyeOff, Trash2, Calendar, ArrowLeft, Activity, Edit3, Lock, ShieldAlert, Quote, MoreVertical } from 'lucide-react';
 import { DonationFeedback, FeedbackStatus, UserRole } from '../types';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link } from "react-router-dom";
@@ -272,10 +271,10 @@ export const FeedbackApprovalPage = () => {
 
   const filteredFeedbacks = feedbacks.filter(f => filter === 'ALL' || f.status === filter);
 
-  if (loading) return <div className="p-5 text-center font-black text-slate-300 uppercase tracking-widest">Loading queue...</div>;
+  if (loading) return <div className="p-5 text-center font-black text-slate-300 uppercase tracking-widest animate-pulse">Loading feedback queue...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-in fade-in duration-500">
       <Toast {...toastState} onClose={hideToast} />
       <ConfirmModal 
         isOpen={!!deleteFeedbackId} 
@@ -284,11 +283,12 @@ export const FeedbackApprovalPage = () => {
         title="Delete Experience Feedback?" 
         message="This feedback will be archived and removed from management and public display."
       />
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">ফিডব্যাক ম্যানেজমেন্ট</h1>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">ফিডব্যাক ম্যানেজমেন্ট</h1>
+          <p className="text-sm text-slate-500 font-medium">Review and publish donor experiences.</p>
         </div>
-        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-white border border-slate-200 text-xs font-black uppercase tracking-widest px-4 py-2 rounded-xl focus:ring-2 focus:ring-red-500 outline-none">
+        <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-2xl focus:ring-4 focus:ring-red-500/10 shadow-sm outline-none cursor-pointer appearance-none min-w-[160px]">
           <option value="ALL">সব ফিডব্যাক</option>
           <option value={FeedbackStatus.PENDING}>পেন্ডিং</option>
           <option value={FeedbackStatus.APPROVED}>এপ্রুভড</option>
@@ -296,71 +296,72 @@ export const FeedbackApprovalPage = () => {
         </select>
       </div>
 
-      <Card className="overflow-hidden border-0 shadow-lg bg-white rounded-2xl">
+      {/* Desktop Table View */}
+      <Card className="hidden lg:block overflow-hidden border-0 shadow-xl bg-white rounded-[2.5rem]">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-100 text-[10px] text-slate-400 font-black uppercase tracking-widest">
               <tr>
-                <th className="px-6 py-5">ডোনার</th>
-                <th className="px-6 py-5">অভিজ্ঞতা / মেসেজ</th>
-                <th className="px-6 py-5">তারিখ</th>
-                <th className="px-6 py-5">স্ট্যাটাস</th>
-                <th className="px-6 py-5">ল্যান্ডিং পেজ</th>
-                <th className="px-6 py-5 text-right">অ্যাকশন</th>
+                <th className="px-8 py-6">ডোনার</th>
+                <th className="px-8 py-6">অভিজ্ঞতা / মেসেজ</th>
+                <th className="px-8 py-6">তারিখ</th>
+                <th className="px-8 py-6">স্ট্যাটাস</th>
+                <th className="px-8 py-6">ল্যান্ডিং পেজ</th>
+                <th className="px-8 py-6 text-right">অ্যাকশন</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {filteredFeedbacks.map(f => (
-                <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4">
+                <tr key={f.id} className="hover:bg-slate-50 transition-colors group">
+                  <td className="px-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden border border-slate-200">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
                         {f.userAvatar ? <img src={f.userAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2.5 text-slate-300" />}
                       </div>
-                      <span className="font-bold text-slate-900">{f.userName}</span>
+                      <span className="font-black text-slate-900">{f.userName}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 max-w-xs">
-                    <p className="text-slate-600 line-clamp-2 italic">"{f.message}"</p>
+                  <td className="px-8 py-5 max-w-sm">
+                    <p className="text-slate-600 line-clamp-2 italic font-medium">"{f.message}"</p>
                   </td>
-                  <td className="px-6 py-4 text-slate-400 font-bold whitespace-nowrap">
+                  <td className="px-8 py-5 text-slate-400 font-bold whitespace-nowrap text-xs">
                     {new Date(f.timestamp).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-8 py-5">
                     <Badge color={f.status === FeedbackStatus.APPROVED ? 'green' : (f.status === FeedbackStatus.REJECTED ? 'red' : 'yellow')}>
                       {f.status}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-8 py-5">
                     <button 
                       onClick={() => handleToggleVisibility(f.id, f.isVisible)} 
                       disabled={f.status !== FeedbackStatus.APPROVED}
                       className={clsx(
                         "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
-                        f.isVisible ? "bg-blue-50 text-blue-600 shadow-sm" : "bg-slate-50 text-slate-300 opacity-50 grayscale"
+                        f.isVisible ? "bg-blue-50 text-blue-600 shadow-sm ring-4 ring-blue-50" : "bg-slate-50 text-slate-300 opacity-50 grayscale"
                       )}
                       title={f.isVisible ? "Visible on landing page" : "Hidden from landing page"}
                     >
                       {f.isVisible ? <Eye size={18} /> : <EyeOff size={18} />}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex justify-end gap-1 sm:gap-2">
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {f.status === FeedbackStatus.PENDING && (
                         <>
                           <button onClick={() => handleStatusUpdate(f.id, FeedbackStatus.APPROVED)} className="p-2 text-green-600 hover:bg-green-50 rounded-xl transition-all" title="Approve">
-                            <Check size={18} />
+                            <Check size={20} />
                           </button>
                           <button onClick={() => handleStatusUpdate(f.id, FeedbackStatus.REJECTED)} className="p-2 text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Reject">
-                            <X size={18} />
+                            <X size={20} />
                           </button>
                         </>
                       )}
-                      <button onClick={() => { setEditingFeedback(f); setEditMessage(f.message); }} className="p-2 text-blue-400 hover:bg-blue-50 rounded-xl transition-all" title="Edit message">
-                        <Edit3 size={18} />
+                      <button onClick={() => { setEditingFeedback(f); setEditMessage(f.message); }} className="p-2 text-blue-500 hover:bg-blue-50 rounded-xl transition-all" title="Edit message">
+                        <Edit3 size={20} />
                       </button>
                       <button onClick={() => setDeleteFeedbackId(f.id)} className="p-2 text-slate-300 hover:text-red-600 transition-colors" title="Delete feedback">
-                        <Trash2 size={18} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </td>
@@ -371,14 +372,90 @@ export const FeedbackApprovalPage = () => {
         </div>
       </Card>
 
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-6 pb-20">
+         {filteredFeedbacks.length > 0 ? filteredFeedbacks.map(f => (
+           <Card key={f.id} className="p-8 border-0 shadow-xl bg-white rounded-[2.5rem] relative overflow-hidden group">
+              <div className="flex items-center justify-between mb-8">
+                 <div className="flex items-center gap-4">
+                    <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-md flex-shrink-0">
+                       {f.userAvatar ? <img src={f.userAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-4 text-slate-300 w-full h-full" />}
+                    </div>
+                    <div>
+                       <h3 className="font-black text-slate-900 text-lg leading-tight">{f.userName}</h3>
+                       <div className="flex items-center gap-2 mt-1.5">
+                          <Calendar size={12} className="text-slate-400" />
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{new Date(f.timestamp).toLocaleDateString()}</span>
+                       </div>
+                    </div>
+                 </div>
+                 <div className="absolute top-6 right-6">
+                    <Badge color={f.status === FeedbackStatus.APPROVED ? 'green' : (f.status === FeedbackStatus.REJECTED ? 'red' : 'yellow')}>
+                       {f.status}
+                    </Badge>
+                 </div>
+              </div>
+
+              <div className="bg-slate-50/80 p-6 rounded-[2rem] border border-slate-100 mb-8 relative">
+                 <Quote size={24} className="absolute -top-3 -left-1 text-red-100 fill-current" />
+                 <p className="text-slate-700 font-medium italic leading-relaxed text-sm">
+                    "{f.message}"
+                 </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 items-center border-t border-slate-100 pt-6">
+                 <div className="flex items-center gap-3">
+                    <button 
+                       onClick={() => handleToggleVisibility(f.id, f.isVisible)} 
+                       disabled={f.status !== FeedbackStatus.APPROVED}
+                       className={clsx(
+                         "w-12 h-12 rounded-2xl flex items-center justify-center transition-all shadow-md",
+                         f.isVisible ? "bg-blue-600 text-white" : "bg-slate-100 text-slate-300"
+                       )}
+                    >
+                       {f.isVisible ? <Eye size={22} /> : <EyeOff size={22} />}
+                    </button>
+                    <div className="flex flex-col">
+                       <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Public</span>
+                       <span className="text-[10px] font-bold text-slate-700">{f.isVisible ? 'LIVE' : 'HIDDEN'}</span>
+                    </div>
+                 </div>
+
+                 <div className="flex justify-end gap-2">
+                    {f.status === FeedbackStatus.PENDING && (
+                      <>
+                        <button onClick={() => handleStatusUpdate(f.id, FeedbackStatus.APPROVED)} className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center shadow-sm border border-green-100 active:scale-90 transition-transform">
+                           <Check size={22} />
+                        </button>
+                        <button onClick={() => handleStatusUpdate(f.id, FeedbackStatus.REJECTED)} className="w-12 h-12 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shadow-sm border border-red-100 active:scale-90 transition-transform">
+                           <X size={22} />
+                        </button>
+                      </>
+                    )}
+                    <button onClick={() => { setEditingFeedback(f); setEditMessage(f.message); }} className="w-12 h-12 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center shadow-sm border border-blue-100 active:scale-90 transition-transform">
+                       <Edit3 size={22} />
+                    </button>
+                    <button onClick={() => setDeleteFeedbackId(f.id)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 active:scale-90 transition-transform">
+                       <Trash2 size={22} />
+                    </button>
+                 </div>
+              </div>
+           </Card>
+         )) : (
+           <div className="py-24 text-center text-slate-300 font-black uppercase tracking-[0.3em] bg-white rounded-[3rem] border-2 border-dashed border-slate-100 italic">
+              No feedback found
+           </div>
+         )}
+      </div>
+
       {editingFeedback && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-          <Card className="w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95 duration-200 bg-white border-0 rounded-[2rem]">
-            <h3 className="text-xl font-black text-slate-900 tracking-tight mb-6">Edit Feedback</h3>
-            <textarea value={editMessage} onChange={(e) => setEditMessage(e.target.value)} className="w-full bg-slate-50 border-0 rounded-2xl p-4 text-sm font-medium focus:ring-2 focus:ring-red-500 transition-all outline-none min-h-[150px]" />
-            <div className="flex gap-4 mt-6">
-              <Button onClick={handleSaveEdit} isLoading={savingEdit} className="flex-1 py-4 rounded-2xl">Save Changes</Button>
-              <Button variant="outline" onClick={() => setEditingFeedback(null)} className="flex-1 py-4 rounded-2xl">Cancel</Button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-lg p-8 shadow-2xl animate-in zoom-in-95 duration-200 bg-white border-0 rounded-[2.5rem]">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight mb-8">Edit Experience</h3>
+            <textarea value={editMessage} onChange={(e) => setEditMessage(e.target.value)} className="w-full bg-slate-50 border-0 rounded-[1.5rem] p-6 text-base font-medium focus:ring-4 focus:ring-red-500/10 transition-all outline-none min-h-[180px] shadow-inner" />
+            <div className="flex gap-4 mt-8">
+              <Button onClick={handleSaveEdit} isLoading={savingEdit} className="flex-1 py-5 rounded-2xl text-base shadow-xl shadow-red-100">Synchronize Update</Button>
+              <Button variant="outline" onClick={() => setEditingFeedback(null)} className="flex-1 py-5 rounded-2xl text-slate-400 border-slate-100">Cancel</Button>
             </div>
           </Card>
         </div>

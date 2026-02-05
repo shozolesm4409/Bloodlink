@@ -3,11 +3,80 @@ import React, { useState, useEffect, useRef } from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link } from "react-router-dom";
 import { useAuth } from '../AuthContext';
-import { addNotice, updateNotice, subscribeToNotices, deleteNotice, getUsers, getAppPermissions } from '../services/api';
+import { addNotice, updateNotice, subscribeToNotices, deleteNotice, getUsers, getAppPermissions, ADMIN_EMAIL } from '../services/api';
 import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../components/UI';
-import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, Type as FontIcon } from 'lucide-react';
-import { Notice, User, UserRole, AppPermissions } from '../types';
+import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown } from 'lucide-react';
+import { Notice, User, UserRole, AppPermissions, NoticeType } from '../types';
 import clsx from 'clsx';
+
+// Fix: Moved NoteCard above MyNotice and typed as React.FC to resolve "key" property type errors
+const NoteCard: React.FC<{ note: Notice, onEdit: (n: Notice) => void, onDelete: (id: string) => void, isStaff: boolean }> = ({ note, onEdit, onDelete, isStaff }) => (
+  <Card className={clsx(
+    "p-6 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white rounded-2xl group flex flex-col justify-between border-t-2 relative",
+    note.pinned ? "border-blue-600 shadow-blue-50" : "border-transparent hover:border-blue-500"
+  )}>
+     {note.pinned && (
+       <div className="absolute top-4 right-4 text-blue-600 bg-blue-50 p-1.5 rounded-lg shadow-sm">
+         <Pin size={14} className="fill-current" />
+       </div>
+     )}
+     <div>
+        <div className="flex items-center justify-between mb-5">
+           <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-slate-100 overflow-hidden border border-slate-100 flex-shrink-0">
+                 {note.authorAvatar ? <img src={note.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2 text-slate-300 w-full h-full" />}
+              </div>
+              <div>
+                 <p className="text-[11px] font-black text-slate-900 leading-none">{note.authorName}</p>
+                 <p className="text-[10px] font-medium text-slate-400 mt-1.5">
+                   {new Date(note.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(note.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                 </p>
+              </div>
+           </div>
+           
+           {isStaff && (
+             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity absolute top-4 right-14">
+                <button onClick={() => onEdit(note)} className="p-2 hover:bg-blue-50 text-slate-400 hover:text-blue-600 rounded-lg transition-colors"><Edit2 size={16}/></button>
+                <button onClick={() => onDelete(note.id)} className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg transition-colors"><Trash2 size={16}/></button>
+             </div>
+           )}
+        </div>
+
+        <h4 className="text-[15px] font-black text-slate-800 mb-3 tracking-tight line-clamp-2 leading-snug">
+           {note.subject}
+        </h4>
+        <div 
+          className="text-sm text-slate-500 leading-relaxed note-preview-content h-20" 
+          dangerouslySetInnerHTML={{ __html: note.details }} 
+        />
+     </div>
+
+     <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Badge color={note.type === 'PUBLIC' ? 'green' : 'blue'} className="text-[8px] py-0.5 px-2 rounded-md">
+             {note.type}
+          </Badge>
+          {note.pinned && <Badge color="yellow" className="text-[8px] py-0.5 px-2 rounded-md">PINNED</Badge>}
+        </div>
+        <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">REF-{note.id.substring(0, 5)}</span>
+     </div>
+  </Card>
+);
+
+// Fix: Moved ToolbarButton above MyNotice and maintained typing for props compatibility
+const ToolbarButton = ({ icon: Icon, label, onClick, className, title }: any) => (
+  <button 
+    type="button" 
+    onClick={onClick}
+    title={title}
+    className={clsx(
+      "w-9 h-9 flex items-center justify-center hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200 rounded-lg transition-all text-slate-600 active:scale-90",
+      className
+    )}
+  >
+    {Icon ? <Icon size={16} /> : <span className="text-xs font-black">{label}</span>}
+  </button>
+);
 
 export const MyNotice = () => {
   const { user } = useAuth();
@@ -16,18 +85,20 @@ export const MyNotice = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [editModeId, setEditModeId] = useState<string | null>(null);
   const [deleteNoticeId, setDeleteNoticeId] = useState<string | null>(null);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [perms, setPerms] = useState<AppPermissions | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const editorRef = useRef<HTMLDivElement>(null);
   const [subject, setSubject] = useState('');
-  const [mentionedUsers, setMentionedUsers] = useState<User[]>([]);
+  const [noticeType, setNoticeType] = useState<NoticeType>(NoticeType.PUBLIC);
+  const [isPinned, setIsPinned] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
 
   useEffect(() => {
     getAppPermissions().then(setPerms);
-    getUsers().then(setAllUsers);
     const unsubscribe = subscribeToNotices((data) => {
       setNotices(data);
       setLoading(false);
@@ -38,8 +109,24 @@ export const MyNotice = () => {
     return () => unsubscribe();
   }, []);
 
-  const isAdmin = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
-  const canPost = perms?.[user?.role?.toLowerCase() as 'user' | 'editor']?.rules.canPostNotice || isAdmin;
+  const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || user?.email.trim().toLowerCase() === ADMIN_EMAIL;
+  const canPost = perms?.[user?.role?.toLowerCase() as 'user' | 'editor']?.rules.canPostNotice || isStaff;
+
+  // Filter notices based on role and tab
+  const filteredNotices = notices.filter(n => {
+    const matchesSearch = n.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = n.type === activeTab;
+    const canSee = n.type === NoticeType.PUBLIC || isStaff;
+    return matchesSearch && matchesType && canSee;
+  }).sort((a, b) => {
+    // Pinned notices first
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    
+    const timeA = new Date(a.timestamp).getTime();
+    const timeB = new Date(b.timestamp).getTime();
+    return sortOrder === 'desc' ? timeB - timeA : timeA - timeB;
+  });
 
   const applyStyle = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -49,7 +136,7 @@ export const MyNotice = () => {
   const handlePostNotice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !subject.trim() || !editorRef.current?.innerHTML.trim()) {
-      showToast("Please provide both subject and details.", "warning");
+      showToast("Subject and details required.", "warning");
       return;
     }
 
@@ -58,11 +145,20 @@ export const MyNotice = () => {
 
     try {
       if (editModeId) {
-        await updateNotice(editModeId, { subject, details, mentions: mentionedUsers.map(u => u.id) }, user);
-        showToast("Notice updated successfully.");
+        await updateNotice(editModeId, { subject, details, type: noticeType, pinned: isPinned }, user);
+        showToast("Notice updated.");
       } else {
-        await addNotice({ subject, details, authorId: user.id, authorName: user.name, authorAvatar: user.avatar || '', timestamp: new Date().toISOString(), mentions: mentionedUsers.map(u => u.id) }, user);
-        showToast("Notice published successfully.");
+        await addNotice({ 
+          subject, 
+          details, 
+          authorId: user.id, 
+          authorName: user.name, 
+          authorAvatar: user.avatar || '', 
+          timestamp: new Date().toISOString(), 
+          type: noticeType,
+          pinned: isPinned
+        }, user);
+        showToast("Notice published.");
       }
       resetEditor();
       setShowCreate(false);
@@ -76,8 +172,8 @@ export const MyNotice = () => {
   const startEdit = (notice: Notice) => {
     setEditModeId(notice.id);
     setSubject(notice.subject);
-    const mentions = allUsers.filter(u => notice.mentions?.includes(u.id));
-    setMentionedUsers(mentions);
+    setNoticeType(notice.type);
+    setIsPinned(!!notice.pinned);
     setShowCreate(true);
     setTimeout(() => { if (editorRef.current) editorRef.current.innerHTML = notice.details; }, 50);
   };
@@ -85,8 +181,9 @@ export const MyNotice = () => {
   const resetEditor = () => {
     setEditModeId(null);
     setSubject('');
+    setNoticeType(NoticeType.PUBLIC);
+    setIsPinned(false);
     if (editorRef.current) editorRef.current.innerHTML = '';
-    setMentionedUsers([]);
   };
 
   const confirmDelete = async () => {
@@ -99,76 +196,182 @@ export const MyNotice = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="max-w-7xl mx-auto pb-20 px-4 animate-in fade-in duration-500">
       <Toast {...toastState} onClose={hideToast} />
-      <ConfirmModal isOpen={!!deleteNoticeId} onClose={() => setDeleteNoticeId(null)} onConfirm={confirmDelete} title="Move to Archives?" message="Archive this notice?" />
-      
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-red-600 rounded-2xl text-white shadow-lg"><Megaphone size={28} className="fill-current" /></div>
-          <div><h1 className="text-3xl font-black text-slate-900 tracking-tight">Official Board</h1><p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Broadcast & Updates</p></div>
+      <ConfirmModal isOpen={!!deleteNoticeId} onClose={() => setDeleteNoticeId(null)} onConfirm={confirmDelete} title="Delete Note?" message="This note will be moved to system archives." />
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pt-4">
+        <div>
+           <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+             Notes
+           </h1>
+           <div className="flex items-center gap-6 mt-4 border-b border-slate-200">
+              <button 
+                onClick={() => setActiveTab(NoticeType.PRIVATE)} 
+                disabled={!isStaff}
+                className={clsx(
+                  "pb-2 text-sm font-bold transition-all px-1 disabled:opacity-30 disabled:cursor-not-allowed",
+                  activeTab === NoticeType.PRIVATE ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                Private
+              </button>
+              <button 
+                onClick={() => setActiveTab(NoticeType.PUBLIC)} 
+                className={clsx(
+                  "pb-2 text-sm font-bold transition-all px-1",
+                  activeTab === NoticeType.PUBLIC ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
+                )}
+              >
+                Public
+              </button>
+           </div>
         </div>
-        {canPost && <Button onClick={() => { if(showCreate) resetEditor(); setShowCreate(!showCreate); }} variant={showCreate ? "outline" : "primary"} className="rounded-2xl px-8">{showCreate ? <X className="mr-2" size={18} /> : <Plus className="mr-2" size={18} />} {showCreate ? "Close Editor" : "New Notice"}</Button>}
+
+        {canPost && (
+          <Button 
+            onClick={() => setShowCreate(true)} 
+            className="rounded-xl px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-xs shadow-md border-0"
+          >
+            <Plus size={18} className="mr-2" /> Create a {activeTab.toLowerCase()} note
+          </Button>
+        )}
       </div>
 
-      {showCreate && (
-        <Card className="p-8 border-0 shadow-2xl bg-white rounded-[2.5rem] animate-in slide-in-from-top-10 duration-500 overflow-hidden ring-4 ring-red-50">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-8 pb-4 border-b border-slate-50">{editModeId ? 'Refine Announcement' : 'Compose Notice'}</h2>
-          <form onSubmit={handlePostNotice} className="space-y-8">
-            <Input label="Announcement Subject" value={subject} onChange={e => setSubject(e.target.value)} required className="text-lg font-bold py-4 px-6 rounded-2xl" />
-            
-            <div className="space-y-3">
-              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Rich Editor (Select text to style)</label>
-              <div className="bg-slate-50 rounded-[2rem] border border-slate-200 overflow-hidden shadow-inner">
-                 <div className="flex flex-wrap items-center gap-2 p-4 bg-white border-b border-slate-100 overflow-x-auto no-scrollbar">
-                    <button type="button" onClick={() => applyStyle('bold')} className="p-2 hover:bg-slate-100 rounded-lg font-black">B</button>
-                    <button type="button" onClick={() => applyStyle('italic')} className="p-2 hover:bg-slate-100 rounded-lg italic">I</button>
-                    <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
-                    <button type="button" onClick={() => applyStyle('justifyLeft')} className="p-2 hover:bg-slate-100 rounded-lg"><AlignLeft size={16}/></button>
-                    <button type="button" onClick={() => applyStyle('justifyCenter')} className="p-2 hover:bg-slate-100 rounded-lg"><AlignCenter size={16}/></button>
-                    <button type="button" onClick={() => applyStyle('justifyRight')} className="p-2 hover:bg-slate-100 rounded-lg"><AlignRight size={16}/></button>
-                    <div className="h-4 w-[1px] bg-slate-200 mx-1"></div>
-                    <select onChange={(e) => applyStyle('fontSize', e.target.value)} className="bg-slate-50 border-0 rounded-lg text-xs font-bold px-2 py-1 outline-none">
-                      <option value="3">Normal</option>
-                      <option value="1">Small</option>
-                      <option value="5">Large</option>
-                      <option value="7">Extra Large</option>
-                    </select>
-                    <div className="relative group p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center gap-1">
-                      <Palette size={16} />
-                      <input type="color" onChange={(e) => applyStyle('foreColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                    <div className="relative group p-2 hover:bg-slate-100 rounded-lg cursor-pointer flex items-center gap-1">
-                      <Highlighter size={16} />
-                      <input type="color" onChange={(e) => applyStyle('hiliteColor', e.target.value)} defaultValue="#FFFF00" className="absolute inset-0 opacity-0 cursor-pointer" />
-                    </div>
-                 </div>
-                 <div ref={editorRef} contentEditable className="w-full bg-slate-50 p-8 min-h-[300px] text-base font-medium focus:outline-none custom-scrollbar overflow-y-auto leading-relaxed" />
+      <div className="flex flex-col sm:flex-row items-center gap-4 mb-10 bg-white/50 p-2 rounded-2xl border border-slate-100 shadow-sm">
+        <div className="relative flex-1 group w-full">
+           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+           <input 
+             type="text" 
+             placeholder="Search notes..." 
+             value={searchQuery}
+             onChange={e => setSearchQuery(e.target.value)}
+             className="w-full pl-12 pr-4 py-2.5 bg-transparent border-0 text-sm font-medium outline-none focus:ring-0"
+           />
+        </div>
+        <button 
+          onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
+          className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-slate-500 hover:bg-white rounded-xl transition-all shadow-sm border border-slate-100"
+        >
+          <ListFilter size={14} /> Sort: {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-40 opacity-20">
+           <LayoutGrid className="animate-pulse mb-4" size={48} />
+           <p className="font-black uppercase text-xs tracking-widest">Syncing Nodes...</p>
+        </div>
+      ) : (
+        <div className="space-y-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredNotices.map(n => (
+              <NoteCard key={n.id} note={n} onEdit={startEdit} onDelete={setDeleteNoticeId} isStaff={isStaff} />
+            ))}
+            {filteredNotices.length === 0 && (
+              <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50">
+                <Newspaper size={48} className="mx-auto text-slate-200 mb-4" />
+                <p className="text-slate-400 font-bold italic text-sm">No notes found in this category.</p>
               </div>
-            </div>
-            <Button type="submit" isLoading={isPosting} className="w-full py-5 rounded-[1.5rem] text-lg"><Send className="mr-3" size={22} /> {editModeId ? 'Synchronize Update' : 'Broadcast Now'}</Button>
-          </form>
-        </Card>
+            )}
+          </div>
+        </div>
       )}
 
-      <div className="space-y-6">
-        {loading ? <div className="text-center py-24 opacity-30"><Megaphone className="animate-bounce text-red-600 mx-auto" size={64} /></div> : notices.map(n => (
-          <Card key={n.id} className="group overflow-hidden border-0 shadow-lg bg-white rounded-[2.5rem] hover:shadow-2xl transition-all border-l-[12px] border-l-red-600">
-            <div className="p-8 lg:p-10">
-              <div className="flex justify-between items-start mb-8">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border-2 border-white shadow-xl flex-shrink-0">
-                    {n.authorAvatar ? <img src={n.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-4 text-slate-300 w-full h-full" />}
-                  </div>
-                  <div><h3 className="text-2xl font-black text-slate-900 mb-2 group-hover:text-red-600 transition-colors">{n.subject}</h3><div className="flex items-center gap-4 text-slate-400 font-bold text-xs"><span>{n.authorName}</span><span className="opacity-30">•</span><Clock size={14} /><span>{new Date(n.timestamp).toLocaleString()}</span></div></div>
-                </div>
-                {isAdmin && <div className="flex gap-2"><button onClick={() => startEdit(n)} className="p-2 text-slate-300 hover:text-blue-600"><Edit2 size={18} /></button><button onClick={() => setDeleteNoticeId(n.id)} className="p-2 text-slate-300 hover:text-red-600"><Trash2 size={18} /></button></div>}
+      {showCreate && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <Card className="w-full max-w-3xl bg-white border-0 shadow-2xl rounded-[1.5rem] overflow-hidden">
+              <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                 <h2 className="text-sm font-black uppercase tracking-widest text-slate-600">{editModeId ? 'Refine Note' : 'New Note'}</h2>
+                 <button onClick={() => { setShowCreate(false); resetEditor(); }} className="p-2 hover:bg-slate-200 rounded-xl transition-all"><X size={18}/></button>
               </div>
-              <div className="notice-display text-slate-600 leading-relaxed font-medium text-lg prose prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: n.details }} />
-            </div>
-          </Card>
-        ))}
-      </div>
+              <form onSubmit={handlePostNotice} className="p-6 space-y-6">
+                 <div className="flex flex-wrap items-start gap-4">
+                    <textarea 
+                      placeholder="Title of announcement..." 
+                      value={subject} 
+                      onChange={e => setSubject(e.target.value)} 
+                      required 
+                      rows={1}
+                      className="flex-1 bg-transparent border-0 border-b-2 border-slate-100 rounded-none px-0 shadow-none text-lg font-bold placeholder:text-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar py-1" 
+                    />
+                    <div className="flex items-center gap-3">
+                      <select 
+                        value={noticeType} 
+                        onChange={e => setNoticeType(e.target.value as NoticeType)}
+                        className="bg-slate-100 border-0 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+                      >
+                         <option value={NoticeType.PUBLIC}>Public</option>
+                         <option value={NoticeType.PRIVATE}>Private</option>
+                      </select>
+                      <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl hover:bg-slate-100 transition-all border border-slate-200">
+                        <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
+                        <span className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Pin</span>
+                        <Pin size={14} className={clsx(isPinned ? "text-blue-600 fill-blue-600" : "text-slate-400")} />
+                      </label>
+                    </div>
+                 </div>
+
+                 <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 rounded-xl border border-slate-200 overflow-x-auto no-scrollbar">
+                        <ToolbarButton label="B" onClick={() => applyStyle('bold')} className="font-bold" />
+                        <ToolbarButton label="I" onClick={() => applyStyle('italic')} className="italic" />
+                        <ToolbarButton label="U" onClick={() => applyStyle('underline')} className="underline" />
+                        
+                        <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+                        
+                        <div className="relative group">
+                          <ToolbarButton icon={Baseline} title="Text Color" />
+                          <input type="color" onChange={(e) => applyStyle('foreColor', e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                        </div>
+                        <div className="relative group">
+                          <ToolbarButton icon={Highlighter} title="Highlight Color" />
+                          <input type="color" onChange={(e) => applyStyle('hiliteColor', e.target.value)} defaultValue="#FFFF00" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" />
+                        </div>
+
+                        <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+
+                        <ToolbarButton icon={AlignLeft} onClick={() => applyStyle('justifyLeft')} />
+                        <ToolbarButton icon={AlignCenter} onClick={() => applyStyle('justifyCenter')} />
+                        <ToolbarButton icon={AlignRight} onClick={() => applyStyle('justifyRight')} />
+                        <ToolbarButton icon={AlignJustify} onClick={() => applyStyle('justifyFull')} />
+
+                        <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+
+                        <div className="relative group flex items-center px-2 hover:bg-white rounded-lg transition-all border border-transparent hover:border-slate-200">
+                          <FontIcon size={14} className="text-slate-500 mr-2" />
+                          <select 
+                            onChange={(e) => applyStyle('fontSize', e.target.value)}
+                            className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer py-1"
+                          >
+                            <option value="1">Small</option>
+                            <option value="3" selected>Normal</option>
+                            <option value="5">Large</option>
+                            <option value="7">Huge</option>
+                          </select>
+                        </div>
+                    </div>
+                    <div 
+                      ref={editorRef} 
+                      contentEditable 
+                      className="min-h-[300px] p-6 bg-white border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 custom-scrollbar overflow-y-auto text-sm leading-relaxed"
+                    />
+                 </div>
+
+                 <div className="flex justify-end pt-4 border-t border-slate-100">
+                    <Button type="submit" isLoading={isPosting} className="rounded-xl px-10 py-3.5 bg-blue-600 hover:bg-blue-700 shadow-xl text-sm">
+                       {editModeId ? 'Update Official Note' : 'Post Announcement'}
+                    </Button>
+                 </div>
+              </form>
+           </Card>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        .note-preview-content * { margin: 0 !important; font-size: inherit !important; line-height: inherit !important; }
+        .note-preview-content { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+      `}} />
     </div>
   );
 };

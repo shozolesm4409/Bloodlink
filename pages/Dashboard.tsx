@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../AuthContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
@@ -7,9 +6,15 @@ import { generateDonationInsight } from '../services/geminiService';
 import { Card, Badge, Button } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Droplet, Users, TrendingUp, Sparkles, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint, BrainCircuit, RefreshCw, Zap } from 'lucide-react';
-// Fix: Use double quotes for react-router-dom
 import { Link } from "react-router-dom";
 import clsx from 'clsx';
+
+const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
+  <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-shadow group rounded-[1.5rem] text-center lg:text-left">
+    <div className={`p-3 lg:p-4 rounded-[1.25rem] ${bg} transition-transform group-hover:scale-110 shadow-inner`}><Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${color} fill-current`} /></div>
+    <div><p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none">{title}</p><p className="text-xl lg:text-2xl font-black text-slate-900 tracking-tighter">{value}</p></div>
+  </Card>
+);
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -125,10 +130,8 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* AI Intelligence Card - High Contrast Theme */}
       {isManagement && (
         <Card ref={insightRef} className="border-0 shadow-2xl !bg-slate-900 overflow-hidden rounded-[3rem] group relative">
-          {/* Decorative Glowing Elements */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-20 translate-x-20"></div>
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none translate-y-20 -translate-x-20"></div>
           
@@ -187,7 +190,6 @@ export const Dashboard = () => {
         </Card>
       )}
 
-      {/* Stats and other sections remain unchanged */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Volume" value={`${globalCompleted.reduce((a,b)=>a+b.units,0)}ml`} icon={Droplet} color="text-red-600" bg="bg-red-50" />
         <StatCard title="Total Donors" value={allUsers.length} icon={Users} color="text-blue-600" bg="bg-blue-50" />
@@ -195,7 +197,6 @@ export const Dashboard = () => {
         <StatCard title="Queue Size" value={pendingItems.length} icon={LayoutList} color="text-orange-600" bg="bg-orange-50" />
       </div>
 
-      {/* Rest of the Dashboard component logic... */}
       {isSuperAdmin && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-[2.5rem] flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
@@ -404,10 +405,3 @@ export const Dashboard = () => {
     </div>
   );
 };
-
-const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-  <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-shadow group rounded-[1.5rem] text-center lg:text-left">
-    <div className={`p-3 lg:p-4 rounded-[1.25rem] ${bg} transition-transform group-hover:scale-110 shadow-inner`}><Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${color} fill-current`} /></div>
-    <div><p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none">{title}</p><p className="text-xl lg:text-2xl font-black text-slate-900 tracking-tighter">{value}</p></div>
-  </Card>
-);

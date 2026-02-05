@@ -1,4 +1,3 @@
-
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -24,7 +23,7 @@ import {
 } from "@firebase/firestore";
 import { auth, db } from "./firebase";
 export { db };
-import { User, DonationRecord, AuditLog, UserRole, DonationStatus, BloodGroup, AppPermissions, ChatMessage, DonationFeedback, FeedbackStatus, RevokedPermission, LandingPageConfig, Notice } from '../types';
+import { User, DonationRecord, AuditLog, UserRole, DonationStatus, BloodGroup, AppPermissions, ChatMessage, DonationFeedback, FeedbackStatus, RevokedPermission, LandingPageConfig, Notice, NoticeType } from '../types';
 
 const COLLECTIONS = {
   USERS: 'users',
@@ -106,8 +105,11 @@ export const getNotices = async (): Promise<Notice[]> => {
 };
 
 export const addNotice = async (notice: Omit<Notice, 'id'>, admin: User) => {
-  await addDoc(collection(db, COLLECTIONS.NOTICES), notice);
-  await createLog('NOTICE_ADD', admin.id, admin.name, `Posted notice: ${notice.subject}`, admin.avatar);
+  await addDoc(collection(db, COLLECTIONS.NOTICES), {
+    ...notice,
+    pinned: notice.pinned || false
+  });
+  await createLog('NOTICE_ADD', admin.id, admin.name, `Posted ${notice.type} notice: ${notice.subject}`, admin.avatar);
 };
 
 export const updateNotice = async (id: string, updates: Partial<Notice>, admin: User) => {

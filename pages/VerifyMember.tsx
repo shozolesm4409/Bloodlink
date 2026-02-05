@@ -118,7 +118,7 @@ export const VerifyMember = () => {
   // No ID provided - Search UI
   if (!idNumber) {
     return (
-      <div className={clsx("flex flex-col items-center justify-center", !isAdminView && "py-10 px-6")}>
+      <div className={clsx("flex flex-col items-center justify-center", !isAdminView && "py-20 px-6")}>
         <div className="max-w-xl w-full space-y-8 animate-in fade-in duration-500">
            <div className="text-center space-y-4">
               <div className="w-20 h-20 bg-red-600 text-white rounded-[1rem] flex items-center justify-center mx-auto shadow-2xl shadow-red-200">

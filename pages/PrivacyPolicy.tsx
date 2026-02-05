@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { PublicLayout } from '../components/PublicLayout';
 import { Card } from '../components/UI';
@@ -7,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
 
-// Fix: Using React.FC and marking children as optional in the props type helps TypeScript recognize children passed via JSX content
 const PolicySection: React.FC<{ icon: any, title: string, titleBn: string, children?: React.ReactNode }> = ({ icon: Icon, title, titleBn, children }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-4">
@@ -33,7 +31,6 @@ export const PrivacyPolicy = () => {
     getLandingConfig().then(setConfig);
   }, []);
 
-  // Fallback defaults in case config is not loaded yet
   const c = {
     privacyTitle: config?.privacyTitle || "Privacy Policy",
     privacyEffectiveDate: config?.privacyEffectiveDate || "January 01, 2026",
