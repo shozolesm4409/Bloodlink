@@ -1,0 +1,384 @@
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useAuth } from '../AuthContext';
+import { updateUserProfile, changePassword, getAppPermissions, requestIDCardAccess, getUserDonations } from '../services/api';
+import { Card, Input, Button, Select, Badge, Toast, useToast } from '../components/UI';
+import { User, BloodGroup, AppPermissions, UserRole, DonationStatus } from '../types';
+import { UserCircle, Lock, Camera, Upload, IdCard, Download, X, Clock, ShieldAlert, Trophy, Award, Star, Medal } from 'lucide-react';
+import { IDCardFrame } from './AdminIDCards';
+import { toJpeg } from 'html-to-image';
+import Cropper from 'react-easy-crop';
+import clsx from 'clsx';
+
+// Rank Helper function
+export const getRankData = (count: number) => {
+  if (count >= 16) return { name: 'Hero', color: 'text-orange-600', bg: 'bg-orange-50', icon: Star, shadow: 'shadow-orange-200' };
+  if (count >= 11) return { name: 'Diamond', color: 'text-blue-400', bg: 'bg-blue-50', icon: Trophy, shadow: 'shadow-blue-200' };
+  if (count >= 8) return { name: 'Platinum', color: 'text-slate-400', bg: 'bg-slate-100', icon: Award, shadow: 'shadow-slate-200' };
+  if (count >= 4) return { name: 'Gold', color: 'text-yellow-500', bg: 'bg-yellow-50', icon: Trophy, shadow: 'shadow-yellow-200' };
+  if (count >= 1) return { name: 'Silver', color: 'text-slate-400', bg: 'bg-slate-50', icon: Medal, shadow: 'shadow-slate-200' };
+  return null;
+};
+
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: { x: number; y: number; width: number; height: number }
+): Promise<string> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) return '';
+
+  canvas.width = 400;
+  canvas.height = 400;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    400,
+    400
+  );
+
+  return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+export const Profile = () => {
+  const { user, updateUser } = useAuth();
+  const { toastState, showToast, hideToast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [imgUploading, setImgUploading] = useState(false);
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [perms, setPerms] = useState<AppPermissions | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>(user?.avatar || '');
+  const [donationCount, setDonationCount] = useState(0);
+  
+  // Crop States
+  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  const [showCardModal, setShowCardModal] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { 
+    getAppPermissions().then(setPerms); 
+    if (user) {
+      getUserDonations(user.id).then(dons => {
+        setDonationCount(dons.filter(d => d.status === DonationStatus.COMPLETED).length);
+      });
+    }
+  }, [user]);
+
+  if (!user) return null;
+
+  const rank = getRankData(donationCount);
+
+  const isRestricted = user.role === UserRole.USER 
+    ? perms?.user.rules.canEditProfile === false 
+    : (user.role === UserRole.EDITOR ? perms?.editor.rules.canEditProfile === false : false);
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        showToast("Image size must be under 2MB", "error");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageToCrop(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onCropComplete = useCallback((_area: any, pixels: any) => {
+    setCroppedAreaPixels(pixels);
+  }, []);
+
+  const handleSaveCroppedImage = async () => {
+    if (!imageToCrop || !croppedAreaPixels) return;
+    setImgUploading(true);
+    try {
+      const croppedBase64 = await getCroppedImg(imageToCrop, croppedAreaPixels);
+      const updatedUser = await updateUserProfile(user.id, { avatar: croppedBase64 }, user);
+      updateUser(updatedUser);
+      setAvatarPreview(croppedBase64);
+      setImageToCrop(null);
+      showToast("Profile photo synchronized.");
+    } catch (err) {
+      showToast("Failed to process image.", "error");
+    } finally {
+      setImgUploading(false);
+    }
+  };
+
+  const handleIDCardClick = async () => {
+    if (user.hasIDCardAccess) {
+      setShowCardModal(true);
+    } else if (!user.idCardAccessRequested) {
+      setIsRequesting(true);
+      try {
+        await requestIDCardAccess(user);
+        updateUser({ ...user, idCardAccessRequested: true });
+        showToast("ID Card access request sent to Admin.");
+      } catch (err) {
+        showToast("Request failed.", "error");
+      } finally {
+        setIsRequesting(false);
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (isRestricted) return;
+    setLoading(true);
+    const formData = new FormData(e.currentTarget);
+    const updates: Partial<User> = {
+      name: formData.get('name') as string,
+      phone: formData.get('phone') as string,
+      location: formData.get('location') as string,
+      bloodGroup: formData.get('bloodGroup') as BloodGroup,
+    };
+
+    try {
+      const updatedUser = await updateUserProfile(user.id, updates, user);
+      updateUser(updatedUser);
+      showToast("Profile synchronized successfully.");
+    } catch (err) { showToast("Failed to update profile.", "error"); }
+    finally { setLoading(false); }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setPwdLoading(true);
+    const formData = new FormData(e.currentTarget);
+    const current = formData.get('currentPassword') as string;
+    const newPwd = formData.get('newPassword') as string;
+    const confirm = formData.get('confirmPassword') as string;
+
+    if (newPwd !== confirm) {
+      showToast("PIN matching error.", "error");
+      setPwdLoading(false);
+      return;
+    }
+
+    try {
+      await changePassword(user.id, user.name, current, newPwd);
+      showToast("PIN updated successfully.");
+      (e.target as HTMLFormElement).reset();
+    } catch (err: any) { showToast(err.message || 'Update failed.', "error"); }
+    finally { setPwdLoading(false); }
+  };
+
+  const downloadIDCard = async () => {
+    if (!cardRef.current) return;
+    try {
+      await new Promise(r => setTimeout(r, 600));
+      const dataUrl = await toJpeg(cardRef.current, {
+        quality: 1,
+        backgroundColor: '#ffffff',
+        pixelRatio: 4,
+        cacheBust: true,
+      });
+      const link = document.createElement('a');
+      link.download = `BloodLink-ID-${user.name.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+      link.href = dataUrl;
+      link.click();
+      showToast("ID Card downloaded successfully.");
+    } catch (err) {
+      console.error('Download error:', err);
+      showToast("Download failed.", "error");
+    }
+  };
+
+  const renderIDCardButton = (isMobile = false) => {
+    if (user.hasIDCardAccess) {
+      return (
+        <Button onClick={handleIDCardClick} variant="outline" className={clsx("rounded-2xl border-slate-200 text-slate-600 hover:text-red-600 hover:border-red-100 shadow-sm", isMobile ? "w-full mt-6" : "hidden md:flex")}>
+          <IdCard className="mr-2" size={18} /> My ID Card
+        </Button>
+      );
+    }
+    
+    if (user.idCardAccessRequested) {
+      return (
+        <div className={clsx("inline-flex items-center gap-2 px-6 py-3 bg-yellow-50 text-yellow-700 border border-yellow-100 rounded-2xl font-black text-[10px] uppercase tracking-widest", isMobile ? "w-full mt-6 justify-center" : "hidden md:flex")}>
+          <Clock size={16} /> Pending Admin Approval
+        </div>
+      );
+    }
+
+    return (
+      <Button onClick={handleIDCardClick} isLoading={isRequesting} className={clsx("rounded-2xl shadow-xl shadow-red-100", isMobile ? "w-full mt-6" : "hidden md:flex")}>
+        <ShieldAlert className="mr-2" size={18} /> Request ID Card
+      </Button>
+    );
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
+      <Toast {...toastState} onClose={hideToast} />
+      
+      {/* Cropper Modal */}
+      {imageToCrop && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-2xl z-[200] flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+           <div className="relative w-full max-w-lg aspect-square bg-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl border-4 border-white/10">
+              <Cropper
+                image={imageToCrop}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+           </div>
+           
+           <Card className="w-full max-w-lg mt-8 p-8 space-y-6 bg-white border-0 rounded-[2.5rem]">
+              <div className="space-y-2">
+                <div className="flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-widest px-1">
+                   <span>Adjust Frame</span>
+                   <span>{Math.round(zoom * 100)}%</span>
+                </div>
+                <input 
+                  type="range" 
+                  min={1} 
+                  max={3} 
+                  step={0.1} 
+                  value={zoom} 
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-red-600"
+                />
+              </div>
+              
+              <div className="flex gap-4">
+                <Button onClick={handleSaveCroppedImage} isLoading={imgUploading} className="flex-1 py-4 rounded-2xl shadow-xl bg-red-600">
+                  <Upload size={18} className="mr-2" /> Crop & Save
+                </Button>
+                <Button variant="outline" onClick={() => setImageToCrop(null)} className="flex-1 py-4 border-slate-200 text-slate-400 rounded-2xl">
+                  Cancel
+                </Button>
+              </div>
+           </Card>
+        </div>
+      )}
+
+      <div className="flex items-center justify-between border-b border-slate-200 pb-8 px-4 lg:px-0">
+         <div className="flex items-center gap-4">
+           <div className="p-4 bg-red-600 text-white rounded-[1.5rem] shadow-xl shadow-red-100"><UserCircle size={32} /></div>
+           <div><h1 className="text-2xl lg:text-3xl font-black text-slate-900 tracking-tighter">Profile Management</h1><p className="text-slate-500 font-medium text-xs lg:text-sm">Update your digital identity and security settings.</p></div>
+         </div>
+         {renderIDCardButton()}
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4 lg:px-0">
+        <div className="space-y-8">
+          <Card className="p-8 border-0 shadow-xl bg-white rounded-[2.5rem] relative overflow-hidden group">
+            <div className="absolute inset-0 bg-gradient-to-b from-red-600/5 to-transparent pointer-events-none"></div>
+            <div className="flex flex-col items-center text-center relative z-10">
+              <div className="relative mb-6">
+                <div className="w-28 h-28 bg-white rounded-[2rem] flex items-center justify-center border-4 border-white shadow-2xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
+                  {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <UserCircle size={64} className="text-slate-200" />}
+                </div>
+                <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-red-600 text-white rounded-xl border-4 border-white flex items-center justify-center cursor-pointer hover:bg-red-700 transition-all shadow-xl">
+                  <Camera size={18} />
+                  <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={isRestricted} />
+                </label>
+                {rank && (
+                  <div className={clsx(
+                    "absolute -top-3 -right-3 w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl border-2 border-white animate-bounce",
+                    rank.bg, rank.color, rank.shadow
+                  )} title={`${rank.name} Rank`}>
+                    <rank.icon size={24} fill="currentColor" />
+                  </div>
+                )}
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">{user.name}</h2>
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-3">
+                <Badge color="red" className="px-4 py-1.5 font-black">{user.bloodGroup} DONOR</Badge>
+                {rank && <Badge className={clsx("px-4 py-1.5 font-black", rank.bg, rank.color)}>{rank.name}</Badge>}
+              </div>
+              <p className="mt-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">{user.idNumber}</p>
+              <div className="md:hidden w-full">
+                {renderIDCardButton(true)}
+              </div>
+            </div>
+          </Card>
+          
+          <Card className="p-8 border-0 shadow-xl bg-white rounded-[2.5rem]">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-3"><Lock size={16} /> Security Center</h3>
+            <form onSubmit={handlePasswordChange} className="space-y-5">
+              <Input label="Current PIN" name="currentPassword" type="password" required />
+              <Input label="New PIN" name="newPassword" type="password" required />
+              <Input label="Confirm PIN" name="confirmPassword" type="password" required />
+              <Button type="submit" variant="secondary" className="w-full py-4 rounded-2xl" isLoading={pwdLoading}>Change PIN</Button>
+            </form>
+          </Card>
+        </div>
+        <div className="lg:col-span-2">
+          <Card className="p-8 border-0 shadow-xl bg-white rounded-[2.5rem]">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-8 flex items-center gap-3"><Upload size={16} /> Identity Details</h3>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2"><Input label="BL ID Number (Protected)" value={user.idNumber} disabled className="opacity-50 font-mono" /></div>
+              <div className="md:col-span-2"><Input label="Email Address (Locked)" value={user.email} disabled className="opacity-50" /></div>
+              <div className="md:col-span-2"><Input label="Full Identity Name" name="name" defaultValue={user.name} disabled={isRestricted} /></div>
+              <Input label="Primary Phone" name="phone" defaultValue={user.phone} disabled={isRestricted} />
+              <Select label="Blood Group" name="bloodGroup" defaultValue={user.bloodGroup} disabled={isRestricted}>
+                   {Object.values(BloodGroup).map(bg => <option key={bg} value={bg}>{bg}</option>)}
+              </Select>
+              <div className="md:col-span-2"><Input label="Current City / Area" name="location" defaultValue={user.location} disabled={isRestricted} /></div>
+              <div className="md:col-span-2 pt-6 flex justify-end">
+                <Button type="submit" isLoading={loading} disabled={isRestricted} className="w-full lg:w-auto px-12 py-5 rounded-2xl shadow-xl shadow-red-100">Synchronize Identity</Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      </div>
+
+      {showCardModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-2xl z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300 no-print">
+           <div className="max-w-sm w-full animate-in zoom-in-95 duration-200 flex flex-col items-center gap-6">
+             <IDCardFrame user={user} ref={cardRef} />
+             <div className="flex gap-4 w-full">
+               <Button onClick={downloadIDCard} className="flex-1 rounded-2xl py-4 shadow-2xl">
+                 <Download size={18} className="mr-2" /> Download JPG
+               </Button>
+               <Button onClick={() => setShowCardModal(false)} variant="outline" className="flex-1 bg-white rounded-2xl py-4 text-slate-400 border-slate-200">
+                 Close
+               </Button>
+             </div>
+           </div>
+        </div>
+      )}
+
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          aside, header, button, .no-print, .space-y-10 > *:not(.id-card-container) { display: none !important; }
+          body, main { background: white !important; padding: 0 !important; margin: 0 !important; }
+          .id-card-container { margin: 0 auto !important; box-shadow: none !important; border: 1px solid #eee !important; }
+        }
+      `}} />
+    </div>
+  );
+};
