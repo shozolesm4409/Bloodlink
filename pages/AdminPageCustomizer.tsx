@@ -30,7 +30,7 @@ export const AdminPageCustomizer = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'landing' | 'auth' | 'privacy' | 'footer'>('landing');
+  const [activeTab, setActiveTab] = useState<'landing' | 'auth' | 'privacy'>('landing');
 
   useEffect(() => {
     getLandingConfig().then(data => {
@@ -71,7 +71,6 @@ export const AdminPageCustomizer = () => {
           <TabButton active={activeTab === 'landing'} onClick={() => setActiveTab('landing')} icon={Globe} label="Landing" />
           <TabButton active={activeTab === 'auth'} onClick={() => setActiveTab('auth')} icon={Key} label="Auth Screens" />
           <TabButton active={activeTab === 'privacy'} onClick={() => setActiveTab('privacy')} icon={ShieldCheck} label="Privacy" />
-          <TabButton active={activeTab === 'footer'} onClick={() => setActiveTab('footer')} icon={Layout} label="Footer" />
         </div>
         <Button onClick={handleSave} isLoading={saving} className="px-10 py-5 rounded-[1.5rem] shadow-2xl bg-red-600 hover:bg-red-700 transition-all border-0 mx-4 lg:mx-0">
           <Save className="mr-2" size={20} /> Sync Global UI
@@ -111,6 +110,13 @@ export const AdminPageCustomizer = () => {
                  <TextArea label="CTA Subtitle" value={config.ctaSubtitle} onChange={e => updateField('ctaSubtitle', e.target.value)} />
                </SectionCard>
             </div>
+
+            <SectionCard title="Global Footer Signature" icon={Layout} iconColor="text-slate-600">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Input label="Copyright Content" value={config.footerCopyright} onChange={e => updateField('footerCopyright', e.target.value)} />
+                  <Input label="Brand Tagline" value={config.footerTagline} onChange={e => updateField('footerTagline', e.target.value)} />
+                </div>
+            </SectionCard>
           </div>
         )}
 
@@ -218,15 +224,6 @@ export const AdminPageCustomizer = () => {
                </SectionCard>
             </div>
           </div>
-        )}
-
-        {activeTab === 'footer' && (
-          <SectionCard title="Global Footer Signature" icon={Layout} iconColor="text-slate-600">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Input label="Copyright Content" value={config.footerCopyright} onChange={e => updateField('footerCopyright', e.target.value)} />
-              <Input label="Brand Tagline" value={config.footerTagline} onChange={e => updateField('footerTagline', e.target.value)} />
-            </div>
-          </SectionCard>
         )}
       </div>
     </div>

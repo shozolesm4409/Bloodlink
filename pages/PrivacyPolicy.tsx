@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { PublicLayout } from '../components/PublicLayout';
 import { Card } from '../components/UI';
-import { ShieldCheck, Lock, Eye, Database, Share2, UserCheck, ArrowLeft, Mail } from 'lucide-react';
-import { useNavigate } from "react-router-dom";
+import { ShieldCheck, Lock, Eye, Database, Share2, UserCheck, ArrowLeft, Mail, HelpCircle, ArrowRight, MessageSquareQuote, Megaphone } from 'lucide-react';
+import { useNavigate, Link } from "react-router-dom";
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
 
@@ -118,7 +119,19 @@ export const PrivacyPolicy = () => {
               <div>
                 <h4 className="font-black text-slate-900 text-xl tracking-tight">{c.contactTitle}</h4>
                 <p className="text-slate-500 font-medium text-sm mt-1">{c.contactSubtitle}</p>
-                <a href={`mailto:${c.contactEmail}`} className="text-red-600 font-black text-lg hover:underline block mt-2">{c.contactEmail}</a>
+                <a href={`mailto:${c.contactEmail}`} className="text-red-600 font-black text-lg hover:underline block mt-2 mb-6">{c.contactEmail}</a>
+                
+                <div className="flex flex-wrap justify-center gap-3">
+                  <Link to="/help-center" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 hover:text-red-600 transition-all border border-slate-200">
+                     <HelpCircle size={16} /> Help Center
+                  </Link>
+                  <Link to="/public-feedbacks" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 hover:text-red-600 transition-all border border-slate-200">
+                     <MessageSquareQuote size={16} /> Feedback
+                  </Link>
+                  <Link to="/public-notices" className="inline-flex items-center gap-2 px-6 py-3 bg-slate-50 text-slate-700 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-100 hover:text-red-600 transition-all border border-slate-200">
+                     <Megaphone size={16} /> Notice
+                  </Link>
+                </div>
               </div>
             </div>
 

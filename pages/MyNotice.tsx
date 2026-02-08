@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from '../AuthContext';
 import { addNotice, updateNotice, subscribeToNotices, deleteNotice, getUsers, getAppPermissions, ADMIN_EMAIL } from '../services/api';
 import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../components/UI';
-import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown } from 'lucide-react';
+import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown, Globe } from 'lucide-react';
 import { Notice, User, UserRole, AppPermissions, NoticeType } from '../types';
 import clsx from 'clsx';
 
@@ -19,7 +19,7 @@ export const MyNotice = () => {
   const [loading, setLoading] = useState(true);
   const [perms, setPerms] = useState<AppPermissions | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'PUBLIC' | 'PRIVATE'>('PUBLIC');
+  const [activeTab, setActiveTab] = useState<'PUBLIC' | 'PRIVATE' | 'WEB'>('PUBLIC');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -41,17 +41,30 @@ export const MyNotice = () => {
   }, []);
 
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || user?.email.trim().toLowerCase() === ADMIN_EMAIL;
-  const canPost = perms?.[user?.role?.toLowerCase() as 'user' | 'editor']?.rules.canPostNotice || isStaff;
+  
+  // Effective Permission Check
+  const canPost = (() => {
+    if (!user) return false;
+    // 1. Check specific override
+    if (user.permissions?.rules?.canPostNotice !== undefined) return user.permissions.rules.canPostNotice;
+    // 2. Super Admins always can
+    if (user.role === UserRole.SUPERADMIN) return true;
+    // 3. Fallback to Role Global Permission
+    const roleKey = user.role.toLowerCase() as keyof AppPermissions;
+    return perms?.[roleKey]?.rules?.canPostNotice ?? isStaff;
+  })();
 
   // Filter notices based on role and tab
   const filteredNotices = notices.filter(n => {
     const matchesSearch = n.subject.toLowerCase().includes(searchQuery.toLowerCase());
-    // Public notices are visible to everyone. Private notices only to Staff.
-    // If the tab is PRIVATE, only show PRIVATE notices if the user is staff.
-    if (activeTab === NoticeType.PRIVATE) {
+    // Filter strictly by active tab type
+    if (activeTab === 'WEB') {
+        return matchesSearch && n.type === NoticeType.WEB;
+    }
+    if (activeTab === 'PRIVATE') {
         return matchesSearch && n.type === NoticeType.PRIVATE && isStaff;
     }
-    // If tab is PUBLIC, show all PUBLIC notices.
+    // Default to PUBLIC
     return matchesSearch && n.type === NoticeType.PUBLIC;
   }).sort((a, b) => {
     // Pinned notices first
@@ -130,6 +143,18 @@ export const MyNotice = () => {
     } catch (e) { showToast("Action failed.", "error"); }
   };
 
+  const TabButton = ({ type, label }: { type: string, label: string }) => (
+    <button 
+      onClick={() => setActiveTab(type as any)} 
+      className={clsx(
+        "pb-2 text-sm font-bold transition-all px-1",
+        activeTab === type ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
+      )}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className="max-w-7xl mx-auto pb-20 px-4 animate-in fade-in duration-500">
       <Toast {...toastState} onClose={hideToast} />
@@ -141,26 +166,9 @@ export const MyNotice = () => {
              Official Board
            </h1>
            <div className="flex items-center gap-6 mt-4 border-b border-slate-200">
-              <button 
-                onClick={() => setActiveTab(NoticeType.PUBLIC)} 
-                className={clsx(
-                  "pb-2 text-sm font-bold transition-all px-1",
-                  activeTab === NoticeType.PUBLIC ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
-                )}
-              >
-                Public
-              </button>
-              {isStaff && (
-                <button 
-                    onClick={() => setActiveTab(NoticeType.PRIVATE)} 
-                    className={clsx(
-                    "pb-2 text-sm font-bold transition-all px-1",
-                    activeTab === NoticeType.PRIVATE ? "text-blue-600 border-b-2 border-blue-600" : "text-slate-400 hover:text-slate-600"
-                    )}
-                >
-                    Private
-                </button>
-              )}
+              <TabButton type="PUBLIC" label="Public" />
+              {isStaff && <TabButton type="PRIVATE" label="Private" />}
+              {isStaff && <TabButton type="WEB" label="Web Notice" />}
            </div>
         </div>
 
@@ -202,7 +210,7 @@ export const MyNotice = () => {
         <div className="space-y-12">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredNotices.map(n => (
-              <NoteCard key={n.id} note={n} onEdit={startEdit} onDelete={setDeleteNoticeId} isStaff={isStaff} />
+              <NoteCard key={n.id} note={n} onEdit={startEdit} onDelete={(id) => setDeleteNoticeId(id)} isStaff={canPost} />
             ))}
             {filteredNotices.length === 0 && (
               <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 rounded-[2rem] bg-slate-50/50">
@@ -217,30 +225,32 @@ export const MyNotice = () => {
       {showCreate && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
            <Card className="w-full max-w-3xl bg-white border-0 shadow-2xl rounded-[1.5rem] overflow-hidden">
-              <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+              <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-center relative">
                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-600">{editModeId ? 'Refine Note' : 'New Note'}</h2>
-                 <button onClick={() => { setShowCreate(false); resetEditor(); }} className="p-2 hover:bg-slate-200 rounded-xl transition-all"><X size={18}/></button>
+                 <button onClick={() => { setShowCreate(false); resetEditor(); }} className="absolute right-4 p-2 hover:bg-slate-200 rounded-xl transition-all"><X size={18}/></button>
               </div>
               <form onSubmit={handlePostNotice} className="p-6 space-y-6">
-                 <div className="flex flex-wrap items-start gap-4">
+                 {/* Mobile Layout: Title in one row, Controls in another. Web Layout: Flex row side-by-side */}
+                 <div className="flex flex-col lg:flex-row items-start gap-4">
                     <textarea 
                       placeholder="Title of announcement..." 
                       value={subject} 
                       onChange={e => setSubject(e.target.value)} 
                       required 
                       rows={2}
-                      className="flex-1 bg-transparent border-0 border-b-2 border-slate-100 rounded-none px-0 shadow-none text-lg font-bold placeholder:text-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar py-2" 
+                      className="w-full lg:flex-1 bg-transparent border-0 border-b-2 border-slate-100 rounded-none px-0 shadow-none text-lg font-bold placeholder:text-slate-300 focus:border-blue-500 outline-none resize-none custom-scrollbar py-2" 
                     />
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-3 w-full lg:w-auto">
                       <select 
                         value={noticeType} 
                         onChange={e => setNoticeType(e.target.value as NoticeType)}
-                        className="bg-slate-100 border-0 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
+                        className="flex-1 lg:flex-none bg-slate-100 border-0 rounded-xl px-4 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer"
                       >
                          <option value={NoticeType.PUBLIC}>Public</option>
                          <option value={NoticeType.PRIVATE}>Private</option>
+                         {isStaff && <option value={NoticeType.WEB}>Web Notice</option>}
                       </select>
-                      <label className="flex items-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl hover:bg-slate-100 transition-all border border-slate-200">
+                      <label className="flex-1 lg:flex-none flex items-center justify-center gap-2 cursor-pointer bg-slate-50 px-4 py-2 rounded-xl hover:bg-slate-100 transition-all border border-slate-200">
                         <input type="checkbox" checked={isPinned} onChange={e => setIsPinned(e.target.checked)} className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500" />
                         <span className="text-[10px] font-black uppercase text-slate-600 tracking-widest">Pin</span>
                         <Pin size={14} className={clsx(isPinned ? "text-blue-600 fill-blue-600" : "text-slate-400")} />
@@ -290,7 +300,7 @@ export const MyNotice = () => {
                     <div 
                       ref={editorRef} 
                       contentEditable 
-                      className="min-h-[300px] p-6 bg-white border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 custom-scrollbar overflow-y-auto text-sm leading-relaxed"
+                      className="min-h-[300px] max-h-[300px] p-6 bg-white border border-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 custom-scrollbar overflow-y-auto text-sm leading-relaxed"
                     />
                  </div>
 
@@ -312,7 +322,14 @@ export const MyNotice = () => {
   );
 };
 
-const NoteCard = ({ note, onEdit, onDelete, isStaff }: { note: Notice, onEdit: (n: Notice) => void, onDelete: (id: string) => void, isStaff: boolean }) => (
+interface NoteCardProps {
+  note: Notice;
+  onEdit: (n: Notice) => void;
+  onDelete: (id: string) => void;
+  isStaff: boolean;
+}
+
+const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, isStaff }) => (
   <Card className={clsx(
     "p-6 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white rounded-2xl group flex flex-col justify-between border-t-2 relative",
     note.pinned ? "border-blue-600 shadow-blue-50" : "border-transparent hover:border-blue-500"
@@ -355,8 +372,8 @@ const NoteCard = ({ note, onEdit, onDelete, isStaff }: { note: Notice, onEdit: (
 
      <div className="mt-6 pt-4 border-t border-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Badge color={note.type === 'PUBLIC' ? 'green' : 'blue'} className="text-[8px] py-0.5 px-2 rounded-md">
-             {note.type}
+          <Badge color={note.type === 'PUBLIC' ? 'green' : (note.type === 'WEB' ? 'purple' : 'blue')} className="text-[8px] py-0.5 px-2 rounded-md">
+             {note.type === 'WEB' ? 'WEB NOTICE' : note.type}
           </Badge>
           {note.pinned && <Badge color="yellow" className="text-[8px] py-0.5 px-2 rounded-md">PINNED</Badge>}
         </div>

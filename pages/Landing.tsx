@@ -281,22 +281,6 @@ export const Landing = () => {
           </Link>
         </div>
       </section>
-
-      {/* New Global Footer Signature Section inside Landing */}
-      <section className="py-20 px-[5%] bg-white flex flex-col items-center text-center animate-in fade-in duration-1000">
-         <div className="max-w-2xl space-y-6">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-[1.5rem] flex items-center justify-center mx-auto shadow-inner mb-2">
-               <Sparkles size={32} className="animate-pulse" />
-            </div>
-            <p className="text-2xl lg:text-3xl font-black text-slate-800 tracking-tight italic">
-               "{config.footerTagline}"
-            </p>
-            <div className="h-px w-20 bg-red-100 mx-auto"></div>
-            <p className="text-xs font-black uppercase tracking-[0.4em] text-slate-300">
-               {config.footerCopyright}
-            </p>
-         </div>
-      </section>
     </PublicLayout>
   );
 };

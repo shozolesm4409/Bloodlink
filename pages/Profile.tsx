@@ -90,9 +90,17 @@ export const Profile = () => {
 
   const rank = getRankData(donationCount);
 
-  const isRestricted = user.role === UserRole.USER 
-    ? perms?.user.rules.canEditProfile === false 
-    : (user.role === UserRole.EDITOR ? perms?.editor.rules.canEditProfile === false : false);
+  // Helper to check effective permissions (Override > Global)
+  const canEditProfile = (() => {
+    if (user.permissions?.rules?.canEditProfile !== undefined) {
+      return user.permissions.rules.canEditProfile;
+    }
+    const roleKey = user.role.toLowerCase() as keyof AppPermissions;
+    if (user.role === UserRole.SUPERADMIN) return true;
+    return perms?.[roleKey]?.rules?.canEditProfile ?? (user.role !== UserRole.USER); // Default fallback
+  })();
+
+  const isRestricted = !canEditProfile;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -301,7 +309,10 @@ export const Profile = () => {
                 <div className="w-28 h-28 bg-white rounded-[2rem] flex items-center justify-center border-4 border-white shadow-2xl overflow-hidden group-hover:scale-105 transition-transform duration-500">
                   {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" /> : <UserCircle size={64} className="text-slate-200" />}
                 </div>
-                <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-red-600 text-white rounded-xl border-4 border-white flex items-center justify-center cursor-pointer hover:bg-red-700 transition-all shadow-xl">
+                <label className={clsx(
+                  "absolute -bottom-2 -right-2 w-10 h-10 bg-red-600 text-white rounded-xl border-4 border-white flex items-center justify-center transition-all shadow-xl",
+                  isRestricted ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-red-700"
+                )}>
                   <Camera size={18} />
                   <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" disabled={isRestricted} />
                 </label>
@@ -349,7 +360,9 @@ export const Profile = () => {
               </Select>
               <div className="md:col-span-2"><Input label="Current City / Area" name="location" defaultValue={user.location} disabled={isRestricted} /></div>
               <div className="md:col-span-2 pt-6 flex justify-end">
-                <Button type="submit" isLoading={loading} disabled={isRestricted} className="w-full lg:w-auto px-12 py-5 rounded-2xl shadow-xl shadow-red-100">Synchronize Identity</Button>
+                <Button type="submit" isLoading={loading} disabled={isRestricted} className="w-full lg:w-auto px-12 py-5 rounded-2xl shadow-xl shadow-red-100">
+                  {isRestricted ? "Profile Locked by Admin" : "Synchronize Identity"}
+                </Button>
               </div>
             </form>
           </Card>

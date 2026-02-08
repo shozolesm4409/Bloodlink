@@ -1,3 +1,4 @@
+
 export enum UserRole {
   SUPERADMIN = 'SUPERADMIN',
   ADMIN = 'ADMIN',
@@ -7,7 +8,8 @@ export enum UserRole {
 
 export enum NoticeType {
   PUBLIC = 'PUBLIC',
-  PRIVATE = 'PRIVATE'
+  PRIVATE = 'PRIVATE',
+  WEB = 'WEB'
 }
 
 export enum BloodGroup {
@@ -33,6 +35,12 @@ export enum FeedbackStatus {
   REJECTED = 'REJECTED'
 }
 
+export enum HelpStatus {
+  PENDING = 'PENDING',
+  COMPLETE = 'COMPLETE',
+  REJECTED = 'REJECTED'
+}
+
 export interface NavLink {
   label: string;
   path: string;
@@ -49,6 +57,16 @@ export interface Notice {
   type: NoticeType;
   pinned?: boolean;
   mentions?: string[];
+}
+
+export interface HelpRequest {
+  id: string;
+  name: string;
+  phone: string;
+  message: string;
+  status: HelpStatus;
+  remark?: string;
+  timestamp: string;
 }
 
 export interface LandingPageConfig {
@@ -212,6 +230,7 @@ export interface RolePermissions {
     verificationHistory?: boolean;
     teamIdCards?: boolean;
     deletedUsers?: boolean;
+    helpCenterManage?: boolean;
   };
   rules: {
     canEditProfile: boolean;

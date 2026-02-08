@@ -76,13 +76,14 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
 );
 
 // Fix: Converted to React.FC to handle internal props like key correctly in TS
-export const Badge: React.FC<{ children?: React.ReactNode, color?: 'blue' | 'green' | 'red' | 'yellow' | 'gray', className?: string }> = ({ children, color = 'blue', className }) => {
+export const Badge: React.FC<{ children?: React.ReactNode, color?: 'blue' | 'green' | 'red' | 'yellow' | 'gray' | 'purple', className?: string }> = ({ children, color = 'blue', className }) => {
   const colors = {
     blue: "bg-blue-100 text-blue-700",
     green: "bg-green-100 text-green-700",
     red: "bg-red-100 text-red-700",
     yellow: "bg-yellow-100 text-yellow-800",
-    gray: "bg-slate-100 text-slate-700"
+    gray: "bg-slate-100 text-slate-700",
+    purple: "bg-purple-100 text-purple-700"
   };
   return (
     <span className={clsx("inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter", colors[color], className)}>

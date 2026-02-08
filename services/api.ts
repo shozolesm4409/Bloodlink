@@ -1,3 +1,4 @@
+
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -12,7 +13,7 @@ import {
   getDocs, 
   setDoc, 
   updateDoc, 
-  deleteDoc,
+  deleteDoc, 
   query, 
   where, 
   addDoc, 
@@ -23,7 +24,7 @@ import {
 } from "@firebase/firestore";
 import { auth, db } from "./firebase";
 export { db };
-import { User, DonationRecord, AuditLog, UserRole, DonationStatus, BloodGroup, AppPermissions, ChatMessage, DonationFeedback, FeedbackStatus, RevokedPermission, LandingPageConfig, Notice, NoticeType } from '../types';
+import { User, DonationRecord, AuditLog, UserRole, DonationStatus, BloodGroup, AppPermissions, ChatMessage, DonationFeedback, FeedbackStatus, RevokedPermission, LandingPageConfig, Notice, NoticeType, HelpRequest, HelpStatus } from '../types';
 
 const COLLECTIONS = {
   USERS: 'users',
@@ -34,12 +35,14 @@ const COLLECTIONS = {
   DELETED_LOGS: 'deleted_logs',
   DELETED_FEEDBACKS: 'deleted_feedbacks',
   DELETED_NOTICES: 'deleted_notices',
+  DELETED_HELP_REQUESTS: 'deleted_help_requests',
   SETTINGS: 'settings',
   MESSAGES: 'messages',
   REVOKED_PERMISSIONS: 'revoked_permissions',
   FEEDBACKS: 'feedbacks',
   NOTICES: 'notices',
-  VERIFICATION_LOGS: 'verification_logs'
+  VERIFICATION_LOGS: 'verification_logs',
+  HELP_REQUESTS: 'help_requests'
 };
 
 const CACHE_KEYS = {
@@ -60,6 +63,61 @@ const createLog = async (action: string, userId: string, userName: string, detai
     });
   } catch (e) {
     console.debug("Audit logging failed.");
+  }
+};
+
+export const submitHelpRequest = async (data: Omit<HelpRequest, 'id' | 'status' | 'timestamp'>) => {
+  await addDoc(collection(db, COLLECTIONS.HELP_REQUESTS), {
+    ...data,
+    status: HelpStatus.PENDING,
+    timestamp: new Date().toISOString(),
+    remark: ''
+  });
+};
+
+export const getHelpRequests = async (): Promise<HelpRequest[]> => {
+  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest));
+};
+
+export const updateHelpRequest = async (id: string, data: Partial<HelpRequest>, admin: User) => {
+  await updateDoc(doc(db, COLLECTIONS.HELP_REQUESTS, id), data);
+  await createLog('HELP_REQUEST_UPDATE', admin.id, admin.name, `Updated help request ${id} status to ${data.status}`, admin.avatar);
+};
+
+export const deleteHelpRequest = async (id: string, admin: User) => {
+  const ref = doc(db, COLLECTIONS.HELP_REQUESTS, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const batch = writeBatch(db);
+    const archiveRef = doc(db, COLLECTIONS.DELETED_HELP_REQUESTS, id);
+    batch.set(archiveRef, {
+      ...snap.data(),
+      deletedAt: new Date().toISOString(),
+      deletedBy: admin.name
+    });
+    batch.delete(ref);
+    await batch.commit();
+    await createLog('HELP_REQUEST_DELETE', admin.id, admin.name, `Archived help request ${id}`, admin.avatar);
+  }
+};
+
+export const getDeletedHelpRequests = async (): Promise<any[]> => {
+  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_HELP_REQUESTS));
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+};
+
+export const restoreDeletedHelpRequest = async (id: string, admin: User): Promise<void> => {
+  const deletedRef = doc(db, COLLECTIONS.DELETED_HELP_REQUESTS, id);
+  const snap = await getDoc(deletedRef);
+  if (snap.exists()) {
+    const { deletedAt, deletedBy, ...data } = snap.data();
+    const batch = writeBatch(db);
+    batch.set(doc(db, COLLECTIONS.HELP_REQUESTS, id), data);
+    batch.delete(deletedRef);
+    await batch.commit();
+    await createLog('HELP_REQUEST_RESTORE', admin.id, admin.name, `Restored help request ${id}`, admin.avatar);
   }
 };
 
@@ -102,6 +160,26 @@ export const getNotices = async (): Promise<Notice[]> => {
   const q = query(collection(db, COLLECTIONS.NOTICES), orderBy('timestamp', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+};
+
+export const getWebNotices = async (): Promise<Notice[]> => {
+  const q = query(collection(db, COLLECTIONS.NOTICES), where('type', '==', 'WEB'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+};
+
+export const getNoticeById = async (id: string): Promise<Notice | null> => {
+  try {
+    const docRef = doc(db, COLLECTIONS.NOTICES, id);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return { id: snap.id, ...snap.data() } as Notice;
+    }
+    return null;
+  } catch (e) {
+    console.error("Error fetching notice:", e);
+    return null;
+  }
 };
 
 export const addNotice = async (notice: Omit<Notice, 'id'>, admin: User) => {
@@ -298,15 +376,15 @@ export const getAppPermissions = async (): Promise<AppPermissions> => {
 
   const DEFAULT_PERMS: AppPermissions = {
     user: { 
-      sidebar: { dashboard: true, profile: true, history: true, donors: true, supportCenter: true, feedback: true, myNotice: true }, 
+      sidebar: { dashboard: true, profile: true, history: true, donors: true, supportCenter: true, feedback: true, myNotice: true, helpCenterManage: false }, 
       rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: false }
     },
     editor: { 
-      sidebar: { dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true }, 
+      sidebar: { dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, helpCenterManage: true }, 
       rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true }
     },
     admin: {
-      sidebar: { summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, notifications: true, adminVerify: true, verificationHistory: true, teamIdCards: true, deletedUsers: true },
+      sidebar: { summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, notifications: true, adminVerify: true, verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true },
       rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true }
     }
   };

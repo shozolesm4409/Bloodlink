@@ -1,3 +1,4 @@
+
 import React from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
@@ -24,6 +25,10 @@ import { AdminIDCards } from './pages/AdminIDCards';
 import { VerifyMember } from './pages/VerifyMember';
 import { AdminVerificationHistory } from './pages/AdminVerificationHistory';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { HelpCenter } from './pages/HelpCenter';
+import { AdminHelpCenter } from './pages/AdminHelpCenter';
+import { PublicNotices } from './pages/PublicNotices';
+import { NoticeDetail } from './pages/NoticeDetail';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole } from './types';
 
@@ -59,7 +64,10 @@ const App = () => {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           
           <Route path="/public-feedbacks" element={<PublicFeedbackPage />} />
+          <Route path="/public-notices" element={<PublicNotices />} />
+          <Route path="/public-notices/:id" element={<NoticeDetail />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/help-center" element={<HelpCenter />} />
           
           {/* Public Verification Route with PublicLayout */}
           <Route path="/verify/:idNumber?" element={<PublicLayout><VerifyMember /></PublicLayout>} />
@@ -77,6 +85,7 @@ const App = () => {
           <Route path="/landing-settings" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminPageCustomizer /></ProtectedRoute>} />
           <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminDonations /></ProtectedRoute>} />
           <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><FeedbackApprovalPage /></ProtectedRoute>} />
+          <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminHelpCenter /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminPermissions /></ProtectedRoute>} />
           
           {/* Admin Integrated Verification Routes */}

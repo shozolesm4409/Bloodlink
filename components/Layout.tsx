@@ -37,7 +37,8 @@ import {
   IdCard,
   ShieldCheck,
   ClipboardList,
-  Lock
+  Lock,
+  HelpCircle
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -94,8 +95,8 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     }
   }, [user, location.pathname]); 
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate('/');
   };
 
@@ -163,7 +164,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
         logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
         landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-        verificationHistory: true, teamIdCards: true, deletedUsers: true 
+        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true
       };
     } else if (isAdmin) {
       basePerms = perms.admin?.sidebar || basePerms;
@@ -174,7 +175,10 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     }
   }
 
-  const s = user?.permissions?.sidebar ? { ...basePerms, ...user.permissions.sidebar } : basePerms;
+  // Determine effective permissions by merging base permissions with user overrides
+  const s = user?.permissions?.sidebar 
+    ? { ...basePerms, ...user.permissions.sidebar } 
+    : basePerms;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex">
@@ -220,33 +224,26 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
              {s.feedback && <NavItem to="/feedback" icon={MessageSquareQuote} label="Post Feedback" />}
           </SidebarSection>
 
-          {(isAdmin || isEditor || isSuperAdmin) && (
-            <>
-              <SidebarSection title="Content Admin">
-                {isSuperAdmin && s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
-                {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
-                {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
-              </SidebarSection>
+          <SidebarSection title="Content Admin">
+            {isSuperAdmin && s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
+            {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
+            {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
+            {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" />}
+          </SidebarSection>
 
-              <SidebarSection title="People Control">
-                {s.users && <NavItem to="/users" icon={UsersRound} label="Manage Users" />}
-                {s.notifications && <NavItem to="/notifications" icon={Bell} label="Access Requests" badges={[{ count: counts.access, color: 'red' }]} />}
-                {s.adminVerify && <NavItem to="/admin/verify" icon={ShieldCheck} label="Verify Identity" />}
-                {s.verificationHistory && <NavItem to="/verification-history" icon={ClipboardList} label="Verification History" />}
-                {isSuperAdmin && s.teamIdCards && <NavItem to="/team-id-cards" icon={IdCard} label="Team ID Cards" />}
-              </SidebarSection>
+          <SidebarSection title="People Control">
+            {s.users && <NavItem to="/users" icon={UsersRound} label="Manage Users" />}
+            {s.notifications && <NavItem to="/notifications" icon={Bell} label="Access Requests" badges={[{ count: counts.access, color: 'red' }]} />}
+            {s.adminVerify && <NavItem to="/admin/verify" icon={ShieldCheck} label="Verify Identity" />}
+            {s.verificationHistory && <NavItem to="/verification-history" icon={ClipboardList} label="Verification History" />}
+            {s.teamIdCards && <NavItem to="/team-id-cards" icon={IdCard} label="Team ID Cards" />}
+          </SidebarSection>
 
-              <SidebarSection title="System Intel">
-                {isSuperAdmin && (
-                  <>
-                    {s.rolePermissions && <NavItem to="/role-permissions" icon={Lock} label="Role Permissions" />}
-                    {s.deletedUsers && <NavItem to="/deleted-users" icon={Trash2} label="System Archives" />}
-                    {s.logs && <NavItem to="/logs" icon={FileText} label="Activity Logs" />}
-                  </>
-                )}
-              </SidebarSection>
-            </>
-          )}
+          <SidebarSection title="System Intel">
+            {s.rolePermissions && <NavItem to="/role-permissions" icon={Lock} label="Role Permissions" />}
+            {s.deletedUsers && <NavItem to="/deleted-users" icon={Trash2} label="System Archives" />}
+            {s.logs && <NavItem to="/logs" icon={FileText} label="Activity Logs" />}
+          </SidebarSection>
         </div>
 
         <div className="p-2 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">

@@ -11,7 +11,7 @@ const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
   'dashboard', 'profile', 'history', 'donors', 'users', 'manageDonations', 
   'logs', 'rolePermissions', 'supportCenter', 'feedback', 'approveFeedback', 
   'landingSettings', 'myNotice', 'summary', 'notifications', 'adminVerify', 
-  'verificationHistory', 'teamIdCards', 'deletedUsers'
+  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage'
 ];
 
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [

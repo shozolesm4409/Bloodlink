@@ -1,7 +1,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { getDeletedUsers, getDeletedDonations, getDeletedLogs, getDeletedFeedbacks, getDeletedNotices, restoreDeletedUser, restoreDeletedDonation, restoreDeletedLog, restoreDeletedFeedback, restoreDeletedNotice, permanentlyDeleteArchivedFeedback } from '../services/api';
+import { 
+  getDeletedUsers, 
+  getDeletedDonations, 
+  getDeletedLogs, 
+  getDeletedFeedbacks, 
+  getDeletedNotices, 
+  getDeletedHelpRequests,
+  restoreDeletedUser, 
+  restoreDeletedDonation, 
+  restoreDeletedLog, 
+  restoreDeletedFeedback, 
+  restoreDeletedNotice,
+  restoreDeletedHelpRequest,
+  permanentlyDeleteArchivedFeedback 
+} from '../services/api';
 import { Card, Toast, useToast, ConfirmModal, Badge } from '../components/UI';
 import { Trash2, RotateCcw, User as UserIcon, Archive, Calendar, Clock, AlertCircle } from 'lucide-react';
 import clsx from 'clsx';
@@ -10,7 +24,7 @@ export const AdminArchives = () => {
   const { user } = useAuth();
   const { toastState, showToast, hideToast } = useToast();
   const [data, setData] = useState<any[]>([]);
-  const [tab, setTab] = useState<'users' | 'donations' | 'logs' | 'feedbacks' | 'notices'>('users');
+  const [tab, setTab] = useState<'users' | 'donations' | 'logs' | 'feedbacks' | 'notices' | 'help-requests'>('users');
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
@@ -23,6 +37,7 @@ export const AdminArchives = () => {
       else if (tab === 'logs') res = await getDeletedLogs();
       else if (tab === 'feedbacks') res = await getDeletedFeedbacks();
       else if (tab === 'notices') res = await getDeletedNotices();
+      else if (tab === 'help-requests') res = await getDeletedHelpRequests();
       setData(res);
     } catch (err) {
       showToast("Data sync failed.", "error");
@@ -41,6 +56,7 @@ export const AdminArchives = () => {
       else if (tab === 'logs') await restoreDeletedLog(id, user);
       else if (tab === 'feedbacks') await restoreDeletedFeedback(id, user);
       else if (tab === 'notices') await restoreDeletedNotice(id, user);
+      else if (tab === 'help-requests') await restoreDeletedHelpRequest(id, user);
       showToast("Restored to active database.");
       fetchData();
     } catch (e) { showToast("Failed.", "error"); }
@@ -77,7 +93,7 @@ export const AdminArchives = () => {
            </div>
         </div>
         <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto no-scrollbar max-w-full shadow-inner">
-          {['users', 'donations', 'logs', 'feedbacks', 'notices'].map(t => (
+          {['users', 'donations', 'logs', 'feedbacks', 'notices', 'help-requests'].map(t => (
             <button 
               key={t} 
               onClick={() => setTab(t as any)} 
@@ -86,7 +102,7 @@ export const AdminArchives = () => {
                 tab === t ? "bg-white shadow-md text-red-600" : "text-slate-500 hover:text-slate-900"
               )}
             >
-              {t}
+              {t.replace('-', ' ')}
             </button>
           ))}
         </div>
