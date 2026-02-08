@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from "react-router-dom";
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
-import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle } from 'lucide-react';
+import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck } from 'lucide-react';
 import clsx from 'clsx';
 
 interface PublicLayoutProps {
@@ -86,7 +86,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="pt-10 lg:pt-10 min-h-[60vh]">
+      <main className="pt-10 lg:pt-14 min-h-[60vh]">
         {children}
       </main>
 
@@ -118,7 +118,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
       <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-2 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <NavIcon to="/public-feedbacks" icon={MessageSquareQuote} label="Feedback" />
          <NavIcon to="/privacy" icon={ShieldCheck} label="Privacy" />
-         <NavIcon to="/login" icon={LogIn} label="Sign In" />
+         <NavIcon to="/verify" icon={UserCheck} label="Verify" />
          <NavIcon to="/public-notices" icon={Megaphone} label="Notice" />
          <NavIcon to="/help-center" icon={HelpCircle} label="Help" />
       </div>
