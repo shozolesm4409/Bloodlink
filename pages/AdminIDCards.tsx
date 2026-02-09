@@ -16,7 +16,7 @@ export const IDCardFrame = React.forwardRef<HTMLDivElement, { user: User }>(({ u
       ref={ref}
       className="id-card-container relative w-[340px] h-[550px] bg-white rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden flex flex-col font-sans select-none border border-slate-100"
     >
-      <div className="h-[230px] bg-[#001f3f] relative flex flex-col items-center pt-8 overflow-hidden">
+      <div className="h-[240px] bg-[#001f3f] relative flex flex-col items-center pt-8 overflow-hidden">
         <div className="relative z-10 flex flex-col items-center">
           <div className="flex items-center gap-2 mb-0.5">
             <div className="w-8 h-8 bg-white rounded-xl flex items-center justify-center shadow-lg">
@@ -61,7 +61,7 @@ export const IDCardFrame = React.forwardRef<HTMLDivElement, { user: User }>(({ u
         </div>
       </div>
 
-      <div className="flex-1 bg-white px-8 pt-6 flex flex-col items-center relative">
+      <div className="flex-1 bg-white px-7 pt-4 flex flex-col items-center relative">
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none z-0">
           <Droplet size={200} className="text-[#e11d48] fill-current" />
         </div>
