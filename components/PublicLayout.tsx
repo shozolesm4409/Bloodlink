@@ -53,6 +53,28 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     );
   };
 
+  const DesktopNavLink = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
+    const isActive = location.pathname === to;
+    return (
+      <Link 
+        to={to} 
+        className={clsx(
+          "flex items-center gap-2 font-bold text-sm transition-colors group", 
+          isActive ? "text-red-600" : "text-slate-600 hover:text-red-600"
+        )}
+      >
+        <Icon 
+          size={18} 
+          className={clsx(
+            "transition-colors", 
+            isActive ? "text-red-600 fill-current" : "text-slate-400 group-hover:text-red-600"
+          )} 
+        />
+        <span>{label}</span>
+      </Link>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9fa] font-sans selection:bg-red-100 selection:text-red-600 overflow-x-hidden pb-16 lg:pb-0">
       <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 px-[5%] py-4 flex justify-between items-center h-16 lg:h-20 transition-all">
@@ -63,17 +85,14 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
           <span className="text-xl lg:text-2xl font-black text-slate-900 tracking-tighter">BloodLink</span>
         </Link>
         <div className="flex items-center gap-4 lg:gap-8">
-          {config.navbarLinks?.map((link, idx) => (
-            <Link key={idx} to={link.path} className="text-slate-600 font-bold text-sm hover:text-red-600 transition-colors hidden sm:block">
-              {link.label}
-            </Link>
-          ))}
-          <Link to="/public-notices" className="text-slate-600 font-bold text-sm hover:text-red-600 transition-colors hidden sm:block">
-            Notice
-          </Link>
-          <Link to="/help-center" className="text-slate-600 font-bold text-sm hover:text-red-600 transition-colors hidden sm:block">
-            Help Center
-          </Link>
+          <div className="hidden lg:flex items-center gap-6">
+            {config.navbarLinks?.map((link, idx) => (
+              <DesktopNavLink key={idx} to={link.path} icon={MessageSquareQuote} label={link.label} />
+            ))}
+            <DesktopNavLink to="/public-notices" icon={Megaphone} label="Notice" />
+            <DesktopNavLink to="/help-center" icon={HelpCircle} label="Help Center" />
+          </div>
+          
           <div className="flex items-center">
             <Link 
               to="/login" 
@@ -86,7 +105,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="pt-10 lg:pt-14 min-h-[60vh]">
+      <main className="pt-10 lg:pt-20 min-h-[60vh]">
         {children}
       </main>
 

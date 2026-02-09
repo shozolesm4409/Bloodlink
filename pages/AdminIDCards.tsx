@@ -3,7 +3,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { getUsers } from '../services/api';
 import { Card, Button, Badge } from '../components/UI';
 import { User, UserRole } from '../types';
-import { Download, Droplet, User as UserIcon, ShieldCheck, Printer, QrCode } from 'lucide-react';
+import { Download, Droplet, User as UserIcon, ShieldCheck, Printer, QrCode, Search } from 'lucide-react';
 import { toJpeg } from 'html-to-image';
 import clsx from 'clsx';
 
@@ -61,7 +61,7 @@ export const IDCardFrame = React.forwardRef<HTMLDivElement, { user: User }>(({ u
         </div>
       </div>
 
-      <div className="flex-1 bg-white px-8 pt-2 flex flex-col items-center relative">
+      <div className="flex-1 bg-white px-8 pt-6 flex flex-col items-center relative">
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none z-0">
           <Droplet size={200} className="text-[#e11d48] fill-current" />
         </div>
@@ -85,13 +85,11 @@ export const IDCardFrame = React.forwardRef<HTMLDivElement, { user: User }>(({ u
             </div>
           </div>
 
-          <div className="w-full space-y-1.5 px-4 mt-1 mb-8">
+          <div className="w-full space-y-2 px-4 mt-2 mb-8">
             <DataRow label="ID No" value={user.idNumber || 'BL-000000'} />
             <DataRow label="Group" value={user.bloodGroup} />
             <DataRow label="Phone" value={user.phone || 'N/A'} />
-            <DataRow label="Email" value={user.email} />
             <DataRow label="Join" value={new Date().toLocaleDateString('en-GB')} />
-            <DataRow label="Expire" value={new Date(new Date().setFullYear(new Date().getFullYear() + 3)).toLocaleDateString('en-GB')} />
           </div>
         </div>
       </div>
@@ -134,6 +132,7 @@ export const AdminIDCards = () => {
   const [registry, setRegistry] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'ALL' | 'TEAM'>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -143,9 +142,19 @@ export const AdminIDCards = () => {
     });
   }, []);
 
-  const filteredRegistry = filter === 'TEAM' 
-    ? registry.filter(u => u.role === UserRole.ADMIN || u.role === UserRole.EDITOR || u.role === UserRole.SUPERADMIN)
-    : registry;
+  const filteredRegistry = registry.filter(u => {
+    const matchesType = filter === 'TEAM' 
+      ? (u.role === UserRole.ADMIN || u.role === UserRole.EDITOR || u.role === UserRole.SUPERADMIN)
+      : true;
+    
+    const lowerSearch = searchTerm.toLowerCase();
+    const matchesSearch = !lowerSearch || 
+      u.name.toLowerCase().includes(lowerSearch) || 
+      (u.idNumber && u.idNumber.toLowerCase().includes(lowerSearch)) || 
+      (u.phone && u.phone.toLowerCase().includes(lowerSearch));
+
+    return matchesType && matchesSearch;
+  });
 
   const downloadAsJpg = async (userId: string, name: string) => {
     const el = cardRefs.current[userId];
@@ -182,8 +191,8 @@ export const AdminIDCards = () => {
 
   return (
     <div className="space-y-12 pb-24 max-w-7xl mx-auto px-4 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row justify-between items-center gap-8 border-b border-slate-100 pb-12 no-print">
-        <div className="text-center md:text-left">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-8 border-b border-slate-100 pb-12 no-print">
+        <div className="text-center xl:text-left">
            <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 rounded-full mb-4">
               <ShieldCheck size={14} />
               <span className="text-[10px] font-black uppercase tracking-widest">Digital Registry Hub</span>
@@ -191,18 +200,32 @@ export const AdminIDCards = () => {
            <h1 className="text-4xl lg:text-5xl font-black text-slate-900 tracking-[-0.04em]">Staff Identity System</h1>
            <p className="text-slate-500 font-medium mt-2 max-w-lg">Manage and download high-resolution identification tokens for verified community members.</p>
         </div>
-        <div className="flex items-center gap-4">
-           <select 
-             value={filter} 
-             onChange={(e) => setFilter(e.target.value as any)}
-             className="bg-white border border-slate-200 px-6 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 transition-all cursor-pointer"
-           >
-             <option value="ALL">All Registered</option>
-             <option value="TEAM">Core Staff</option>
-           </select>
-           <Button onClick={() => window.print()} className="rounded-[1.5rem] px-10 shadow-2xl bg-[#001f3f] hover:bg-black py-5 group border-0">
-              <Printer size={20} className="mr-3 group-hover:scale-110 transition-transform" /> Print Batch
-           </Button>
+        
+        <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto">
+           <div className="relative group w-full md:w-64">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-red-600 transition-colors" size={18} />
+              <input 
+                type="text" 
+                placeholder="Name, ID or Phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-11 pr-4 py-4 bg-white border border-slate-200 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 transition-all placeholder:text-slate-400 placeholder:font-bold"
+              />
+           </div>
+
+           <div className="flex items-center gap-4 w-full md:w-auto">
+             <select 
+               value={filter} 
+               onChange={(e) => setFilter(e.target.value as any)}
+               className="bg-white border border-slate-200 px-6 py-4 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 transition-all cursor-pointer flex-1 md:flex-none"
+             >
+               <option value="ALL">All Registered</option>
+               <option value="TEAM">Core Staff</option>
+             </select>
+             <Button onClick={() => window.print()} className="rounded-[1.5rem] px-8 shadow-2xl bg-[#001f3f] hover:bg-black py-4 group border-0 whitespace-nowrap">
+                <Printer size={18} className="mr-2 group-hover:scale-110 transition-transform" /> Print Batch
+             </Button>
+           </div>
         </div>
       </div>
 
@@ -229,11 +252,18 @@ export const AdminIDCards = () => {
              </div>
           </div>
         ))}
+        
+        {filteredRegistry.length === 0 && (
+          <div className="col-span-full py-20 text-center opacity-40">
+             <Search size={48} className="mx-auto mb-4 text-slate-300" />
+             <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No identities found matching search criteria</p>
+          </div>
+        )}
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
-          aside, header, button, .no-print, select { display: none !important; }
+          aside, header, button, .no-print, select, input { display: none !important; }
           body, main { background: white !important; padding: 0 !important; margin: 0 !important; }
           .grid { display: block !important; }
           .id-card-container { 

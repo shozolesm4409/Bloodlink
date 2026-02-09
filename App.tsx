@@ -30,18 +30,42 @@ import { AdminHelpCenter } from './pages/AdminHelpCenter';
 import { PublicNotices } from './pages/PublicNotices';
 import { NoticeDetail } from './pages/NoticeDetail';
 import { PublicLayout } from './components/PublicLayout';
-import { UserRole } from './types';
+import { UserRole, RolePermissions } from './types';
 
-const ProtectedRoute = ({ children, allowedRoles }: { children?: React.ReactNode, allowedRoles?: UserRole[] }) => {
+const ProtectedRoute = ({ 
+  children, 
+  allowedRoles, 
+  requiredPermission 
+}: { 
+  children?: React.ReactNode, 
+  allowedRoles?: UserRole[],
+  requiredPermission?: keyof RolePermissions['sidebar']
+}) => {
   const { isAuthenticated, user } = useAuth();
   if (!isAuthenticated) return <Navigate to="/" replace />;
   
   // SuperAdmin bypasses all role restrictions
   if (user?.role === UserRole.SUPERADMIN) return <Layout>{children}</Layout>;
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/dashboard" replace />;
+  // Check strict role requirement
+  const roleGranted = allowedRoles ? allowedRoles.includes(user.role) : true;
+  
+  // Check permission override if specific permission is required
+  // If user has the specific sidebar permission enabled in their overrides/role settings, grant access
+  const permissionGranted = requiredPermission 
+    ? user?.permissions?.sidebar?.[requiredPermission] === true 
+    : false;
+
+  // Access is granted if Role matches OR Permission Override is true.
+  // If allowedRoles is NOT provided, it means route is open to any auth user (e.g. Dashboard)
+  // If requiredPermission IS provided, we check that.
+  
+  if (allowedRoles) {
+    if (!roleGranted && !permissionGranted) {
+       return <Navigate to="/dashboard" replace />;
+    }
   }
+
   return <Layout>{children}</Layout>;
 };
 
@@ -80,22 +104,22 @@ const App = () => {
           <Route path="/feedback" element={<ProtectedRoute><DonationFeedbackPage /></ProtectedRoute>} />
           <Route path="/notices" element={<ProtectedRoute><MyNotice /></ProtectedRoute>} />
 
-          <Route path="/summary" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminSummary /></ProtectedRoute>} />
-          <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminUserManagement /></ProtectedRoute>} />
-          <Route path="/landing-settings" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminPageCustomizer /></ProtectedRoute>} />
-          <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminDonations /></ProtectedRoute>} />
-          <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><FeedbackApprovalPage /></ProtectedRoute>} />
-          <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminHelpCenter /></ProtectedRoute>} />
-          <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminPermissions /></ProtectedRoute>} />
+          <Route path="/summary" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="summary"><AdminSummary /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="users"><AdminUserManagement /></ProtectedRoute>} />
+          <Route path="/landing-settings" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="landingSettings"><AdminPageCustomizer /></ProtectedRoute>} />
+          <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="manageDonations"><AdminDonations /></ProtectedRoute>} />
+          <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="approveFeedback"><FeedbackApprovalPage /></ProtectedRoute>} />
+          <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="helpCenterManage"><AdminHelpCenter /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="notifications"><AdminPermissions /></ProtectedRoute>} />
           
           {/* Admin Integrated Verification Routes */}
-          <Route path="/admin/verify/:idNumber?" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><VerifyMember /></ProtectedRoute>} />
-          <Route path="/verification-history" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminVerificationHistory /></ProtectedRoute>} />
+          <Route path="/admin/verify/:idNumber?" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="adminVerify"><VerifyMember /></ProtectedRoute>} />
+          <Route path="/verification-history" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="verificationHistory"><AdminVerificationHistory /></ProtectedRoute>} />
           
-          <Route path="/role-permissions" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminRolePermissions /></ProtectedRoute>} />
-          <Route path="/deleted-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminArchives /></ProtectedRoute>} />
-          <Route path="/logs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]}><AdminSystemLogs /></ProtectedRoute>} />
-          <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]}><AdminIDCards /></ProtectedRoute>} />
+          <Route path="/role-permissions" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="rolePermissions"><AdminRolePermissions /></ProtectedRoute>} />
+          <Route path="/deleted-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="deletedUsers"><AdminArchives /></ProtectedRoute>} />
+          <Route path="/logs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="logs"><AdminSystemLogs /></ProtectedRoute>} />
+          <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="teamIdCards"><AdminIDCards /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

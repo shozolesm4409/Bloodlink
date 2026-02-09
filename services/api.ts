@@ -66,9 +66,10 @@ const createLog = async (action: string, userId: string, userName: string, detai
   }
 };
 
-export const submitHelpRequest = async (data: Omit<HelpRequest, 'id' | 'status' | 'timestamp'>) => {
+export const submitHelpRequest = async (data: Omit<HelpRequest, 'id' | 'status' | 'timestamp'> & { userId?: string }) => {
   await addDoc(collection(db, COLLECTIONS.HELP_REQUESTS), {
     ...data,
+    userId: data.userId || null,
     status: HelpStatus.PENDING,
     timestamp: new Date().toISOString(),
     remark: ''
@@ -79,6 +80,22 @@ export const getHelpRequests = async (): Promise<HelpRequest[]> => {
   const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), orderBy('timestamp', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest));
+};
+
+export const getUserHelpRequests = async (userId: string): Promise<HelpRequest[]> => {
+  // Sort client-side to avoid composite index requirement
+  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+};
+
+export const getHelpRequestsByPhone = async (phone: string): Promise<HelpRequest[]> => {
+  // Sort client-side to avoid composite index requirement
+  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('phone', '==', phone));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 };
 
 export const updateHelpRequest = async (id: string, data: Partial<HelpRequest>, admin: User) => {
@@ -327,6 +344,14 @@ export const getAllFeedbacks = async (): Promise<DonationFeedback[]> => {
   const q = query(collection(db, COLLECTIONS.FEEDBACKS), orderBy('timestamp', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback));
+};
+
+export const getUserFeedbacks = async (userId: string): Promise<DonationFeedback[]> => {
+  // Sort client-side to avoid composite index requirement
+  const q = query(collection(db, COLLECTIONS.FEEDBACKS), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback))
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 };
 
 export const updateFeedbackStatus = async (feedbackId: string, status: FeedbackStatus, isVisible: boolean) => {

@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
+import { useNavigate } from "react-router-dom";
 import { useAuth } from '../AuthContext';
 import { 
   requestSupportAccess, 
   sendMessage, 
   subscribeToRoomMessages, 
   subscribeToAllSupportRooms, 
-  subscribeToAllIncomingMessages,
+  subscribeToAllIncomingMessages, 
   markMessagesAsRead,
   getUsers,
   getAppPermissions
@@ -19,6 +21,7 @@ import clsx from 'clsx';
 const EMOJIS = ['❤️', '🩸', '🙏', '😊', '👍', '💪', '🏥', '🚑', '💉', '🙌', '✨', '🔥', '🤝', '👋', '🌟', '💝'];
 
 export const SupportCenter = () => {
+  const navigate = useNavigate();
   const { user, updateUser } = useAuth();
   const { toastState, showToast, hideToast } = useToast();
   const [isRequesting, setIsRequesting] = useState(false);
@@ -44,9 +47,12 @@ export const SupportCenter = () => {
   useEffect(() => {
     getAppPermissions().then(setPerms);
     if (user) {
-      getUsers().then(users => {
-        setAllUsers(users);
-      }).catch(() => {});
+      // Only fetch users if access is granted to avoid permission errors if rules are strict
+      if (user.hasSupportAccess || user.role !== UserRole.USER) {
+        getUsers().then(users => {
+          setAllUsers(users);
+        }).catch(() => {});
+      }
       
       const unsubscribeUnread = subscribeToAllIncomingMessages(user.id, (msgs) => {
         const counts: Record<string, number> = {};
@@ -96,11 +102,11 @@ export const SupportCenter = () => {
           }
         });
         setSupportRooms(prev => {
-          const updated = { ...prev };
-          Object.keys(updated).forEach(id => {
-            if (prev[id]) updated[id].unread = prev[id].unread;
+          // Fix: Correctly update state with new rooms while preserving unread counts
+          Object.keys(rooms).forEach(id => {
+            if (prev[id]) rooms[id].unread = prev[id].unread;
           });
-          return updated;
+          return rooms;
         });
       }, (err) => {
         console.debug("Support rooms subscription restricted:", err.message);
@@ -167,6 +173,51 @@ export const SupportCenter = () => {
     }
   }, [messages, activeView]);
 
+  const handleRequestAccess = async () => {
+    if (!user) return;
+    setIsRequesting(true);
+    try {
+      await requestSupportAccess(user);
+      updateUser({ ...user, supportAccessRequested: true });
+      showToast("Access requested successfully.");
+    } catch (e) {
+      showToast("Request failed.", "error");
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const hasAccess = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || user?.hasSupportAccess;
+
+  if (!hasAccess) {
+    return (
+      <div className="max-w-2xl mx-auto py-12 px-4 animate-in fade-in duration-500">
+        <Toast {...toastState} onClose={hideToast} />
+        <Card className="p-12 text-center space-y-8 border-0 shadow-2xl bg-white rounded-[2rem]">
+          <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner">
+            <Lock size={48} />
+          </div>
+          <div className="space-y-4">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Support Center Locked</h2>
+            <p className="text-slate-500 font-medium leading-relaxed">
+              সাপোর্ট সেন্টার এবং মেসেঞ্জার শুধুমাত্র ভেরিফাইড ইউজারদের জন্য। এ্যাডমিনের সাথে যোগাযোগ করতে এক্সেস রিকোয়েস্ট পাঠান।
+            </p>
+          </div>
+          
+          {user?.supportAccessRequested ? (
+            <div className="p-6 bg-yellow-50 text-yellow-700 rounded-2xl flex items-center justify-center gap-3 border border-yellow-100 font-black uppercase tracking-widest text-xs">
+              <ShieldAlert size={18} /> Request Pending Approval
+            </div>
+          ) : (
+            <Button onClick={handleRequestAccess} isLoading={isRequesting} className="w-full py-5 rounded-2xl text-lg shadow-xl shadow-blue-100 bg-blue-600 hover:bg-blue-700">
+              Request Access to Support
+            </Button>
+          )}
+        </Card>
+      </div>
+    );
+  }
+
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN;
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -215,11 +266,25 @@ export const SupportCenter = () => {
     setShowEmojiPicker(false);
   };
 
+  const handleBackNavigation = () => {
+    if (activeView === 'private-chat') {
+      setActiveView('user-list');
+      setSelectedRecipient(null);
+    } else if (activeView === 'system-chat' && isStaff) {
+      setActiveView('system-list');
+      setSelectedRecipient(null);
+    } else {
+      setActiveView('hub');
+      setSelectedRecipient(null);
+    }
+    setPermissionError(null);
+  };
+
   const renderChat = (title: string, icon: any, targetUser?: User) => (
     <div className="h-[calc(100vh-140px)] flex flex-col space-y-4 animate-in fade-in duration-500">
       <div className="flex items-center justify-between bg-white p-3 lg:p-4 rounded-3xl shadow-sm border border-slate-100">
          <div className="flex items-center gap-2 lg:gap-4">
-            <button onClick={() => { setActiveView(isStaff && activeView === 'system-chat' ? 'system-list' : 'hub'); setSelectedRecipient(null); setPermissionError(null); }} className="p-2 hover:bg-slate-50 rounded-2xl transition-colors">
+            <button onClick={handleBackNavigation} className="p-2 hover:bg-slate-50 rounded-2xl transition-colors">
               <ArrowLeft size={20} className="text-slate-400" />
             </button>
             <div className="flex items-center gap-3">
@@ -299,14 +364,6 @@ export const SupportCenter = () => {
       </Card>
     </div>
   );
-
-  if (activeView === 'system-chat' || activeView === 'private-chat') {
-    const title = activeView === 'system-chat' 
-      ? (user?.role === UserRole.USER ? 'System Support' : selectedRecipient?.name || 'User Support')
-      : selectedRecipient?.name || 'Messenger';
-    const icon = activeView === 'system-chat' ? MessageSquare : BookOpen;
-    return renderChat(title, icon, selectedRecipient || undefined);
-  }
 
   if (activeView === 'system-list' && isStaff) {
     // Fix: Cast the room list mapping results to avoid 'unknown' errors in components
@@ -421,6 +478,22 @@ export const SupportCenter = () => {
     );
   }
 
+  if (activeView === 'system-chat') {
+    return renderChat(
+      user?.role === UserRole.USER ? "Staff Support" : (selectedRecipient?.name || "System Support"), 
+      MessageSquare, 
+      selectedRecipient || undefined
+    );
+  }
+
+  if (activeView === 'private-chat') {
+    return renderChat(
+      selectedRecipient?.name || "Messenger", 
+      UserIcon, 
+      selectedRecipient || undefined
+    );
+  }
+
   // Fix: Explicitly cast values to numbers and filter for unreadTotal calculation to avoid arithmetic type errors
   const unreadTotal = (Object.values(unreadCounts) as number[]).reduce((a, b) => a + (b || 0), 0);
 
@@ -435,14 +508,19 @@ export const SupportCenter = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 lg:gap-8">
         <div onClick={() => setActiveView('user-list')} className="cursor-pointer group">
           <SupportLinkCard icon={BookOpen} title="Messenger" description="Secure end-to-end chat with heroes." color="blue" badge={unreadTotal - (unreadCounts['SYSTEM'] || 0)} />
         </div>
-        <div onClick={() => isStaff ? setActiveView('system-list') : setActiveView('system-chat')} className="cursor-pointer group">
-          <SupportLinkCard icon={MessageSquare} title="Staff Support" description="Direct line to system administrators." color="green" badge={unreadCounts['SYSTEM'] || 0} />
+        {/* Staff Support Card Removed as requested */}
+        {isStaff && (
+          <div onClick={() => setActiveView('system-list')} className="cursor-pointer group">
+            <SupportLinkCard icon={MessageSquare} title="Staff Support" description="Direct line to system administrators." color="green" badge={unreadCounts['SYSTEM'] || 0} />
+          </div>
+        )}
+        <div onClick={() => navigate('/help-center')} className="cursor-pointer group">
+          <SupportLinkCard icon={HelpCircle} title="Help Center" description="Submit tickets for general inquiries." color="red" />
         </div>
-        <SupportLinkCard icon={PhoneCall} title="Emergency" description="Access critical emergency contacts." color="red" />
       </div>
 
       <Card className="p-8 lg:p-10 border-0 shadow-2xl bg-white rounded-[3rem] overflow-hidden relative">
@@ -463,19 +541,31 @@ export const SupportCenter = () => {
 };
 
 const SupportLinkCard = ({ icon: Icon, title, description, color, badge }: any) => {
-  const colors: any = { 
-    blue: "bg-blue-50 text-blue-600 ring-blue-100", 
-    green: "bg-green-50 text-green-600 ring-green-100", 
-    red: "bg-red-50 text-red-600 ring-red-100" 
+  const colorStyles = {
+    blue: "bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white",
+    green: "bg-green-50 text-green-600 group-hover:bg-green-600 group-hover:text-white",
+    red: "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
   };
+
   return (
-    <Card className="p-6 lg:p-8 hover:shadow-xl transition-all border-0 shadow-lg group relative overflow-hidden h-full rounded-[2.5rem] bg-white hover:-translate-y-1">
-      {badge > 0 && <span className="absolute top-5 right-5 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-2xl shadow-lg border-2 border-white animate-bounce">{badge}</span>}
-      <div className={clsx("w-12 h-12 lg:w-16 lg:h-16 rounded-3xl flex items-center justify-center mb-6 lg:mb-8 group-hover:scale-110 transition-transform shadow-inner ring-4", colors[color])}>
-        <Icon size={28} className="lg:size-32" />
+    <Card className="p-6 lg:p-8 border-0 shadow-lg hover:shadow-2xl transition-all duration-300 bg-white rounded-[2.5rem] h-full flex flex-col justify-between group">
+      <div>
+        <div className="flex justify-between items-start mb-6">
+          <div className={clsx("w-14 h-14 rounded-[1.5rem] flex items-center justify-center transition-colors shadow-sm", colorStyles[color as keyof typeof colorStyles])}>
+            <Icon size={28} />
+          </div>
+          {badge > 0 && (
+            <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg ring-4 ring-white animate-bounce">
+              {badge} NEW
+            </span>
+          )}
+        </div>
+        <h3 className="text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors mb-2">{title}</h3>
+        <p className="text-slate-500 font-medium text-sm leading-relaxed">{description}</p>
       </div>
-      <h4 className="font-black text-xl lg:text-2xl text-slate-900 mb-2 lg:mb-3 group-hover:text-blue-600 transition-colors">{title}</h4>
-      <p className="text-xs lg:text-sm text-slate-500 font-medium leading-relaxed">{description}</p>
+      <div className="mt-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-300 group-hover:text-blue-600 transition-colors">
+        <span>Open</span> <ArrowRight size={14} />
+      </div>
     </Card>
   );
 };

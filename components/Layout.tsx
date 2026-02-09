@@ -3,13 +3,14 @@ import React, { useState, useEffect } from 'react';
 // Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from '../AuthContext';
-import { UserRole, AppPermissions, RolePermissions, DonationStatus } from '../types';
+import { UserRole, AppPermissions, RolePermissions, DonationStatus, HelpStatus } from '../types';
 import { 
   getAppPermissions, 
   getUsers, 
   getDonations, 
   subscribeToAllIncomingMessages, 
   getAllFeedbacks,
+  getHelpRequests,
   ADMIN_EMAIL
 } from '../services/api';
 import { 
@@ -59,7 +60,8 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     access: 0,
     messenger: 0,
     support: 0,
-    feedbacks: 0
+    feedbacks: 0,
+    helpRequests: 0
   });
 
   useEffect(() => {
@@ -68,12 +70,18 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     if (user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN) {
       const fetchCounts = async () => {
         try {
-          const [users, donations, feedbacks] = await Promise.all([getUsers(), getDonations(), getAllFeedbacks()]);
+          const [users, donations, feedbacks, helpReqs] = await Promise.all([
+            getUsers(), 
+            getDonations(), 
+            getAllFeedbacks(),
+            getHelpRequests()
+          ]);
           setCounts(prev => ({
             ...prev,
             access: users.filter(u => u.directoryAccessRequested || u.supportAccessRequested || u.feedbackAccessRequested || u.idCardAccessRequested).length,
             donations: donations.filter(d => d.status === DonationStatus.PENDING).length,
-            feedbacks: feedbacks.filter(f => f.status === 'PENDING').length
+            feedbacks: feedbacks.filter(f => f.status === 'PENDING').length,
+            helpRequests: helpReqs.filter(h => h.status === HelpStatus.PENDING).length
           }));
         } catch (e) {
           console.error("Failed to fetch notification counts", e);
@@ -221,6 +229,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                  ]} 
                />
              )}
+             {/* Help Center removed from sidebar */}
              {s.feedback && <NavItem to="/feedback" icon={MessageSquareQuote} label="Post Feedback" />}
           </SidebarSection>
 
@@ -228,7 +237,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             {isSuperAdmin && s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
             {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
             {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
-            {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" />}
+            {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" badges={[{ count: counts.helpRequests, color: 'red' }]} />}
           </SidebarSection>
 
           <SidebarSection title="People Control">

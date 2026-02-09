@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
-import { submitFeedback, getAllFeedbacks, updateFeedbackStatus, updateFeedbackMessage, toggleFeedbackVisibility, deleteFeedback, subscribeToApprovedFeedbacks, getCachedFeedbacks, requestFeedbackAccess } from '../services/api';
+import { submitFeedback, getAllFeedbacks, updateFeedbackStatus, updateFeedbackMessage, toggleFeedbackVisibility, deleteFeedback, subscribeToApprovedFeedbacks, getCachedFeedbacks, requestFeedbackAccess, getUserFeedbacks } from '../services/api';
 import { Card, Button, Badge, Toast, useToast, ConfirmModal } from '../components/UI';
 import { MessageSquareQuote, Check, X, User as UserIcon, Eye, EyeOff, Trash2, Calendar, ArrowLeft, Activity, Edit3, Lock, ShieldAlert, Quote, MoreVertical } from 'lucide-react';
 import { DonationFeedback, FeedbackStatus, UserRole } from '../types';
@@ -99,6 +99,20 @@ export const DonationFeedbackPage = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
+  const [myFeedbacks, setMyFeedbacks] = useState<DonationFeedback[]>([]);
+
+  const fetchMyFeedbacks = async () => {
+    if (user) {
+      try {
+        const data = await getUserFeedbacks(user.id);
+        setMyFeedbacks(data);
+      } catch (err) {}
+    }
+  };
+
+  useEffect(() => {
+    fetchMyFeedbacks();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,6 +123,7 @@ export const DonationFeedbackPage = () => {
       setSuccess(true);
       setMessage('');
       showToast("ফিডব্যাক সাবমিট হয়েছে।");
+      fetchMyFeedbacks();
     } catch (e) {
       showToast("সাবমিশন ব্যর্থ হয়েছে।", "error");
     } finally {
@@ -161,38 +176,84 @@ export const DonationFeedbackPage = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
+    <div className="max-w-3xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 pb-20">
       <Toast {...toastState} onClose={hideToast} />
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-red-50 rounded-2xl">
-          <MessageSquareQuote className="text-red-600" size={24} />
+      
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-red-50 rounded-2xl">
+            <MessageSquareQuote className="text-red-600" size={24} />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">রক্তদানের অভিজ্ঞতা শেয়ার করুন</h1>
+            <p className="text-sm text-slate-500 font-medium">আপনার একটি গল্প অন্য কাউকে রক্তদানে উদ্বুদ্ধ করতে পারে।</p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">রক্তদানের অভিজ্ঞতা শেয়ার করুন</h1>
-          <p className="text-sm text-slate-500 font-medium">আপনার একটি গল্প অন্য কাউকে রক্তদানে উদ্বুদ্ধ করতে পারে।</p>
-        </div>
+
+        <Card className="p-8 border-0 shadow-lg">
+          {success ? (
+            <div className="text-center py-10 space-y-4">
+              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto">
+                <Check size={32} />
+              </div>
+              <h3 className="text-xl font-black text-slate-900">অনুপ্রেরণা শেয়ার করার জন্য ধন্যবাদ!</h3>
+              <p className="text-slate-500 text-sm">আপনার ফিডব্যাকটি এ্যাডমিন এপ্রুভ করার পর ল্যান্ডিং পেজে শো করবে।</p>
+              <Button onClick={() => setSuccess(false)} variant="outline">আবার লিখুন</Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">আপনার অভিজ্ঞতা</label>
+                <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="কোথায় রক্ত দিয়েছেন? কেমন লেগেছে? নতুন ডোনারদের জন্য আপনার বার্তা কি?" required rows={5} className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none" />
+              </div>
+              <Button type="submit" isLoading={loading} className="w-full py-4 rounded-2xl">ফিডব্যাক সাবমিট করুন</Button>
+            </form>
+          )}
+        </Card>
       </div>
 
-      <Card className="p-8 border-0 shadow-lg">
-        {success ? (
-          <div className="text-center py-10 space-y-4">
-            <div className="w-16 h-16 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto">
-              <Check size={32} />
-            </div>
-            <h3 className="text-xl font-black text-slate-900">অনুপ্রেরণা শেয়ার করার জন্য ধন্যবাদ!</h3>
-            <p className="text-slate-500 text-sm">আপনার ফিডব্যাকটি এ্যাডমিন এপ্রুভ করার পর ল্যান্ডিং পেজে শো করবে।</p>
-            <Button onClick={() => setSuccess(false)} variant="outline">আবার লিখুন</Button>
+      <div className="space-y-6">
+        <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+          <Activity size={20} className="text-blue-500" /> আমার পোস্ট করা ফিডব্যাক
+        </h2>
+        
+        <Card className="overflow-hidden border-0 shadow-lg">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                <tr>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4">Message</th>
+                  <th className="px-6 py-4 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {myFeedbacks.length > 0 ? myFeedbacks.map(f => (
+                  <tr key={f.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 text-slate-500 font-bold text-xs whitespace-nowrap">
+                      {new Date(f.timestamp).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-slate-700 font-medium line-clamp-2 max-w-xs">{f.message}</p>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Badge color={f.status === FeedbackStatus.APPROVED ? 'green' : (f.status === FeedbackStatus.REJECTED ? 'red' : 'yellow')}>
+                        {f.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={3} className="px-6 py-12 text-center text-slate-300 font-black uppercase tracking-widest italic">
+                      No feedback history found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">আপনার অভিজ্ঞতা</label>
-              <textarea value={message} onChange={(e) => setMessage(e.target.value)} placeholder="কোথায় রক্ত দিয়েছেন? কেমন লেগেছে? নতুন ডোনারদের জন্য আপনার বার্তা কি?" required rows={5} className="w-full px-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-red-500 outline-none transition-all resize-none" />
-            </div>
-            <Button type="submit" isLoading={loading} className="w-full py-4 rounded-2xl">ফিডব্যাক সাবমিট করুন</Button>
-          </form>
-        )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 };

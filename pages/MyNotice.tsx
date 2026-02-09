@@ -167,8 +167,8 @@ export const MyNotice = () => {
            </h1>
            <div className="flex items-center gap-6 mt-4 border-b border-slate-200">
               <TabButton type="PUBLIC" label="Public" />
+              <TabButton type="WEB" label="Web Notice" />
               {isStaff && <TabButton type="PRIVATE" label="Private" />}
-              {isStaff && <TabButton type="WEB" label="Web Notice" />}
            </div>
         </div>
 
