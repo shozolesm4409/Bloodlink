@@ -1,12 +1,11 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
 import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, updateDonationStatus, ADMIN_EMAIL } from '../services/api';
-import { generateDonationInsight } from '../services/geminiService';
 import { Card, Badge, Button } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Droplet, Users, TrendingUp, Sparkles, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint, BrainCircuit, RefreshCw, Zap } from 'lucide-react';
+import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint } from 'lucide-react';
 // Fix: Use double quotes for react-router-dom
 import { Link } from "react-router-dom";
 import clsx from 'clsx';
@@ -18,9 +17,6 @@ export const Dashboard = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [insight, setInsight] = useState<string | null>(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const insightRef = useRef<HTMLDivElement>(null);
 
   const isSuperAdmin = user?.role === UserRole.SUPERADMIN || user?.email.trim().toLowerCase() === ADMIN_EMAIL;
   const isManagement = isSuperAdmin || user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
@@ -71,19 +67,6 @@ export const Dashboard = () => {
     } catch (e) { alert("Action failed."); }
   };
 
-  const handleAIInsight = async () => {
-    setInsightLoading(true);
-    try {
-      const res = await generateDonationInsight(allDonations);
-      setInsight(res);
-      insightRef.current?.scrollIntoView({ behavior: 'smooth' });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setInsightLoading(false);
-    }
-  };
-
   if (loading) return <div className="p-10 text-center text-slate-400 font-black uppercase tracking-widest animate-pulse">Initializing Dashboard...</div>;
 
   const lastDonationDate = user?.lastDonationDate ? new Date(user.lastDonationDate) : null;
@@ -125,69 +108,6 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* AI Intelligence Card - High Contrast Theme */}
-      {isManagement && (
-        <Card ref={insightRef} className="border-0 shadow-2xl !bg-slate-900 overflow-hidden rounded-[3rem] group relative">
-          {/* Decorative Glowing Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-20 translate-x-20"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] pointer-events-none translate-y-20 -translate-x-20"></div>
-          
-          <div className="p-8 lg:p-12 relative z-10">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
-              <div className="flex items-center gap-5">
-                <div className="w-16 h-16 bg-white/5 backdrop-blur-xl rounded-2xl flex items-center justify-center border border-white/10 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)] group-hover:scale-105 transition-transform duration-500">
-                  <BrainCircuit className="text-blue-400" size={36} />
-                </div>
-                <div>
-                  <h3 className="text-2xl lg:text-3xl font-black text-white tracking-tight leading-none">AI Intelligence Hub</h3>
-                  <div className="flex items-center gap-2 mt-3">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse shadow-[0_0_10px_rgba(74,222,128,0.5)]"></span>
-                    <p className="text-blue-300 font-black text-[10px] uppercase tracking-[0.2em]">Neural Pattern Analysis Active</p>
-                  </div>
-                </div>
-              </div>
-              <Button 
-                onClick={handleAIInsight} 
-                isLoading={insightLoading} 
-                variant="secondary"
-                className="rounded-2xl px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white border-0 shadow-[0_10px_30px_rgba(37,99,235,0.3)] transition-all active:scale-95"
-              >
-                {insight ? <RefreshCw className="w-5 h-5 mr-3" /> : <Sparkles className="w-5 h-5 mr-3" />}
-                {insightLoading ? 'Processing Data...' : (insight ? 'Refresh Analysis' : 'Generate Intelligence')}
-              </Button>
-            </div>
-
-            <div className="min-h-[160px] flex items-center justify-center">
-              {insightLoading ? (
-                <div className="flex flex-col items-center gap-5 py-10">
-                   <div className="relative">
-                      <div className="w-20 h-20 border-4 border-blue-500/20 border-t-blue-400 rounded-full animate-spin"></div>
-                      <Zap className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-blue-400 animate-pulse" size={24} />
-                   </div>
-                   <p className="text-blue-200 font-bold text-sm italic tracking-widest animate-pulse">AI is decoding community trends...</p>
-                </div>
-              ) : insight ? (
-                <div className="w-full bg-white/[0.03] backdrop-blur-md p-8 lg:p-10 rounded-[2.5rem] border border-white/10 shadow-inner animate-in fade-in zoom-in-95 duration-500">
-                  <p className="text-blue-50 leading-relaxed font-semibold whitespace-pre-line text-lg lg:text-xl selection:bg-blue-500 selection:text-white">
-                    {insight}
-                  </p>
-                </div>
-              ) : (
-                <div className="text-center py-12 px-4 group/hint">
-                  <div className="w-20 h-20 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/5 group-hover/hint:bg-white/10 transition-colors">
-                    <Zap size={40} className="text-blue-400/40 group-hover/hint:text-blue-400 group-hover/hint:animate-pulse transition-all" />
-                  </div>
-                  <p className="text-blue-200/50 text-lg font-bold italic max-w-md mx-auto leading-relaxed">
-                    Click "Generate Intelligence" to synchronize with AI nodes and analyze live donor patterns.
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Stats and other sections remain unchanged */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Total Volume" value={`${globalCompleted.reduce((a,b)=>a+b.units,0)}ml`} icon={Droplet} color="text-red-600" bg="bg-red-50" />
         <StatCard title="Total Donors" value={allUsers.length} icon={Users} color="text-blue-600" bg="bg-blue-50" />
@@ -195,7 +115,6 @@ export const Dashboard = () => {
         <StatCard title="Queue Size" value={pendingItems.length} icon={LayoutList} color="text-orange-600" bg="bg-orange-50" />
       </div>
 
-      {/* Rest of the Dashboard component logic... */}
       {isSuperAdmin && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-[2.5rem] flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
