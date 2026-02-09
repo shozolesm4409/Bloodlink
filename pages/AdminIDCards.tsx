@@ -61,7 +61,7 @@ export const IDCardFrame = React.forwardRef<HTMLDivElement, { user: User }>(({ u
         </div>
       </div>
 
-      <div className="flex-1 bg-white px-9 pt-3 flex flex-col items-center relative">
+      <div className="flex-1 bg-white px-9 pt-1 flex flex-col items-center relative">
         <div className="absolute inset-0 flex items-center justify-center opacity-[0.04] pointer-events-none z-0">
           <Droplet size={200} className="text-[#e11d48] fill-current" />
         </div>
