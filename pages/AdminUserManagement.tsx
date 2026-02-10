@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { 
   getUsers, 
   deleteUserRecord, 
@@ -12,11 +12,12 @@ import {
   handleIDCardAccess,
   toggleUserSuspension,
   getDonations,
+  generateUserId,
   ADMIN_EMAIL
 } from '../services/api';
 import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select } from '../components/UI';
 import { User, UserRole, BloodGroup, DonationStatus } from '../types';
-import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award } from 'lucide-react';
+import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings } from 'lucide-react';
 import { getRankData } from './Profile';
 import clsx from 'clsx';
 
@@ -89,6 +90,7 @@ const AccessHub = ({ users, onAction }: { users: User[], onAction: (uid: string,
 
 export const AdminUserManagement = () => {
   const { user: admin } = useAuth();
+  const navigate = useNavigate();
   const { toastState, showToast, hideToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [userRankMap, setUserRankMap] = useState<Record<string, number>>({});
@@ -203,6 +205,17 @@ export const AdminUserManagement = () => {
     finally { setActionLoading(false); }
   };
 
+  const handleGenerateId = async (userId: string) => {
+    if (!admin) return;
+    try {
+      await generateUserId(userId, admin);
+      showToast("New BL ID generated.");
+      fetchData();
+    } catch (e) {
+      showToast("ID Generation failed.", "error");
+    }
+  };
+
   const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()));
 
   if (loading) return <div className="p-10 text-center font-black text-slate-300 animate-pulse">Syncing...</div>;
@@ -295,7 +308,13 @@ export const AdminUserManagement = () => {
           <Card className="hidden lg:block overflow-hidden border-0 shadow-lg bg-white rounded-[2rem]">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                <tr><th className="px-6 py-5">Profile</th><th className="px-6 py-5">Email</th><th className="px-6 py-5">Role</th><th className="px-6 py-5 text-right">Actions</th></tr>
+                <tr>
+                  <th className="px-6 py-5">Profile</th>
+                  <th className="px-6 py-5">BL ID</th>
+                  <th className="px-6 py-5">Email</th>
+                  <th className="px-6 py-5">Role</th>
+                  <th className="px-6 py-5 text-right">Actions</th>
+                </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredUsers.map(u => {
@@ -322,6 +341,9 @@ export const AdminUserManagement = () => {
                           </div>
                         </div>
                       </td>
+                      <td className="px-6 py-5 text-slate-500 font-bold font-mono">
+                        {u.idNumber || 'N/A'}
+                      </td>
                       <td className="px-6 py-5 text-slate-500 font-bold">{u.email}</td>
                       <td className="px-6 py-5">
                         <select 
@@ -337,6 +359,16 @@ export const AdminUserManagement = () => {
                       </td>
                       <td className="px-6 py-5 text-right">
                         <div className="flex justify-end gap-2">
+                           <button 
+                             onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })} 
+                             title="Manage Permissions" 
+                             className="p-2 text-slate-300 hover:text-green-600 hover:bg-green-50 rounded-xl transition-all"
+                           >
+                             <Settings size={18} />
+                           </button>
+                           {(!u.idNumber || u.idNumber === '00000') && (
+                             <button onClick={() => handleGenerateId(u.id)} title="Generate BL ID" className="p-2 text-slate-300 hover:text-purple-600 hover:bg-purple-50 rounded-xl transition-all"><Wand2 size={18} /></button>
+                           )}
                            <button onClick={() => setSuspendUserId({id: u.id, current: !!u.isSuspended})} disabled={u.role === UserRole.SUPERADMIN} className={clsx("p-2 rounded-xl transition-all", u.isSuspended ? "text-green-600 hover:bg-green-50" : "text-red-400 hover:bg-red-50", u.role === UserRole.SUPERADMIN && "opacity-0 pointer-events-none")}><Ban size={18} /></button>
                            <button onClick={() => setEditUser(u)} disabled={u.role === UserRole.SUPERADMIN && !isSuperAdminViewer} title="Edit User" className="p-2 text-slate-300 hover:text-blue-600 transition-colors disabled:opacity-20"><Edit2 size={18} /></button>
                            <button onClick={() => setPwdUser(u)} disabled={u.role === UserRole.SUPERADMIN && !isSuperAdminViewer} title="Change Password" className="p-2 text-slate-300 hover:text-orange-500 transition-colors disabled:opacity-20"><Key size={18} /></button>
@@ -373,6 +405,7 @@ export const AdminUserManagement = () => {
                              {rank && <Badge className={clsx("text-[8px] py-0 px-2", rank.bg, rank.color)}>{rank.name}</Badge>}
                           </div>
                           <p className="text-[10px] font-bold text-slate-400 truncate max-w-[180px]">{u.email}</p>
+                          <p className="text-[10px] font-mono text-slate-500 mt-1">{u.idNumber || 'No ID'}</p>
                         </div>
                      </div>
                      <div className="absolute top-4 right-4">
@@ -406,6 +439,17 @@ export const AdminUserManagement = () => {
                       </select>
                       
                       <div className="flex items-center gap-2">
+                         <button 
+                           onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })}
+                           className="p-3 rounded-2xl bg-green-50 text-green-600 border border-green-100 shadow-md"
+                         >
+                           <Settings size={20} />
+                         </button>
+                         {(!u.idNumber || u.idNumber === '00000') && (
+                           <button onClick={() => handleGenerateId(u.id)} className="p-3 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 shadow-md">
+                             <Wand2 size={20} />
+                           </button>
+                         )}
                          <button onClick={() => setSuspendUserId({id: u.id, current: !!u.isSuspended})} disabled={u.role === UserRole.SUPERADMIN} className={clsx("p-3 rounded-2xl transition-all shadow-md", u.isSuspended ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600")}>
                            <Ban size={20} />
                          </button>

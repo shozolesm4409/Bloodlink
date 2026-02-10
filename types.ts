@@ -249,6 +249,7 @@ export interface AppPermissions {
   user: RolePermissions;
   editor: RolePermissions;
   admin: RolePermissions;
+  superadmin?: RolePermissions;
 }
 
 export interface AuthState {

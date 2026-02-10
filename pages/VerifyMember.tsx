@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, where, getDocs } from '@firebase/firestore';
 import { db, logVerificationCheck } from '../services/api';
 import { User, DonationFeedback, FeedbackStatus, DonationStatus } from '../types';

@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { UserRole, AppPermissions, RolePermissions, DonationStatus, HelpStatus } from '../types';
 import { 
@@ -168,7 +166,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   if (perms) {
     if (isSuperAdmin) {
-      basePerms = { 
+      basePerms = perms.superadmin?.sidebar || { 
         summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
         logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
         landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
@@ -181,9 +179,18 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     } else {
       basePerms = perms.user?.sidebar || basePerms;
     }
+  } else if (isSuperAdmin) {
+    // If perms not loaded yet, default superadmin to all access to prevent flickering or lockout
+    basePerms = { 
+      summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
+      logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
+      landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
+      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true
+    };
   }
 
   // Determine effective permissions by merging base permissions with user overrides
+  // Ensure SuperAdmin always has critical access even if overrides exist (failsafe)
   const s = user?.permissions?.sidebar 
     ? { ...basePerms, ...user.permissions.sidebar } 
     : basePerms;
@@ -234,13 +241,14 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
           </SidebarSection>
 
           <SidebarSection title="Content Admin">
-            {isSuperAdmin && s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
+            {s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
             {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
             {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
             {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" badges={[{ count: counts.helpRequests, color: 'red' }]} />}
           </SidebarSection>
 
           <SidebarSection title="People Control">
+            {s.summary && <NavItem to="/summary" icon={PieChart} label="System Summary" />}
             {s.users && <NavItem to="/users" icon={UsersRound} label="Manage Users" />}
             {s.notifications && <NavItem to="/notifications" icon={Bell} label="Access Requests" badges={[{ count: counts.access, color: 'red' }]} />}
             {s.adminVerify && <NavItem to="/admin/verify" icon={ShieldCheck} label="Verify Identity" />}

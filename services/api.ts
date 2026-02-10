@@ -1,4 +1,3 @@
-
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -77,25 +76,40 @@ export const submitHelpRequest = async (data: Omit<HelpRequest, 'id' | 'status' 
 };
 
 export const getHelpRequests = async (): Promise<HelpRequest[]> => {
-  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), orderBy('timestamp', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest));
+  try {
+    const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest));
+  } catch (e) {
+    console.error("Failed to fetch help requests:", e);
+    return [];
+  }
 };
 
 export const getUserHelpRequests = async (userId: string): Promise<HelpRequest[]> => {
-  // Sort client-side to avoid composite index requirement
-  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('userId', '==', userId));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  try {
+    // Sort client-side to avoid composite index requirement
+    const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('userId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  } catch (e) {
+    console.error("Failed to fetch user help requests:", e);
+    return [];
+  }
 };
 
 export const getHelpRequestsByPhone = async (phone: string): Promise<HelpRequest[]> => {
-  // Sort client-side to avoid composite index requirement
-  const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('phone', '==', phone));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  try {
+    // Sort client-side to avoid composite index requirement
+    const q = query(collection(db, COLLECTIONS.HELP_REQUESTS), where('phone', '==', phone));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as HelpRequest))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  } catch (e) {
+    console.error("Failed to fetch help requests by phone:", e);
+    return [];
+  }
 };
 
 export const updateHelpRequest = async (id: string, data: Partial<HelpRequest>, admin: User) => {
@@ -121,8 +135,13 @@ export const deleteHelpRequest = async (id: string, admin: User) => {
 };
 
 export const getDeletedHelpRequests = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_HELP_REQUESTS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_HELP_REQUESTS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted help requests:", e);
+    return [];
+  }
 };
 
 export const restoreDeletedHelpRequest = async (id: string, admin: User): Promise<void> => {
@@ -168,21 +187,36 @@ export const logVerificationCheck = async (memberId: string, memberName: string,
 };
 
 export const getVerificationLogs = async () => {
-  const q = query(collection(db, COLLECTIONS.VERIFICATION_LOGS), orderBy('timestamp', 'desc'), limit(50));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const q = query(collection(db, COLLECTIONS.VERIFICATION_LOGS), orderBy('timestamp', 'desc'), limit(50));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch verification logs:", e);
+    return [];
+  }
 };
 
 export const getNotices = async (): Promise<Notice[]> => {
-  const q = query(collection(db, COLLECTIONS.NOTICES), orderBy('timestamp', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+  try {
+    const q = query(collection(db, COLLECTIONS.NOTICES), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+  } catch (e) {
+    console.error("Failed to fetch notices:", e);
+    return [];
+  }
 };
 
 export const getWebNotices = async (): Promise<Notice[]> => {
-  const q = query(collection(db, COLLECTIONS.NOTICES), where('type', '==', 'WEB'));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+  try {
+    const q = query(collection(db, COLLECTIONS.NOTICES), where('type', '==', 'WEB'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notice));
+  } catch (e) {
+    console.error("Failed to fetch web notices:", e);
+    return [];
+  }
 };
 
 export const getNoticeById = async (id: string): Promise<Notice | null> => {
@@ -230,8 +264,13 @@ export const deleteNotice = async (id: string, admin: User) => {
 };
 
 export const getDeletedNotices = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_NOTICES));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_NOTICES));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted notices:", e);
+    return [];
+  }
 };
 
 export const restoreDeletedNotice = async (id: string, admin: User): Promise<void> => {
@@ -341,17 +380,27 @@ export const permanentlyDeleteArchivedFeedback = async (id: string, admin: User)
 };
 
 export const getAllFeedbacks = async (): Promise<DonationFeedback[]> => {
-  const q = query(collection(db, COLLECTIONS.FEEDBACKS), orderBy('timestamp', 'desc'));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback));
+  try {
+    const q = query(collection(db, COLLECTIONS.FEEDBACKS), orderBy('timestamp', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback));
+  } catch (e) {
+    console.error("Failed to fetch feedbacks:", e);
+    return [];
+  }
 };
 
 export const getUserFeedbacks = async (userId: string): Promise<DonationFeedback[]> => {
-  // Sort client-side to avoid composite index requirement
-  const q = query(collection(db, COLLECTIONS.FEEDBACKS), where('userId', '==', userId));
-  const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback))
-    .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  try {
+    // Sort client-side to avoid composite index requirement
+    const q = query(collection(db, COLLECTIONS.FEEDBACKS), where('userId', '==', userId));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as DonationFeedback))
+      .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+  } catch (e) {
+    console.error("Failed to fetch user feedbacks:", e);
+    return [];
+  }
 };
 
 export const updateFeedbackStatus = async (feedbackId: string, status: FeedbackStatus, isVisible: boolean) => {
@@ -385,9 +434,14 @@ export const subscribeToApprovedFeedbacks = (callback: (feedbacks: DonationFeedb
 };
 
 export const getLandingConfig = async (): Promise<LandingPageConfig | null> => {
-  const docRef = doc(db, COLLECTIONS.SETTINGS, 'landing');
-  const snap = await getDoc(docRef);
-  return snap.exists() ? snap.data() as LandingPageConfig : null;
+  try {
+    const docRef = doc(db, COLLECTIONS.SETTINGS, 'landing');
+    const snap = await getDoc(docRef);
+    return snap.exists() ? snap.data() as LandingPageConfig : null;
+  } catch (e) {
+    console.error("Failed to fetch landing config:", e);
+    return null;
+  }
 };
 
 export const updateLandingConfig = async (config: LandingPageConfig, admin: User) => {
@@ -406,11 +460,15 @@ export const getAppPermissions = async (): Promise<AppPermissions> => {
     },
     editor: { 
       sidebar: { dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, helpCenterManage: true }, 
-      rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true }
+      rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true, canLogDonationForOthers: false }
     },
     admin: {
       sidebar: { summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, notifications: true, adminVerify: true, verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true },
-      rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true }
+      rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true, canLogDonationForOthers: true }
+    },
+    superadmin: {
+      sidebar: { summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, landingSettings: true, myNotice: true, notifications: true, adminVerify: true, verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true },
+      rules: { canEditProfile: true, canViewDonorDirectory: true, canRequestDonation: true, canPerformAction: true, canLogDonation: true, canUseMessenger: true, canUseSystemSupport: true, canPostNotice: true, canLogDonationForOthers: true }
     }
   };
 
@@ -418,7 +476,10 @@ export const getAppPermissions = async (): Promise<AppPermissions> => {
     const docRef = doc(db, COLLECTIONS.SETTINGS, 'permissions');
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as AppPermissions;
+      const data = docSnap.data() as AppPermissions;
+      // Ensure superadmin exists if not present in DB (migration)
+      if (!data.superadmin) data.superadmin = DEFAULT_PERMS.superadmin;
+      return { ...DEFAULT_PERMS, ...data };
     }
     return DEFAULT_PERMS;
   } catch {
@@ -600,23 +661,43 @@ export const adminForceChangePassword = async (userId: string, newPass: string, 
 };
 
 export const getDeletedUsers = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_USERS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_USERS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted users:", e);
+    return [];
+  }
 };
 
 export const getDeletedDonations = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_DONATIONS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_DONATIONS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted donations:", e);
+    return [];
+  }
 };
 
 export const getDeletedLogs = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_LOGS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_LOGS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted logs:", e);
+    return [];
+  }
 };
 
 export const getDeletedFeedbacks = async (): Promise<any[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_FEEDBACKS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.DELETED_FEEDBACKS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  } catch (e) {
+    console.error("Failed to fetch deleted feedbacks:", e);
+    return [];
+  }
 };
 
 export const restoreDeletedLog = async (logId: string, admin: User): Promise<void> => {
@@ -675,8 +756,13 @@ export const deleteLogEntry = async (id: string, admin: User): Promise<void> => 
 };
 
 export const getRevokedPermissions = async (): Promise<RevokedPermission[]> => {
-  const snap = await getDocs(collection(db, COLLECTIONS.REVOKED_PERMISSIONS));
-  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as RevokedPermission));
+  try {
+    const snap = await getDocs(collection(db, COLLECTIONS.REVOKED_PERMISSIONS));
+    return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as RevokedPermission));
+  } catch (e) {
+    console.error("Failed to fetch revoked permissions:", e);
+    return [];
+  }
 };
 
 export const restoreRevokedPermission = async (id: string, admin: User): Promise<void> => {
@@ -768,4 +854,11 @@ export const updateUserProfile = async (userId: string, data: Partial<User>, per
   const user = { id: updated.id, ...updated.data() } as User;
   await createLog('PROFILE_UPDATE', performer.id, performer.name, `Updated account: ${user.name}`, performer.avatar);
   return user;
+};
+
+export const generateUserId = async (targetUserId: string, admin: User) => {
+  const newId = `BL-${Math.floor(100000 + Math.random() * 900000)}`;
+  await updateDoc(doc(db, COLLECTIONS.USERS, targetUserId), { idNumber: newId });
+  await createLog('ID_GENERATION', admin.id, admin.name, `Generated new ID ${newId} for user ${targetUserId}`, admin.avatar);
+  return newId;
 };

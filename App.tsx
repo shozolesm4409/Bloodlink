@@ -1,7 +1,5 @@
-
 import React from 'react';
-// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
-import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login, Register, ResetPassword } from './pages/Auth';

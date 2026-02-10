@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect, useRef } from 'react';
-// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { login as apiLogin, register as apiRegister, getLandingConfig, initiatePasswordResetLink } from '../services/api';
 import { Button } from '../components/UI';

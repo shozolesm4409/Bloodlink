@@ -1,7 +1,5 @@
-
 import React, { useEffect, useState } from 'react';
-// Fix: Use double quotes for react-router-dom to resolve module resolution issues in some environments
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation } from 'react-router-dom';
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
 import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck } from 'lucide-react';

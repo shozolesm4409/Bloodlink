@@ -1,10 +1,10 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { getAppPermissions, updateAppPermissions, ADMIN_EMAIL, getUsers, updateUserProfile } from '../services/api';
 import { Card, Button, Badge, Toast, useToast, Input } from '../components/UI';
 import { RolePermissions, AppPermissions, UserRole, User } from '../types';
-import { Shield, Layout, Eye, EyeOff, Lock, Unlock, Save, Search, User as UserIcon, X, UserCog, ShieldAlert, ArrowLeft, ChevronRight } from 'lucide-react';
+import { Shield, Layout, Eye, EyeOff, Lock, Unlock, Save, Search, User as UserIcon, X, UserCog, ShieldAlert, ArrowLeft, ChevronRight, Check } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import clsx from 'clsx';
 
 const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
@@ -22,6 +22,7 @@ const RULE_KEYS: (keyof RolePermissions['rules'])[] = [
 
 export const AdminRolePermissions = () => {
   const { user: admin } = useAuth();
+  const location = useLocation();
   const { toastState, showToast, hideToast } = useToast();
   const [permissions, setPermissions] = useState<AppPermissions | null>(null);
   const [activeTab, setActiveTab] = useState<'global' | 'individual'>('global');
@@ -41,9 +42,21 @@ export const AdminRolePermissions = () => {
     });
   }, []);
 
+  // Handle auto-selection of user from navigation state
+  useEffect(() => {
+    if (location.state?.selectedUserId && allUsers.length > 0) {
+      const target = allUsers.find(u => u.id === location.state.selectedUserId);
+      if (target) {
+        setActiveTab('individual');
+        setSelectedUser(target);
+        // Clear state to prevent re-selection on generic refresh
+        window.history.replaceState({}, document.title);
+      }
+    }
+  }, [location.state, allUsers]);
+
   const getBasePermsForRole = (role: UserRole): RolePermissions | null => {
     if (!permissions) return null;
-    if (role === UserRole.SUPERADMIN) return (permissions as any).admin;
     const roleKey = role.toLowerCase() as keyof AppPermissions;
     return (permissions as any)[roleKey] || permissions.user;
   };
@@ -53,8 +66,24 @@ export const AdminRolePermissions = () => {
       const current = selectedUser.permissions || { sidebar: {}, rules: {} } as RolePermissions;
       const sidebar = { ...(current.sidebar || {}) };
       const base = getBasePermsForRole(selectedUser.role);
-      const currentVal = sidebar[key] !== undefined ? sidebar[key] : (base?.sidebar?.[key] ?? false);
-      sidebar[key] = !currentVal;
+      
+      // If currently using default (undefined), switch to inverse of base. 
+      // If already overridden, allow undefined (reset) logic if desired, but here we just toggle boolean
+      const currentVal = sidebar[key];
+      const baseVal = base?.sidebar?.[key] ?? false;
+      
+      // If no override exists, we create one that toggles the base value
+      if (currentVal === undefined) {
+        sidebar[key] = !baseVal; 
+      } else {
+        // If it matches base now, remove override (set to undefined), else toggle
+        if (!currentVal === baseVal) {
+           delete sidebar[key]; // Reset to default
+        } else {
+           sidebar[key] = !currentVal;
+        }
+      }
+      
       setSelectedUser({ ...selectedUser, permissions: { ...current, sidebar: sidebar as any } });
       return;
     }
@@ -77,8 +106,20 @@ export const AdminRolePermissions = () => {
       const current = selectedUser.permissions || { sidebar: {}, rules: {} } as RolePermissions;
       const rules = { ...(current.rules || {}) };
       const base = getBasePermsForRole(selectedUser.role);
-      const currentVal = rules[key] !== undefined ? rules[key] : (base?.rules?.[key] ?? false);
-      rules[key] = !currentVal;
+      
+      const currentVal = rules[key];
+      const baseVal = base?.rules?.[key] ?? false;
+
+      if (currentVal === undefined) {
+        rules[key] = !baseVal;
+      } else {
+        if (!currentVal === baseVal) {
+           delete rules[key];
+        } else {
+           rules[key] = !currentVal;
+        }
+      }
+
       setSelectedUser({ ...selectedUser, permissions: { ...current, rules: rules as any } });
       return;
     }
@@ -94,6 +135,20 @@ export const AdminRolePermissions = () => {
       ...permissions,
       [roleKey]: { ...currentRole, rules: rules }
     });
+  };
+
+  const handleResetOverride = (key: string, type: 'sidebar' | 'rules') => {
+    if (!selectedUser) return;
+    const current = selectedUser.permissions || { sidebar: {}, rules: {} } as RolePermissions;
+    if (type === 'sidebar') {
+       const sidebar = { ...(current.sidebar || {}) };
+       delete sidebar[key as keyof RolePermissions['sidebar']];
+       setSelectedUser({ ...selectedUser, permissions: { ...current, sidebar: sidebar as any } });
+    } else {
+       const rules = { ...(current.rules || {}) };
+       delete rules[key as keyof RolePermissions['rules']];
+       setSelectedUser({ ...selectedUser, permissions: { ...current, rules: rules as any } });
+    }
   };
 
   const handleSaveGlobal = async () => {
@@ -154,7 +209,7 @@ export const AdminRolePermissions = () => {
       {activeTab === 'global' ? (
         <div className="space-y-6 lg:space-y-10">
           <div className="flex bg-slate-100 p-1 lg:p-1.5 rounded-2xl lg:rounded-[2rem] shadow-inner border border-slate-200 w-full lg:w-fit overflow-x-auto no-scrollbar">
-            {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN].map((role) => (
+            {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN, UserRole.SUPERADMIN].map((role) => (
               <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-6 lg:px-8 py-2.5 lg:py-3 rounded-xl lg:rounded-[1.75rem] text-[10px] lg:text-[11px] font-black uppercase transition-all whitespace-nowrap", activeRole === role ? "bg-white shadow-md lg:shadow-xl text-red-600" : "text-slate-500")}>{role}</button>
             ))}
           </div>
@@ -263,11 +318,18 @@ export const AdminRolePermissions = () => {
                                const userVal = selectedUser.permissions?.sidebar?.[key];
                                const baseRolePerms = getBasePermsForRole(selectedUser.role);
                                const isActive = userVal !== undefined ? userVal : (baseRolePerms?.sidebar?.[key] ?? false);
+                               const isInherited = userVal === undefined && isActive;
 
                                return (
                                  <div key={key} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all group" onClick={() => handleToggleSidebar(key, true)}>
-                                    <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                    <div className="flex flex-col">
+                                      <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      {isInherited && <span className="text-[8px] font-bold text-blue-400 uppercase tracking-wider">Role Default</span>}
+                                    </div>
                                     <div className="flex items-center gap-2">
+                                       {userVal !== undefined && (
+                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'sidebar'); }} className="p-1 text-slate-300 hover:text-red-500" title="Reset to Role Default"><X size={12} /></button>
+                                       )}
                                        {userVal !== undefined && <Badge color="red" className="text-[7px] px-1 py-0">Custom</Badge>}
                                        <div className={clsx("w-9 lg:w-10 h-4.5 lg:h-5 rounded-full relative transition-all shadow-inner p-1", isActive ? "bg-blue-600" : "bg-slate-200")}>
                                           <div className={clsx("w-2.5 lg:w-3 h-2.5 lg:h-3 bg-white rounded-full transition-all shadow-md", isActive ? "translate-x-4.5 lg:translate-x-5" : "translate-x-0")} />
@@ -286,11 +348,18 @@ export const AdminRolePermissions = () => {
                                const userVal = selectedUser.permissions?.rules?.[key];
                                const baseRolePerms = getBasePermsForRole(selectedUser.role);
                                const isActive = userVal !== undefined ? userVal : (baseRolePerms?.rules?.[key] ?? false);
+                               const isInherited = userVal === undefined && isActive;
 
                                return (
                                  <div key={key} className="flex items-center justify-between p-3.5 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all group" onClick={() => handleToggleRule(key, true)}>
-                                    <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                    <div className="flex flex-col">
+                                      <span className="text-[11px] font-black text-slate-600 group-hover:text-slate-900 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      {isInherited && <span className="text-[8px] font-bold text-blue-400 uppercase tracking-wider">Role Default</span>}
+                                    </div>
                                     <div className="flex items-center gap-2">
+                                       {userVal !== undefined && (
+                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'rules'); }} className="p-1 text-slate-300 hover:text-red-500" title="Reset to Role Default"><X size={12} /></button>
+                                       )}
                                        {userVal !== undefined && <Badge color="red" className="text-[7px] px-1 py-0">Custom</Badge>}
                                        <div className={clsx("w-9 lg:w-10 h-4.5 lg:h-5 rounded-full relative transition-all shadow-inner p-1", isActive ? "bg-red-600" : "bg-slate-200")}>
                                           <div className={clsx("w-2.5 lg:w-3 h-2.5 lg:h-3 bg-white rounded-full transition-all shadow-md", isActive ? "translate-x-4.5 lg:translate-x-5" : "translate-x-0")} />
