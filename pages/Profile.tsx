@@ -35,9 +35,9 @@ const COVER_TEMPLATES = [
   'https://images.unsplash.com/photo-1615461066841-6116e61058f4?q=80&w=1000&auto=format&fit=crop', // Red blood cells abstract
   'https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=1000&auto=format&fit=crop', // Abstract red flow
   'https://images.unsplash.com/photo-1536856136534-bb679c52a9aa?q=80&w=1000&auto=format&fit=crop', // Red abstract
-  'https://images.unsplash.com/photo-1505542439319-5d2e5a206517?q=80&w=1000&auto=format&fit=crop', // Medical red
-  'https://images.unsplash.com/photo-1535930749574-1399327ce78f?q=80&w=1000&auto=format&fit=crop', // Pets/Life (abstractly related to life)
   'https://images.unsplash.com/photo-1554034483-04fda0d3507b?q=80&w=1000&auto=format&fit=crop', // Geometric Pattern
+  'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?q=80&w=1000&auto=format&fit=crop', // DNA / Medical
+  'https://images.unsplash.com/photo-1530497610245-94d3c16cda28?q=80&w=1000&auto=format&fit=crop', // Cell abstract
 ];
 
 const createImage = (url: string): Promise<HTMLImageElement> =>
@@ -59,8 +59,8 @@ async function getCroppedImg(
 
   if (!ctx) return '';
 
-  canvas.width = 400;
-  canvas.height = 400;
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
 
   ctx.drawImage(
     image,
@@ -70,8 +70,8 @@ async function getCroppedImg(
     pixelCrop.height,
     0,
     0,
-    400,
-    400
+    pixelCrop.width,
+    pixelCrop.height
   );
 
   return canvas.toDataURL('image/jpeg', 0.9);
@@ -97,6 +97,7 @@ export const Profile = () => {
 
   // Crop States
   const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  const [cropType, setCropType] = useState<'avatar' | 'cover' | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
@@ -143,6 +144,7 @@ export const Profile = () => {
       }
       const reader = new FileReader();
       reader.onloadend = () => {
+        setCropType('avatar');
         setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
@@ -156,20 +158,10 @@ export const Profile = () => {
         showToast("Image size must be under 2MB", "error");
         return;
       }
-      setImgUploading(true);
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        try {
-          const updatedUser = await updateUserProfile(user.id, { coverImage: base64 }, user);
-          updateUser(updatedUser);
-          setCoverPreview(base64);
-          showToast("Cover photo updated.");
-        } catch (err) {
-          showToast("Failed to upload cover.", "error");
-        } finally {
-          setImgUploading(false);
-        }
+        setCropType('cover');
+        setImageToCrop(reader.result as string);
       };
       reader.readAsDataURL(file);
     }
@@ -184,11 +176,24 @@ export const Profile = () => {
     setImgUploading(true);
     try {
       const croppedBase64 = await getCroppedImg(imageToCrop, croppedAreaPixels);
-      const updatedUser = await updateUserProfile(user.id, { avatar: croppedBase64 }, user);
+      
+      const updates = cropType === 'avatar' 
+        ? { avatar: croppedBase64 } 
+        : { coverImage: croppedBase64 };
+
+      const updatedUser = await updateUserProfile(user.id, updates, user);
       updateUser(updatedUser);
-      setAvatarPreview(croppedBase64);
+      
+      if (cropType === 'avatar') {
+        setAvatarPreview(croppedBase64);
+        showToast("Profile photo synchronized.");
+      } else {
+        setCoverPreview(croppedBase64);
+        showToast("Cover photo synchronized.");
+      }
+      
       setImageToCrop(null);
-      showToast("Profile photo synchronized.");
+      setCropType(null);
     } catch (err) {
       showToast("Failed to process image.", "error");
     } finally {
@@ -642,9 +647,9 @@ export const Profile = () => {
                 image={imageToCrop}
                 crop={crop}
                 zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
+                aspect={cropType === 'cover' ? 3 : 1}
+                cropShape={cropType === 'avatar' ? 'round' : 'rect'}
+                showGrid={true}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}
                 onZoomChange={setZoom}
@@ -672,7 +677,7 @@ export const Profile = () => {
                 <Button onClick={handleSaveCroppedImage} isLoading={imgUploading} className="flex-1 py-4 rounded-2xl shadow-xl bg-red-600">
                   <Upload size={18} className="mr-2" /> Crop & Save
                 </Button>
-                <Button variant="outline" onClick={() => setImageToCrop(null)} className="flex-1 py-4 border-slate-200 text-slate-400 rounded-2xl">
+                <Button variant="outline" onClick={() => { setImageToCrop(null); setCropType(null); }} className="flex-1 py-4 border-slate-200 text-slate-400 rounded-2xl">
                   Cancel
                 </Button>
               </div>

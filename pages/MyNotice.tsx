@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -153,6 +154,10 @@ export const MyNotice = () => {
     </button>
   );
 
+  const publicCount = notices.filter(n => n.type === 'PUBLIC').length;
+  const webCount = notices.filter(n => n.type === 'WEB').length;
+  const privateCount = notices.filter(n => n.type === 'PRIVATE').length;
+
   return (
     <div className="max-w-7xl mx-auto pb-20 px-4 animate-in fade-in duration-500">
       <Toast {...toastState} onClose={hideToast} />
@@ -164,9 +169,9 @@ export const MyNotice = () => {
              Official Board
            </h1>
            <div className="flex items-center gap-6 mt-4 border-b border-slate-200">
-              <TabButton type="PUBLIC" label="Public" />
-              <TabButton type="WEB" label="Web Notice" />
-              {isStaff && <TabButton type="PRIVATE" label="Private" />}
+              <TabButton type="PUBLIC" label={`Public (${publicCount})`} />
+              <TabButton type="WEB" label={`Web Notice (${webCount})`} />
+              {isStaff && <TabButton type="PRIVATE" label={`Private (${privateCount})`} />}
            </div>
         </div>
 

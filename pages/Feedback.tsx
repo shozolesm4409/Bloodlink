@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../AuthContext';
 import { submitFeedback, getAllFeedbacks, updateFeedbackStatus, updateFeedbackMessage, toggleFeedbackVisibility, deleteFeedback, subscribeToApprovedFeedbacks, getCachedFeedbacks, requestFeedbackAccess, getUserFeedbacks } from '../services/api';
@@ -173,6 +174,10 @@ export const DonationFeedbackPage = () => {
     );
   }
 
+  const approvedCount = myFeedbacks.filter(f => f.status === FeedbackStatus.APPROVED).length;
+  const pendingCount = myFeedbacks.filter(f => f.status === FeedbackStatus.PENDING).length;
+  const rejectedCount = myFeedbacks.filter(f => f.status === FeedbackStatus.REJECTED).length;
+
   return (
     <div className="max-w-3xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 pb-20">
       <Toast {...toastState} onClose={hideToast} />
@@ -211,9 +216,16 @@ export const DonationFeedbackPage = () => {
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <Activity size={20} className="text-blue-500" /> আমার পোস্ট করা ফিডব্যাক
-        </h2>
+        <div>
+          <h2 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+            <Activity size={20} className="text-blue-500" /> আমার পোস্ট করা ফিডব্যাক
+          </h2>
+          <div className="flex gap-2 mt-2">
+            <Badge color="green" className="text-[9px]">Approved ({approvedCount})</Badge>
+            <Badge color="yellow" className="text-[9px]">Pending ({pendingCount})</Badge>
+            <Badge color="red" className="text-[9px]">Rejected ({rejectedCount})</Badge>
+          </div>
+        </div>
         
         <Card className="overflow-hidden border-0 shadow-lg">
           <div className="overflow-x-auto">
@@ -330,6 +342,10 @@ export const FeedbackApprovalPage = () => {
   };
 
   const filteredFeedbacks = feedbacks.filter(f => filter === 'ALL' || f.status === filter);
+  
+  const pendingCount = feedbacks.filter(f => f.status === FeedbackStatus.PENDING).length;
+  const approvedCount = feedbacks.filter(f => f.status === FeedbackStatus.APPROVED).length;
+  const rejectedCount = feedbacks.filter(f => f.status === FeedbackStatus.REJECTED).length;
 
   if (loading) return <div className="p-5 text-center font-black text-slate-300 uppercase tracking-widest animate-pulse">Loading feedback queue...</div>;
 
@@ -347,6 +363,11 @@ export const FeedbackApprovalPage = () => {
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">ফিডব্যাক ম্যানেজমেন্ট</h1>
           <p className="text-sm text-slate-500 font-medium">Review and publish donor experiences.</p>
+          <div className="flex gap-2 mt-3">
+            <Badge color="yellow" className="text-[10px]">Pending: {pendingCount}</Badge>
+            <Badge color="green" className="text-[10px]">Approved: {approvedCount}</Badge>
+            <Badge color="red" className="text-[10px]">Rejected: {rejectedCount}</Badge>
+          </div>
         </div>
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="bg-white border border-slate-200 text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-2xl focus:ring-4 focus:ring-red-500/10 shadow-sm outline-none cursor-pointer appearance-none min-w-[160px]">
           <option value="ALL">সব ফিডব্যাক</option>

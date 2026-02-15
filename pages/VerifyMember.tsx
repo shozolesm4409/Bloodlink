@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { collection, query, where, getDocs } from '@firebase/firestore';
@@ -191,10 +192,17 @@ export const VerifyMember = () => {
            </div>
         </div>
 
-        <Card className="p-6 lg:p-10 border-0 shadow-2xl rounded-[1.5rem] bg-white relative overflow-hidden text-center">
-          <div className={`absolute top-0 left-0 w-full h-2 ${eligible ? 'bg-green-500' : 'bg-red-500'}`}></div>
+        <Card className="p-0 border-0 shadow-2xl rounded-[2.5rem] bg-white relative overflow-hidden text-center pb-8">
+          <div className="h-32 w-full relative">
+             {member.coverImage ? (
+                <img src={member.coverImage} className="w-full h-full object-cover" alt="Cover" />
+             ) : (
+                <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200"></div>
+             )}
+             <div className={`absolute bottom-0 left-0 w-full h-1 ${eligible ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          </div>
           
-          <div className="mb-8 relative mt-4">
+          <div className="-mt-16 mb-6 relative px-6 lg:px-10">
              <div className={clsx(
                "w-32 h-32 rounded-full bg-slate-100 mx-auto overflow-hidden border-[6px] shadow-xl relative transition-all isolation-auto",
                rank ? rank.color.replace('text-', 'border-') : "border-white"
@@ -223,79 +231,81 @@ export const VerifyMember = () => {
              )}
           </div>
 
-          <div className="space-y-2 mb-10">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">{member.name}</h1>
-            <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">{member.idNumber}</p>
-            <div className="flex flex-wrap justify-center gap-2 mt-4">
-              <Badge color="blue" className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-blue-50 uppercase tracking-widest font-black">Authentic</Badge>
-              <Badge color={eligible ? 'green' : 'red'} className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-red-50 uppercase tracking-widest font-black">
-                {eligible ? 'ELIGIBLE' : 'RESTING'}
-              </Badge>
-              {rank && <Badge className={clsx("px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-slate-50 uppercase tracking-widest font-black", rank.bg, rank.color)}>{rank.name}</Badge>}
+          <div className="px-6 lg:px-10 space-y-8">
+            <div className="space-y-2 mb-10">
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">{member.name}</h1>
+              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">{member.idNumber}</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                <Badge color="blue" className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-blue-50 uppercase tracking-widest font-black">Authentic</Badge>
+                <Badge color={eligible ? 'green' : 'red'} className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-red-50 uppercase tracking-widest font-black">
+                  {eligible ? 'ELIGIBLE' : 'RESTING'}
+                </Badge>
+                {rank && <Badge className={clsx("px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-slate-50 uppercase tracking-widest font-black", rank.bg, rank.color)}>{rank.name}</Badge>}
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3 lg:gap-4 text-left mb-10">
-            <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Droplet size={20} /></div>
-               <div>
-                  <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">রক্তের গ্রুপ</p>
-                  <p className="text-base lg:text-xl font-black text-slate-900">{member.bloodGroup}</p>
-               </div>
+            <div className="grid grid-cols-2 gap-3 lg:gap-4 text-left">
+              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
+                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Droplet size={20} /></div>
+                 <div>
+                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">রক্তের গ্রুপ</p>
+                    <p className="text-base lg:text-xl font-black text-slate-900">{member.bloodGroup}</p>
+                 </div>
+              </div>
+              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
+                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><MapPin size={20} /></div>
+                 <div className="w-full min-w-0">
+                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ডোনার এলাকা</p>
+                    <p className="text-sm lg:text-lg font-bold text-slate-700 truncate">{member.location}</p>
+                 </div>
+              </div>
+              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
+                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><History size={20} /></div>
+                 <div>
+                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">মোট রক্তদান</p>
+                    <p className="text-base lg:text-xl font-black text-slate-900">{donationCount} বার</p>
+                 </div>
+              </div>
+              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
+                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Clock size={20} /></div>
+                 <div>
+                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">পরবর্তী রক্তদান</p>
+                    <p className={clsx("text-sm lg:text-lg font-black", eligible ? "text-green-600" : "text-red-600")}>
+                      {eligible ? 'এখনই সম্ভব' : `${daysLeft} দিন`}
+                    </p>
+                 </div>
+              </div>
+              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-5 col-span-2 text-center sm:text-left">
+                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"><Calendar size={20} /></div>
+                 <div>
+                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">সর্বশেষ রক্তদানের তারিখ</p>
+                    <p className="text-sm lg:text-lg font-black text-slate-900">
+                      {member.lastDonationDate ? new Date(member.lastDonationDate).toLocaleDateString('bn-BD') : 'তথ্য নেই'}
+                    </p>
+                 </div>
+              </div>
             </div>
-            <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><MapPin size={20} /></div>
-               <div className="w-full min-w-0">
-                  <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ডোনার এলাকা</p>
-                  <p className="text-sm lg:text-lg font-bold text-slate-700 truncate">{member.location}</p>
-               </div>
-            </div>
-            <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><History size={20} /></div>
-               <div>
-                  <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">মোট রক্তদান</p>
-                  <p className="text-base lg:text-xl font-black text-slate-900">{donationCount} বার</p>
-               </div>
-            </div>
-            <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Clock size={20} /></div>
-               <div>
-                  <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">পরবর্তী রক্তদান</p>
-                  <p className={clsx("text-sm lg:text-lg font-black", eligible ? "text-green-600" : "text-red-600")}>
-                    {eligible ? 'এখনই সম্ভব' : `${daysLeft} দিন`}
-                  </p>
-               </div>
-            </div>
-            <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-5 col-span-2 text-center sm:text-left">
-               <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"><Calendar size={20} /></div>
-               <div>
-                  <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">সর্বশেষ রক্তদানের তারিখ</p>
-                  <p className="text-sm lg:text-lg font-black text-slate-900">
-                    {member.lastDonationDate ? new Date(member.lastDonationDate).toLocaleDateString('bn-BD') : 'তথ্য নেই'}
-                  </p>
-               </div>
-            </div>
-          </div>
 
-          {feedbacks.length > 0 && (
-            <div className="mt-10 pt-10 border-t border-slate-100 text-left">
-               <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                 <MessageSquareQuote size={18} className="text-red-600" /> ডোনার অভিজ্ঞতা
-               </h3>
-               <div className="space-y-4">
-                 {feedbacks.map(f => (
-                   <div key={f.id} className="p-6 bg-slate-50/80 rounded-[1rem] border border-slate-200/50 relative group">
-                     <Quote size={20} className="absolute top-4 right-4 text-slate-200 group-hover:text-red-100 transition-colors" />
-                     <p className="text-slate-600 font-medium italic text-sm leading-relaxed relative z-10">"{f.message}"</p>
-                     <p className="mt-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Shared on {new Date(f.timestamp).toLocaleDateString()}</p>
-                   </div>
-                 ))}
-               </div>
-            </div>
-          )}
+            {feedbacks.length > 0 && (
+              <div className="mt-10 pt-10 border-t border-slate-100 text-left">
+                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                   <MessageSquareQuote size={18} className="text-red-600" /> ডোনার অভিজ্ঞতা
+                 </h3>
+                 <div className="space-y-4">
+                   {feedbacks.map(f => (
+                     <div key={f.id} className="p-6 bg-slate-50/80 rounded-[1rem] border border-slate-200/50 relative group">
+                       <Quote size={20} className="absolute top-4 right-4 text-slate-200 group-hover:text-red-100 transition-colors" />
+                       <p className="text-slate-600 font-medium italic text-sm leading-relaxed relative z-10">"{f.message}"</p>
+                       <p className="mt-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Shared on {new Date(f.timestamp).toLocaleDateString()}</p>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+            )}
 
-          <div className="mt-12 pt-8 border-t border-dashed border-slate-100 text-slate-400 font-medium text-[9px] uppercase tracking-widest">
-            Verification Hash ID: {member.id} <br/> Generated: {new Date().toLocaleString()}
+            <div className="mt-12 pt-8 border-t border-dashed border-slate-100 text-slate-400 font-medium text-[9px] uppercase tracking-widest">
+              Verification Hash ID: {member.id} <br/> Generated: {new Date().toLocaleString()}
+            </div>
           </div>
         </Card>
       </div>

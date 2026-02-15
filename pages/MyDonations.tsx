@@ -72,10 +72,21 @@ export const MyDonations = () => {
     }
   };
 
+  const completed = donations.filter(d => d.status === DonationStatus.COMPLETED).length;
+  const pending = donations.filter(d => d.status === DonationStatus.PENDING).length;
+  const rejected = donations.filter(d => d.status === DonationStatus.REJECTED).length;
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h1 className="text-2xl font-bold text-slate-900">Donation History</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">Donation History</h1>
+          <div className="flex gap-2 mt-2">
+            <Badge color="green" className="text-[10px]">Completed: {completed}</Badge>
+            <Badge color="yellow" className="text-[10px]">Pending: {pending}</Badge>
+            <Badge color="red" className="text-[10px]">Rejected: {rejected}</Badge>
+          </div>
+        </div>
         <Button onClick={() => setShowForm(!showForm)}><Plus className="w-4 h-4 mr-2" /> Request Donation</Button>
       </div>
 
