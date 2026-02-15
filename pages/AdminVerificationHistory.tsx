@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { getVerificationLogs } from '../services/api';
 import { Card, Badge, Button } from '../components/UI';
 import { ClipboardList, RotateCcw, Clock, User as UserIcon, ShieldCheck, Droplet, User } from 'lucide-react';
+import { BloodGroup } from '../types';
 
 export const AdminVerificationHistory = () => {
   const [logs, setLogs] = useState<any[]>([]);
@@ -23,6 +24,13 @@ export const AdminVerificationHistory = () => {
   useEffect(() => {
     fetchLogs();
   }, []);
+
+  // Calculate Blood Group Stats
+  const groupCounts = logs.reduce((acc, log) => {
+    const bg = log.bloodGroup || 'Unknown';
+    acc[bg] = (acc[bg] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   if (loading) return (
     <div className="p-10 text-center font-black text-slate-300 animate-pulse uppercase tracking-[0.2em]">
@@ -45,6 +53,16 @@ export const AdminVerificationHistory = () => {
         <Button onClick={fetchLogs} variant="outline" className="flex items-center gap-2 rounded-xl">
           <RotateCcw size={18} /> Refresh Log
         </Button>
+      </div>
+
+      {/* Summary Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        {Object.values(BloodGroup).map((bg) => (
+          <div key={bg} className="bg-white p-3 rounded-2xl border border-slate-100 shadow-sm flex flex-col items-center justify-center text-center">
+             <span className="text-red-600 font-black text-lg">{bg}</span>
+             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{groupCounts[bg] || 0} Checks</span>
+          </div>
+        ))}
       </div>
 
       {/* Desktop Table View */}

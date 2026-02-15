@@ -4,7 +4,7 @@ import { getUserDonations, addDonation, deleteDonationRecord } from '../services
 import { useAuth } from '../AuthContext';
 import { DonationRecord, DonationStatus } from '../types';
 import { Card, Button, Input, Badge, ConfirmModal } from '../components/UI';
-import { Plus, History as HistoryIcon, Clock, Check, Calendar, Trash2, Users } from 'lucide-react';
+import { Plus, History as HistoryIcon, Clock, Check, Calendar, Trash2, Users, Shuffle } from 'lucide-react';
 import clsx from 'clsx';
 
 export const MyDonations = () => {
@@ -12,6 +12,7 @@ export const MyDonations = () => {
   const [donations, setDonations] = useState<DonationRecord[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [reqDate, setReqDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
@@ -37,7 +38,7 @@ export const MyDonations = () => {
         userName: user.name,
         userAvatar: user.avatar || '',
         userBloodGroup: user.bloodGroup,
-        donationDate: new Date().toISOString(),
+        donationDate: reqDate ? new Date(reqDate).toISOString() : new Date().toISOString(),
         location: formData.get('location') as string,
         units: 450, 
         notes: formData.get('notes') as string
@@ -50,6 +51,13 @@ export const MyDonations = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRandomDate = () => {
+    // Generate a random date within the last 6 months
+    const d = new Date();
+    d.setDate(d.getDate() - Math.floor(Math.random() * 180));
+    setReqDate(d.toISOString().split('T')[0]);
   };
 
   const confirmDelete = async () => {
@@ -75,6 +83,17 @@ export const MyDonations = () => {
         <Card className="p-6 bg-white border-red-100 shadow-lg border-t-4 border-t-red-500 animate-in slide-in-from-top-4">
           <h3 className="font-bold text-slate-900 mb-4">Submit New Request</h3>
           <form onSubmit={handleRequest} className="space-y-4">
+            <div className="relative">
+               <Input label="Donation Date" type="date" value={reqDate} onChange={e => setReqDate(e.target.value)} required />
+               <button 
+                 type="button" 
+                 onClick={handleRandomDate}
+                 className="absolute right-2 top-[30px] p-2 text-slate-400 hover:text-blue-600 transition-colors"
+                 title="Pick Random Date"
+               >
+                 <Shuffle size={16} />
+               </button>
+            </div>
             <Input label="Location" name="location" required placeholder="Hospital or Blood Bank" />
             <Input label="Notes" name="notes" placeholder="Optional notes..." />
             <div className="flex justify-end gap-3"><Button type="button" variant="outline" onClick={() => setShowForm(false)}>Cancel</Button><Button type="submit" isLoading={loading}>Submit</Button></div>

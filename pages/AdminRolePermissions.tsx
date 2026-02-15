@@ -188,10 +188,10 @@ export const AdminRolePermissions = () => {
   const currentRole = permissions ? (permissions as any)[activeRole.toLowerCase()] : null;
 
   return (
-    <div className="space-y-6 lg:space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto pb-20 px-4">
+    <div className="space-y-6 lg:space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10 px-4">
       <Toast {...toastState} onClose={hideToast} />
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-8 border-b border-slate-200 pb-6 lg:pb-10">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-8 border-b border-slate-200 pb-4 lg:pb-8">
         <div>
            <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 rounded-full mb-3 lg:mb-4">
               <Shield size={14} />
@@ -200,28 +200,28 @@ export const AdminRolePermissions = () => {
            <h1 className="text-3xl lg:text-5xl font-black text-slate-900 tracking-tight lg:tracking-[-0.04em]">Role Permissions</h1>
         </div>
         
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl lg:rounded-3xl shadow-inner border border-slate-200 w-full lg:w-auto">
-          <button onClick={() => { setActiveTab('global'); setSelectedUser(null); }} className={clsx("flex-1 lg:px-10 py-3 rounded-xl lg:rounded-[1.5rem] text-[10px] lg:text-[11px] font-black uppercase transition-all", activeTab === 'global' ? "bg-white shadow-lg text-red-600" : "text-slate-500")}>Global Roles</button>
-          <button onClick={() => setActiveTab('individual')} className={clsx("flex-1 lg:px-10 py-3 rounded-xl lg:rounded-[1.5rem] text-[10px] lg:text-[11px] font-black uppercase transition-all", activeTab === 'individual' ? "bg-white shadow-lg text-red-600" : "text-slate-500")}>User Overrides</button>
+        <div className="flex bg-slate-100 p-1.5 rounded-2xl lg:rounded-xl shadow-inner border border-slate-200 w-full lg:w-auto">
+          <button onClick={() => { setActiveTab('global'); setSelectedUser(null); }} className={clsx("flex-1 lg:px-5 py-2 rounded-xl  text-[10px] lg:text-[11px] font-black uppercase transition-all", activeTab === 'global' ? "bg-white shadow-lg text-red-600" : "text-slate-500")}>Roles</button>
+          <button onClick={() => setActiveTab('individual')} className={clsx("flex-1 lg:px-5 py-2 rounded-xl text-[10px] lg:text-[11px] font-black uppercase transition-all", activeTab === 'individual' ? "bg-white shadow-lg text-red-600" : "text-slate-500")}>User Wish</button>
         </div>
       </div>
 
       {activeTab === 'global' ? (
         <div className="space-y-6 lg:space-y-10">
-          <div className="flex bg-slate-100 p-1 lg:p-1.5 rounded-2xl lg:rounded-[2rem] shadow-inner border border-slate-200 w-full lg:w-fit overflow-x-auto no-scrollbar">
+          <div className="flex bg-slate-100 p-1 lg:p-1.5 rounded-xl lg:rounded-[1rem] shadow-inner border border-slate-200 w-full lg:w-fit overflow-x-auto no-scrollbar">
             {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN, UserRole.SUPERADMIN].map((role) => (
-              <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-6 lg:px-8 py-2.5 lg:py-3 rounded-xl lg:rounded-[1.75rem] text-[10px] lg:text-[11px] font-black uppercase transition-all whitespace-nowrap", activeRole === role ? "bg-white shadow-md lg:shadow-xl text-red-600" : "text-slate-500")}>{role}</button>
+              <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-4 lg:px-6 py-1.5 lg:py-2 rounded-l lg:rounded-[15rem] text-[10px] lg:text-[11px] font-black uppercase transition-all whitespace-nowrap", activeRole === role ? "bg-white shadow-md lg:shadow-xl text-red-600" : "text-slate-500")}>{role}</button>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-10">
-             <Card className="p-6 lg:p-8 border-0 shadow-xl bg-white rounded-[2rem] lg:rounded-[2.5rem]">
-                <h3 className="text-lg lg:text-xl font-black text-slate-900 mb-6 lg:mb-8 flex items-center gap-3"><Layout className="text-blue-500" /> Sidebar Visibility</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
+             <Card className="p-3 lg:p-6 border-0 shadow-xl bg-white rounded-[1rem] lg:rounded-[1rem]">
+                <h3 className="text-lg lg:text-xl font-black text-slate-900 mb-3 lg:mb-6 flex items-center gap-3"><Layout className="text-blue-500" /> Sidebar Visibility</h3>
                 <div className="space-y-2 lg:space-y-3 max-h-[400px] lg:max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                    {SIDEBAR_KEYS.map((key) => {
                      const value = currentRole?.sidebar?.[key] ?? false;
                      return (
-                       <div key={key} className="flex items-center justify-between p-3.5 lg:p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-white transition-all group" onClick={() => handleToggleSidebar(key)}>
+                       <div key={key} className="flex items-center justify-between p-1 lg:p-2 bg-slate-50 rounded-xl border border-slate-100 cursor-pointer hover:bg-white transition-all group" onClick={() => handleToggleSidebar(key)}>
                           <span className="text-[10px] lg:text-xs font-black text-slate-700 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
                           <div className={clsx("w-10 lg:w-12 h-5 lg:h-6 rounded-full relative transition-all shadow-inner p-1", value ? "bg-blue-600" : "bg-slate-200")}>
                              <div className={clsx("w-3 lg:w-4 h-3 lg:h-4 bg-white rounded-full transition-all shadow-md", value ? "translate-x-5 lg:translate-x-6" : "translate-x-0")} />
@@ -232,7 +232,7 @@ export const AdminRolePermissions = () => {
                 </div>
              </Card>
 
-             <Card className="p-6 lg:p-8 border-0 shadow-xl bg-white rounded-[2rem] lg:rounded-[2.5rem] flex flex-col">
+             <Card className="p-6 lg:p-8 border-0 shadow-xl bg-white rounded-[1rem] lg:rounded-[1rem] flex flex-col">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
                    <h3 className="text-lg lg:text-xl font-black text-slate-900 flex items-center gap-3"><Lock className="text-red-500" /> Functional Rules</h3>
                    <Button onClick={handleSaveGlobal} isLoading={saving} className="w-full sm:w-auto rounded-xl px-6 py-2 text-[10px] lg:text-xs">Save Global</Button>

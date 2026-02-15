@@ -1,3 +1,4 @@
+
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
@@ -438,7 +439,11 @@ export const getLandingConfig = async (): Promise<LandingPageConfig | null> => {
     const docRef = doc(db, COLLECTIONS.SETTINGS, 'landing');
     const snap = await getDoc(docRef);
     return snap.exists() ? snap.data() as LandingPageConfig : null;
-  } catch (e) {
+  } catch (e: any) {
+    if (e.code === 'unavailable' || e.message?.includes('offline')) {
+      console.debug("Offline mode: Using default landing config.");
+      return null;
+    }
     console.error("Failed to fetch landing config:", e);
     return null;
   }

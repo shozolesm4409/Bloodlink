@@ -2,7 +2,7 @@
 // Standard Firebase v9+ modular SDK initialization
 import { initializeApp } from "@firebase/app";
 import { getAuth } from "@firebase/auth";
-import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "@firebase/firestore";
+import { initializeFirestore, persistentLocalCache } from "@firebase/firestore";
 import { getAnalytics } from "@firebase/analytics";
 
 // Firebase configuration
@@ -22,12 +22,10 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 
 // Initialize Firestore with offline persistence enabled
-// This prevents "Failed to get document because the client is offline" errors
-// by serving data from the local cache when the backend is unreachable.
+// Used simple persistentLocalCache to avoid synchronization overhead and timeout errors
+// associated with multi-tab management in unstable network conditions.
 export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager()
-  })
+  localCache: persistentLocalCache()
 });
 
 // Analytics is optional and depends on browser context

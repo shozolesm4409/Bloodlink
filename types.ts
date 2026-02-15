@@ -149,6 +149,7 @@ export interface User {
   phone: string;
   lastDonationDate?: string;
   avatar?: string;
+  coverImage?: string;
   password?: string;
   hasDirectoryAccess?: boolean;
   directoryAccessRequested?: boolean;

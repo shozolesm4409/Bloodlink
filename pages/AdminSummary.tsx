@@ -4,7 +4,7 @@ import { getUsers, getDonations } from '../services/api';
 import { Card, Badge } from '../components/UI';
 import { User, UserRole, DonationRecord, BloodGroup } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Users, Shield, Edit, User as UserIcon, Activity, Droplet } from 'lucide-react';
+import { Users, Shield, Edit, User as UserIcon, Activity, Droplet, Fingerprint } from 'lucide-react';
 
 export const AdminSummary = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -21,10 +21,16 @@ export const AdminSummary = () => {
 
   if (loading) return <div className="p-10 text-center font-black text-slate-300 animate-pulse">Calculating Summary...</div>;
 
+  const superAdmins = users.filter(u => u.role === UserRole.SUPERADMIN).length;
+  const admins = users.filter(u => u.role === UserRole.ADMIN).length;
+  const editors = users.filter(u => u.role === UserRole.EDITOR).length;
+  const generalUsers = users.filter(u => u.role === UserRole.USER).length;
+
   const roleData = [
-    { name: 'Admins', value: users.filter(u => u.role === UserRole.ADMIN).length, color: '#ef4444' },
-    { name: 'Editors', value: users.filter(u => u.role === UserRole.EDITOR).length, color: '#3b82f6' },
-    { name: 'Users', value: users.filter(u => u.role === UserRole.USER).length, color: '#10b981' },
+    { name: 'Super Admin', value: superAdmins, color: '#7c3aed' }, // Violet
+    { name: 'Admin', value: admins, color: '#ef4444' },      // Red
+    { name: 'Editor', value: editors, color: '#3b82f6' },    // Blue
+    { name: 'User', value: generalUsers, color: '#10b981' }, // Green
   ];
 
   // Fix: Accurate and robust Blood Group Spread calculation
@@ -45,16 +51,17 @@ export const AdminSummary = () => {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Total Registered</p>
               <p className="text-2xl font-black text-slate-900 tracking-tighter">{users.length}</p>
            </div>
-           <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-red-100">
+           <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-lg">
               <Users size={20} />
            </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <SummaryCard icon={Shield} title="Administrators" value={roleData[0].value} color="bg-red-50 text-red-600" />
-        <SummaryCard icon={Edit} title="Content Editors" value={roleData[1].value} color="bg-blue-50 text-blue-600" />
-        <SummaryCard icon={UserIcon} title="General Users" value={roleData[2].value} color="bg-green-50 text-green-600" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <SummaryCard icon={Fingerprint} title="Super Admins" value={superAdmins} color="bg-purple-50 text-purple-600" />
+        <SummaryCard icon={Shield} title="Administrators" value={admins} color="bg-red-50 text-red-600" />
+        <SummaryCard icon={Edit} title="Content Editors" value={editors} color="bg-blue-50 text-blue-600" />
+        <SummaryCard icon={UserIcon} title="General Users" value={generalUsers} color="bg-green-50 text-green-600" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -73,7 +80,7 @@ export const AdminSummary = () => {
             </ResponsiveContainer>
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 mt-4">
-             {roleData.map(r => <div key={r.name} className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}></div><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{r.name}</span></div>)}
+             {roleData.map(r => <div key={r.name} className="flex items-center gap-2"><div className="w-3 h-3 rounded-full" style={{backgroundColor: r.color}}></div><span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{r.name} ({r.value})</span></div>)}
           </div>
         </Card>
 

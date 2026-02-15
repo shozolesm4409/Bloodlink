@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -17,51 +18,98 @@ import {
 } from '../services/api';
 import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select } from '../components/UI';
 import { User, UserRole, BloodGroup, DonationStatus } from '../types';
-import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings } from 'lucide-react';
+import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter } from 'lucide-react';
 import { getRankData } from './Profile';
 import clsx from 'clsx';
 
-const AccessHub = ({ users, onAction }: { users: User[], onAction: (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard', approve: boolean) => void }) => {
-  const AccessItem = ({ title, requested, has, type, uid, icon: Icon, color }: any) => (
-    <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-red-100 transition-all">
-      <div className="flex items-center gap-3">
-        <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center", has ? color : "bg-slate-100 text-slate-400")}>
-          <Icon size={16} />
-        </div>
-        <div>
-          <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-0.5">{title}</p>
-          <div className="flex items-center gap-2">
-            {has ? (
-              <Badge color="green" className="text-[8px] py-0 px-1.5">Active</Badge>
-            ) : requested ? (
-              <Badge color="yellow" className="text-[8px] py-0 px-1.5">Requested</Badge>
-            ) : (
-              <Badge color="gray" className="text-[8px] py-0 px-1.5">No Access</Badge>
-            )}
+const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: { 
+  users: User[], 
+  onAction: (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard', approve: boolean) => void,
+  searchQuery: string,
+  accessType: string,
+  accessStatus: string
+}) => {
+  
+  // Filter Logic for Access Hub
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    // If "ALL Types" is selected, just return based on search
+    if (accessType === 'ALL') return true;
+
+    // Specific access check
+    let hasAccess = false;
+    let isRequested = false;
+
+    if (accessType === 'directory') {
+      hasAccess = !!u.hasDirectoryAccess;
+      isRequested = !!u.directoryAccessRequested;
+    } else if (accessType === 'support') {
+      hasAccess = !!u.hasSupportAccess;
+      isRequested = !!u.supportAccessRequested;
+    } else if (accessType === 'feedback') {
+      hasAccess = !!u.hasFeedbackAccess;
+      isRequested = !!u.feedbackAccessRequested;
+    } else if (accessType === 'idcard') {
+      hasAccess = !!u.hasIDCardAccess;
+      isRequested = !!u.idCardAccessRequested;
+    }
+
+    if (accessStatus === 'ALL') return true;
+    if (accessStatus === 'REQUESTED') return isRequested;
+    if (accessStatus === 'ACTIVE') return hasAccess;
+    if (accessStatus === 'REVOKED') return !hasAccess && !isRequested;
+
+    return true;
+  });
+
+  const AccessItem = ({ title, requested, has, type, uid, icon: Icon, color }: any) => {
+    // If a specific type is selected for filtering, hide non-relevant items within the card
+    if (accessType !== 'ALL' && accessType !== type) return null;
+
+    return (
+      <div className="flex items-center justify-between p-3 bg-white rounded-2xl border border-slate-100 shadow-sm group hover:border-red-100 transition-all">
+        <div className="flex items-center gap-3">
+          <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center", has ? color : "bg-slate-100 text-slate-400")}>
+            <Icon size={16} />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-0.5">{title}</p>
+            <div className="flex items-center gap-2">
+              {has ? (
+                <Badge color="green" className="text-[8px] py-0 px-1.5">Active</Badge>
+              ) : requested ? (
+                <Badge color="yellow" className="text-[8px] py-0 px-1.5">Requested</Badge>
+              ) : (
+                <Badge color="gray" className="text-[8px] py-0 px-1.5">No Access</Badge>
+              )}
+            </div>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          {requested ? (
+            <>
+              <button onClick={() => onAction(uid, type, true)} className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all"><UserCheck size={14}/></button>
+              <button onClick={() => onAction(uid, type, false)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><X size={14}/></button>
+            </>
+          ) : (
+            <button 
+              onClick={() => onAction(uid, type, !has)}
+              className={clsx("text-[9px] font-black px-3 py-1.5 rounded-lg transition-all border uppercase tracking-widest", has ? "text-red-600 border-red-100 bg-red-50 hover:bg-red-600 hover:text-white" : "text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white")}
+            >
+              {has ? 'Revoke' : 'Grant'}
+            </button>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-2">
-        {requested ? (
-          <>
-            <button onClick={() => onAction(uid, type, true)} className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-600 hover:text-white transition-all"><UserCheck size={14}/></button>
-            <button onClick={() => onAction(uid, type, false)} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"><X size={14}/></button>
-          </>
-        ) : (
-          <button 
-            onClick={() => onAction(uid, type, !has)}
-            className={clsx("text-[9px] font-black px-3 py-1.5 rounded-lg transition-all border uppercase tracking-widest", has ? "text-red-600 border-red-100 bg-red-50 hover:bg-red-600 hover:text-white" : "text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-600 hover:text-white")}
-          >
-            {has ? 'Revoke' : 'Grant'}
-          </button>
-        )}
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-700">
-      {users.map(u => (
+      {filteredUsers.length > 0 ? filteredUsers.map(u => (
         <Card key={u.id} className="p-6 border-0 shadow-lg bg-white rounded-[2rem] overflow-hidden group">
           <div className="flex items-center gap-4 mb-6">
             <div className="relative">
@@ -83,7 +131,12 @@ const AccessHub = ({ users, onAction }: { users: User[], onAction: (uid: string,
             <AccessItem title="ID Card Access" requested={u.idCardAccessRequested} has={u.hasIDCardAccess} type="idcard" uid={u.id} icon={IdCard} color="bg-orange-50 text-orange-600" />
           </div>
         </Card>
-      ))}
+      )) : (
+        <div className="col-span-full py-20 text-center opacity-40">
+           <Search size={48} className="mx-auto mb-4 text-slate-300" />
+           <p className="font-black text-slate-400 uppercase tracking-widest text-xs">No users found matching access criteria</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -96,7 +149,13 @@ export const AdminUserManagement = () => {
   const [userRankMap, setUserRankMap] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('ALL');
   const [activeTab, setActiveTab] = useState<'users' | 'access-hub'>('users');
+  
+  // Access Hub Filter States
+  const [accessSearch, setAccessSearch] = useState('');
+  const [accessTypeFilter, setAccessTypeFilter] = useState('ALL');
+  const [accessStatusFilter, setAccessStatusFilter] = useState('ALL');
   
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -216,7 +275,29 @@ export const AdminUserManagement = () => {
     }
   };
 
-  const filteredUsers = users.filter(u => u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase()));
+  // User List filtering
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
+    return matchesSearch && matchesRole;
+  });
+
+  const superAdminsCount = users.filter(u => u.role === UserRole.SUPERADMIN).length;
+  const adminsCount = users.filter(u => u.role === UserRole.ADMIN).length;
+  const editorsCount = users.filter(u => u.role === UserRole.EDITOR).length;
+  const usersCount = users.filter(u => u.role === UserRole.USER).length;
+
+  const StatPill = ({ icon: Icon, label, count, color }: any) => (
+    <div className={clsx("flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm")}>
+       <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shadow-inner", color)}>
+          <Icon size={20} />
+       </div>
+       <div>
+          <p className="text-xl font-black text-slate-900 leading-none">{count}</p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{label}</p>
+       </div>
+    </div>
+  );
 
   if (loading) return <div className="p-10 text-center font-black text-slate-300 animate-pulse">Syncing...</div>;
 
@@ -302,7 +383,39 @@ export const AdminUserManagement = () => {
 
       {activeTab === 'users' && (
         <div className="space-y-6">
-          <div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} /><input type="text" placeholder="Search users by name or email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold outline-none shadow-sm" /></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+             <StatPill icon={Fingerprint} label="Super Admin" count={superAdminsCount} color="bg-purple-50 text-purple-600" />
+             <StatPill icon={Shield} label="Total Admin" count={adminsCount} color="bg-red-50 text-red-600" />
+             <StatPill icon={Edit} label="Total Editor" count={editorsCount} color="bg-blue-50 text-blue-600" />
+             <StatPill icon={UserIcon} label="Total Users" count={usersCount} color="bg-green-50 text-green-600" />
+          </div>
+
+          <div className="flex flex-col md:flex-row gap-4">
+             <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-red-600 transition-colors" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Search users by name or email..." 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                  className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold outline-none shadow-sm focus:ring-4 focus:ring-red-500/10 transition-all" 
+                />
+             </div>
+             <div className="relative group min-w-[200px]">
+                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-red-600 transition-colors" size={18} />
+                <select 
+                  value={roleFilter} 
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  className="w-full pl-12 pr-4 py-4 bg-white border border-slate-100 rounded-2xl text-sm font-bold outline-none shadow-sm focus:ring-4 focus:ring-red-500/10 transition-all appearance-none cursor-pointer text-slate-600"
+                >
+                   <option value="ALL">All Roles</option>
+                   <option value={UserRole.USER}>User</option>
+                   <option value={UserRole.EDITOR}>Editor</option>
+                   <option value={UserRole.ADMIN}>Admin</option>
+                   <option value={UserRole.SUPERADMIN}>Super Admin</option>
+                </select>
+             </div>
+          </div>
           
           {/* Desktop Table View */}
           <Card className="hidden lg:block overflow-hidden border-0 shadow-lg bg-white rounded-[2rem]">
@@ -471,7 +584,55 @@ export const AdminUserManagement = () => {
         </div>
       )}
 
-      {activeTab === 'access-hub' && <AccessHub users={users} onAction={handleAccessAction} />}
+      {activeTab === 'access-hub' && (
+        <div className="space-y-6">
+           <div className="flex flex-col md:flex-row gap-4 bg-white p-3 rounded-3xl shadow-sm border border-slate-100">
+              <div className="relative flex-1 group">
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-red-600 transition-colors" size={18} />
+                 <input 
+                   type="text" 
+                   placeholder="Search user name..." 
+                   value={accessSearch} 
+                   onChange={(e) => setAccessSearch(e.target.value)} 
+                   className="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-red-500/20 transition-all" 
+                 />
+              </div>
+              
+              <div className="flex gap-2 w-full md:w-auto">
+                 <select 
+                   value={accessTypeFilter}
+                   onChange={(e) => setAccessTypeFilter(e.target.value)}
+                   className="flex-1 md:w-48 px-4 py-3 bg-slate-50 border-0 rounded-2xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer focus:ring-2 focus:ring-red-500/20 text-slate-600"
+                 >
+                    <option value="ALL">All Types</option>
+                    <option value="directory">Directory Access</option>
+                    <option value="support">Support Access</option>
+                    <option value="feedback">Feedback Access</option>
+                    <option value="idcard">ID Card Access</option>
+                 </select>
+
+                 <select 
+                   value={accessStatusFilter}
+                   onChange={(e) => setAccessStatusFilter(e.target.value)}
+                   className="flex-1 md:w-48 px-4 py-3 bg-slate-50 border-0 rounded-2xl text-xs font-black uppercase tracking-widest outline-none cursor-pointer focus:ring-2 focus:ring-red-500/20 text-slate-600"
+                 >
+                    <option value="ALL">All Status</option>
+                    <option value="REQUESTED">Requested</option>
+                    <option value="ACTIVE">Granted / Active</option>
+                    <option value="REVOKED">Revoked / None</option>
+                 </select>
+              </div>
+           </div>
+
+           <AccessHub 
+             users={users} 
+             onAction={handleAccessAction} 
+             searchQuery={accessSearch}
+             accessType={accessTypeFilter}
+             accessStatus={accessStatusFilter}
+           />
+        </div>
+      )}
     </div>
   );
 };
