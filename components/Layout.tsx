@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
@@ -37,7 +38,8 @@ import {
   ShieldCheck,
   ClipboardList,
   Lock,
-  HelpCircle
+  HelpCircle,
+  FileQuestion
 } from 'lucide-react';
 import clsx from 'clsx';
 
@@ -170,7 +172,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
         logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
         landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true
+        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true
       };
     } else if (isAdmin) {
       basePerms = perms.admin?.sidebar || basePerms;
@@ -185,7 +187,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
       summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
       logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
       landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true
+      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true
     };
   }
 
@@ -245,6 +247,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
             {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
             {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" badges={[{ count: counts.helpRequests, color: 'red' }]} />}
+            {s.moderateFaqs && <NavItem to="/moderate-faqs" icon={FileQuestion} label="Moderate FAQ's" />}
           </SidebarSection>
 
           <SidebarSection title="People Control">

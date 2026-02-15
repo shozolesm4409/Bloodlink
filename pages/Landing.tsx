@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, where } from '@firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, subscribeToApprovedFeedbacks, getLandingConfig, getCachedFeedbacks, getUsers } from '../services/api';
-import { DonationStatus, DonationFeedback, LandingPageConfig, User } from '../types';
+import { DonationStatus, DonationFeedback, LandingPageConfig, User, BloodGroup } from '../types';
 import { Droplet, Users, HeartPulse, Activity, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Quote, Trophy, Sparkles } from 'lucide-react';
 import { PublicLayout } from '../components/PublicLayout';
 import { getRankData } from './Profile';
@@ -15,6 +16,7 @@ export const Landing = () => {
     totalVolume: 0
   });
   
+  const [bloodStats, setBloodStats] = useState<Record<string, { count: number, volume: number }>>({});
   const [feedbacks, setFeedbacks] = useState<DonationFeedback[]>(getCachedFeedbacks());
   const [topThree, setTopThree] = useState<any[]>([]);
   
@@ -50,6 +52,7 @@ export const Landing = () => {
         const dons = donSnap.docs.map(d => d.data());
         const completedDons = dons.filter(d => d.status === DonationStatus.COMPLETED);
         
+        // Top Donors Calculation
         const counts: Record<string, number> = {};
         completedDons.forEach(d => {
           counts[d.userId] = (counts[d.userId] || 0) + 1;
@@ -63,6 +66,7 @@ export const Landing = () => {
           
         setTopThree(sorted);
         
+        // General Stats
         const totalVolume = completedDons.reduce((acc, curr) => acc + (Number(curr.units) || 0), 0);
         const uniqueDonorIds = new Set(completedDons.map(d => d.userId));
         
@@ -71,6 +75,20 @@ export const Landing = () => {
           totalDonors: uniqueDonorIds.size, 
           totalVolume: totalVolume 
         }));
+
+        // Blood Group Stats Calculation
+        const bStats: Record<string, { count: number, volume: number }> = {};
+        Object.values(BloodGroup).forEach(bg => {
+            bStats[bg] = { count: 0, volume: 0 };
+        });
+
+        completedDons.forEach(d => {
+            if (bStats[d.userBloodGroup]) {
+                bStats[d.userBloodGroup].count += 1;
+                bStats[d.userBloodGroup].volume += (Number(d.units) || 0);
+            }
+        });
+        setBloodStats(bStats);
       });
 
       return () => unsubDonsRealtime();
@@ -116,7 +134,7 @@ export const Landing = () => {
         </div>
       </section>
 
-      <section className="py-10 lg:py-12 px-[5%] bg-white">
+      <section className="py-10 lg:py-16 px-[5%] bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-red-50 text-red-600 px-4 py-1.5 rounded-full mb-4">
@@ -128,10 +146,25 @@ export const Landing = () => {
             </h2>
             <div className="w-20 h-1.5 bg-red-600 mx-auto rounded-full"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12 mb-16">
             <StatCard value={loadingStats ? 0 : stats.totalUsers} label="মোট মেম্বার" icon={Users} />
             <StatCard value={loadingStats ? 0 : stats.totalDonors} label="সফল ডোনার" icon={Activity} />
             <StatCard value={loadingStats ? '0' : `${stats.totalVolume.toLocaleString()} ml`} label="সংগৃহীত রক্ত" icon={HeartPulse} />
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
+            {Object.entries(bloodStats)
+              .filter(([_, data]) => data.count > 0)
+              .map(([bg, data]) => (
+              <div key={bg} className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-xl hover:-translate-y-1 transition-all group">
+                 <h3 className="text-2xl font-black text-[#c1121f] mb-1 group-hover:scale-110 transition-transform">{bg}</h3>
+                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-2">{data.count} Donations</p>
+                 <div className="bg-slate-50 px-3 py-1 rounded-full text-[10px] font-bold text-slate-600 border border-slate-200">
+                    {data.volume < 1000 ? `${data.volume} ML` : `${(data.volume / 1000).toFixed(2).replace(/\.00$/, '')} L`}
+                 </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>

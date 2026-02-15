@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { collection, query, where, getDocs } from '@firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, logVerificationCheck } from '../services/api';
 import { User, DonationFeedback, FeedbackStatus, DonationStatus } from '../types';
 import { Card, Badge, Button } from '../components/UI';

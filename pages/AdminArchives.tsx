@@ -2,240 +2,237 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { 
-  getDeletedUsers, 
-  getDeletedDonations, 
-  getDeletedLogs, 
-  getDeletedFeedbacks, 
-  getDeletedNotices, 
-  getDeletedHelpRequests,
-  restoreDeletedUser, 
-  restoreDeletedDonation, 
-  restoreDeletedLog, 
-  restoreDeletedFeedback, 
-  restoreDeletedNotice,
-  restoreDeletedHelpRequest,
-  permanentlyDeleteArchivedFeedback 
+  getDeletedUsers, restoreDeletedUser, permanentlyDeleteArchivedUser,
+  getDeletedDonations, restoreDeletedDonation, permanentlyDeleteArchivedDonation,
+  getDeletedFeedbacks, restoreDeletedFeedback, permanentlyDeleteArchivedFeedback,
+  getDeletedNotices, restoreDeletedNotice, permanentlyDeleteArchivedNotice,
+  getDeletedHelpRequests, restoreDeletedHelpRequest, permanentlyDeleteArchivedHelpRequest,
+  getDeletedLogs, restoreDeletedLog, permanentlyDeleteArchivedLog
 } from '../services/api';
-import { Card, Toast, useToast, ConfirmModal, Badge } from '../components/UI';
-import { Trash2, RotateCcw, User as UserIcon, Archive, Calendar, Clock, AlertCircle } from 'lucide-react';
+import { Card, Button, Toast, useToast, ConfirmModal } from '../components/UI';
+import { Trash2, RotateCcw, Clock, Archive, User, FileText, MessageSquare, AlertCircle, Database, Megaphone, Activity } from 'lucide-react';
 import clsx from 'clsx';
 
 export const AdminArchives = () => {
   const { user } = useAuth();
   const { toastState, showToast, hideToast } = useToast();
-  const [data, setData] = useState<any[]>([]);
-  const [tab, setTab] = useState<'users' | 'donations' | 'logs' | 'feedbacks' | 'notices' | 'help-requests'>('users');
+  const [activeTab, setActiveTab] = useState<'USERS' | 'DONATIONS' | 'FEEDBACKS' | 'NOTICES' | 'HELP' | 'LOGS'>('USERS');
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchItems = async () => {
     setLoading(true);
-    let res = [];
     try {
-      if (tab === 'users') res = await getDeletedUsers();
-      else if (tab === 'donations') res = await getDeletedDonations();
-      else if (tab === 'logs') res = await getDeletedLogs();
-      else if (tab === 'feedbacks') res = await getDeletedFeedbacks();
-      else if (tab === 'notices') res = await getDeletedNotices();
-      else if (tab === 'help-requests') res = await getDeletedHelpRequests();
-      setData(res);
-    } catch (err) {
-      showToast("Data sync failed.", "error");
+      let data = [];
+      switch(activeTab) {
+        case 'USERS': data = await getDeletedUsers(); break;
+        case 'DONATIONS': data = await getDeletedDonations(); break;
+        case 'FEEDBACKS': data = await getDeletedFeedbacks(); break;
+        case 'NOTICES': data = await getDeletedNotices(); break;
+        case 'HELP': data = await getDeletedHelpRequests(); break;
+        case 'LOGS': data = await getDeletedLogs(); break;
+      }
+      setItems(data);
+    } catch (e) {
+      showToast("Failed to fetch archives", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, [tab]);
+  useEffect(() => { fetchItems(); }, [activeTab]);
 
   const handleRestore = async (id: string) => {
     if (!user) return;
     try {
-      if (tab === 'users') await restoreDeletedUser(id, user);
-      else if (tab === 'donations') await restoreDeletedDonation(id, user);
-      else if (tab === 'logs') await restoreDeletedLog(id, user);
-      else if (tab === 'feedbacks') await restoreDeletedFeedback(id, user);
-      else if (tab === 'notices') await restoreDeletedNotice(id, user);
-      else if (tab === 'help-requests') await restoreDeletedHelpRequest(id, user);
-      showToast("Restored to active database.");
-      fetchData();
-    } catch (e) { showToast("Failed.", "error"); }
+      switch(activeTab) {
+        case 'USERS': await restoreDeletedUser(id, user); break;
+        case 'DONATIONS': await restoreDeletedDonation(id, user); break;
+        case 'FEEDBACKS': await restoreDeletedFeedback(id, user); break;
+        case 'NOTICES': await restoreDeletedNotice(id, user); break;
+        case 'HELP': await restoreDeletedHelpRequest(id, user); break;
+        case 'LOGS': await restoreDeletedLog(id, user); break;
+      }
+      showToast("Item restored successfully");
+      fetchItems();
+    } catch (e) {
+      showToast("Restore failed", "error");
+    }
   };
 
   const handlePermanentDelete = async () => {
     if (!user || !confirmId) return;
     try {
-      if (tab === 'feedbacks') await permanentlyDeleteArchivedFeedback(confirmId, user);
-      showToast("Data permanently purged.");
+      if (activeTab === 'USERS') await permanentlyDeleteArchivedUser(confirmId, user);
+      else if (activeTab === 'DONATIONS') await permanentlyDeleteArchivedDonation(confirmId, user);
+      else if (activeTab === 'FEEDBACKS') await permanentlyDeleteArchivedFeedback(confirmId, user);
+      else if (activeTab === 'NOTICES') await permanentlyDeleteArchivedNotice(confirmId, user);
+      else if (activeTab === 'HELP') await permanentlyDeleteArchivedHelpRequest(confirmId, user);
+      else if (activeTab === 'LOGS') await permanentlyDeleteArchivedLog(confirmId, user);
+      
+      showToast("Item permanently deleted");
+      fetchItems();
       setConfirmId(null);
-      fetchData();
-    } catch (e) { showToast("Purge failed.", "error"); }
+    } catch (e) {
+      showToast("Delete failed", "error");
+    }
   };
 
-  if (loading) return (
-    <div className="p-20 text-center flex flex-col items-center gap-4">
-      <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-      <p className="font-black text-slate-300 uppercase tracking-widest text-xs">Scanning Vault...</p>
-    </div>
+  const TabButton = ({ tab, label, icon: Icon }: any) => (
+    <button 
+      onClick={() => setActiveTab(tab)} 
+      className={clsx(
+        "flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+        activeTab === tab ? "bg-white shadow-md text-red-600" : "text-slate-500 hover:bg-white/50"
+      )}
+    >
+      <Icon size={16} /> {label}
+    </button>
   );
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-20">
       <Toast {...toastState} onClose={hideToast} />
-      <ConfirmModal isOpen={!!confirmId} onClose={() => setConfirmId(null)} onConfirm={handlePermanentDelete} title="Erase Permanently?" message="This action is irreversible and will erase the data from our global nodes." />
-      
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 border-b border-slate-100 pb-8">
-        <div className="flex items-center gap-4">
-           <div className="p-4 bg-slate-900 text-white rounded-[1.5rem] shadow-xl"><Archive size={28} /></div>
-           <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">System Archives</h1>
-              <p className="text-sm text-slate-500 font-medium">Vault for decommissioned records.</p>
-           </div>
-        </div>
-        <div className="flex bg-slate-100 p-1.5 rounded-2xl border border-slate-200 overflow-x-auto no-scrollbar max-w-full shadow-inner">
-          {['users', 'donations', 'logs', 'feedbacks', 'notices', 'help-requests'].map(t => (
-            <button 
-              key={t} 
-              onClick={() => setTab(t as any)} 
-              className={clsx(
-                "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap", 
-                tab === t ? "bg-white shadow-md text-red-600" : "text-slate-500 hover:text-slate-900"
-              )}
-            >
-              {t.replace('-', ' ')}
-            </button>
-          ))}
+      <ConfirmModal isOpen={!!confirmId} onClose={() => setConfirmId(null)} onConfirm={handlePermanentDelete} title="Permanently Delete?" message="This action cannot be undone. The record will be wiped from the database." />
+
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b border-slate-200 pb-8">
+        <div>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tighter">System Archives</h1>
+          <p className="text-sm text-slate-500 font-medium">Recover or purge deleted records.</p>
         </div>
       </div>
 
-      {/* Desktop Table View */}
-      <Card className="hidden lg:block overflow-hidden border-0 shadow-2xl bg-white rounded-[3rem]">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-              <tr>
-                <th className="px-10 py-6">Identity / Description</th>
-                <th className="px-10 py-6">Moderator</th>
-                <th className="px-10 py-6">Deleted At</th>
-                <th className="px-10 py-6 text-right">Moderation</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {data.map(item => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
-                  <td className="px-10 py-5">
-                    <div className="flex items-center gap-4">
-                      {(item.avatar || item.userAvatar) ? (
-                        <div className="w-10 h-10 rounded-xl bg-slate-100 overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
-                          <img src={item.avatar || item.userAvatar} className="w-full h-full object-cover" />
+      <div className="flex bg-slate-100 p-1.5 rounded-2xl overflow-x-auto no-scrollbar pb-2 lg:pb-1.5">
+         <TabButton tab="USERS" label="Users" icon={User} />
+         <TabButton tab="DONATIONS" label="Donations" icon={Database} />
+         <TabButton tab="FEEDBACKS" label="Feedback" icon={MessageSquare} />
+         <TabButton tab="NOTICES" label="Notices" icon={Megaphone} />
+         <TabButton tab="HELP" label="Help Desk" icon={AlertCircle} />
+         <TabButton tab="LOGS" label="Audit Logs" icon={Activity} />
+      </div>
+
+      {loading ? (
+        <div className="p-20 text-center font-black text-slate-300 animate-pulse">Scanning Archives...</div>
+      ) : (
+        <>
+          {/* Desktop Table View */}
+          <Card className="hidden lg:block overflow-hidden border-0 shadow-lg bg-white rounded-[2.5rem]">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
+                  <tr>
+                    <th className="px-10 py-5">Record Info</th>
+                    <th className="px-10 py-5">Deleted By</th>
+                    <th className="px-10 py-5">Deleted At</th>
+                    <th className="px-10 py-5 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {items.map(item => (
+                    <tr key={item.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-10 py-5">
+                        <div className="font-bold text-slate-700">
+                          {activeTab === 'USERS' && item.name}
+                          {activeTab === 'DONATIONS' && `Donation: ${item.userName} (${item.units}ml)`}
+                          {activeTab === 'FEEDBACKS' && `Feedback: "${item.message?.substring(0,30)}..."`}
+                          {activeTab === 'NOTICES' && item.subject}
+                          {activeTab === 'HELP' && `Help: ${item.name} (${item.phone})`}
+                          {activeTab === 'LOGS' && `Log: ${item.action}`}
                         </div>
-                      ) : (
-                        <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center border-2 border-white shadow-sm flex-shrink-0">
-                          <UserIcon size={18} className="text-slate-300" />
+                        <div className="text-[10px] text-slate-400 font-mono mt-1">ID: {item.id}</div>
+                      </td>
+                      <td className="px-10 py-5 text-xs font-bold text-slate-600">{item.deletedBy || 'Unknown'}</td>
+                      <td className="px-10 py-5 text-slate-400 text-xs font-bold">
+                        <div className="flex items-center gap-2">
+                           <Clock size={14} className="opacity-50" />
+                           {new Date(item.deletedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                         </div>
-                      )}
-                      <div>
-                        <p className="font-black text-slate-900">{item.name || item.userName || item.subject || item.action || 'Archived Entry'}</p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">ID: {item.id}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-10 py-5">
-                     <span className="text-xs font-black text-slate-500 uppercase tracking-tighter">{item.deletedBy || 'System'}</span>
-                  </td>
-                  <td className="px-10 py-5 text-slate-400 text-xs font-bold">
-                    <div className="flex items-center gap-2">
-                       <Clock size={14} className="opacity-50" />
-                       {new Date(item.deletedAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
-                    </div>
-                  </td>
-                  <td className="px-10 py-5 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button onClick={() => handleRestore(item.id)} className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm bg-white" title="Restore"><RotateCcw size={20}/></button>
-                      <button onClick={() => setConfirmId(item.id)} className="p-2.5 text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl shadow-sm bg-white" title="Purge"><Trash2 size={20} /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {data.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-10 py-20 text-center text-slate-300 font-black uppercase tracking-[0.3em] italic opacity-50">Archive category is empty</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                      </td>
+                      <td className="px-10 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleRestore(item.id)} className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-xl transition-all shadow-sm bg-white" title="Restore"><RotateCcw size={20}/></button>
+                          <button onClick={() => setConfirmId(item.id)} className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl shadow-sm bg-white" title="Purge"><Trash2 size={20} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {items.length === 0 && <tr><td colSpan={4} className="p-20 text-center text-slate-300 font-black uppercase tracking-[0.2em] italic">Archive is empty</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </Card>
 
-      {/* Mobile Card View */}
-      <div className="lg:hidden space-y-6 pb-20 px-1">
-         {data.length > 0 ? data.map(item => (
-           <Card key={item.id} className="p-8 border-0 shadow-xl bg-white rounded-[2.5rem] relative overflow-hidden group">
-              <div className="flex items-start justify-between mb-8">
-                 <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-50 overflow-hidden border-2 border-white shadow-md flex items-center justify-center flex-shrink-0">
-                       {(item.avatar || item.userAvatar) ? (
-                         <img src={item.avatar || item.userAvatar} className="w-full h-full object-cover" />
-                       ) : (
-                         <UserIcon size={24} className="text-slate-200" />
-                       )}
+          {/* Mobile Card View */}
+          <div className="lg:hidden space-y-4">
+            {items.map(item => (
+              <Card key={item.id} className="p-6 border-0 shadow-lg bg-white rounded-[2rem] relative overflow-hidden">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <div className="font-black text-slate-800 text-lg mb-1">
+                      {activeTab === 'USERS' && item.name}
+                      {activeTab === 'DONATIONS' && `Donation from ${item.userName}`}
+                      {activeTab === 'FEEDBACKS' && "Feedback Entry"}
+                      {activeTab === 'NOTICES' && item.subject}
+                      {activeTab === 'HELP' && item.name}
+                      {activeTab === 'LOGS' && item.action}
                     </div>
-                    <div className="min-w-0">
-                       <h3 className="font-black text-slate-900 text-lg leading-tight truncate">
-                          {item.name || item.userName || item.subject || item.action || 'Archived Entry'}
-                       </h3>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1.5 flex items-center gap-1.5">
-                          <Clock size={12} /> {new Date(item.deletedAt).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                       </p>
+                    <div className="text-xs text-slate-500 font-medium">
+                      {activeTab === 'USERS' && item.role}
+                      {activeTab === 'DONATIONS' && `${item.units}ml • ${item.userBloodGroup}`}
+                      {activeTab === 'FEEDBACKS' && `"${item.message?.substring(0, 50)}..."`}
+                      {activeTab === 'NOTICES' && `Type: ${item.type}`}
+                      {activeTab === 'HELP' && item.phone}
+                      {activeTab === 'LOGS' && item.details}
                     </div>
-                 </div>
-                 <div className="absolute top-6 right-6">
-                    <Badge color="gray" className="text-[8px] px-2 py-0.5 tracking-tighter">ARCHIVED</Badge>
-                 </div>
-              </div>
+                  </div>
+                  <div className="p-2 bg-slate-50 rounded-xl">
+                    {activeTab === 'USERS' && <User size={20} className="text-slate-400" />}
+                    {activeTab === 'DONATIONS' && <Database size={20} className="text-slate-400" />}
+                    {activeTab === 'FEEDBACKS' && <MessageSquare size={20} className="text-slate-400" />}
+                    {activeTab === 'NOTICES' && <Megaphone size={20} className="text-slate-400" />}
+                    {activeTab === 'HELP' && <AlertCircle size={20} className="text-slate-400" />}
+                    {activeTab === 'LOGS' && <Activity size={20} className="text-slate-400" />}
+                  </div>
+                </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest block mb-1">Moderated By</span>
-                    <span className="text-[10px] font-black text-slate-600 uppercase truncate block">{item.deletedBy || 'System'}</span>
-                 </div>
-                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest block mb-1">Reference ID</span>
-                    <span className="text-[9px] font-bold text-slate-600 font-mono truncate block">{item.id.substring(0, 8)}...</span>
-                 </div>
-              </div>
+                <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                   <div className="flex-1">
+                      <span className="block text-[8px] text-slate-300 mb-0.5">Deleted By</span>
+                      {item.deletedBy || 'System'}
+                   </div>
+                   <div className="w-px h-6 bg-slate-200 mx-2"></div>
+                   <div className="flex-1 text-right">
+                      <span className="block text-[8px] text-slate-300 mb-0.5">Deleted At</span>
+                      {new Date(item.deletedAt).toLocaleDateString()}
+                   </div>
+                </div>
 
-              <div className="flex gap-4 pt-6 border-t border-slate-100">
-                 <button 
+                <div className="flex gap-3">
+                  <button 
                     onClick={() => handleRestore(item.id)} 
-                    className="flex-1 bg-blue-50 text-blue-600 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-md active:scale-95 transition-all border border-blue-100"
-                 >
-                    <RotateCcw size={18} /> Restore Record
-                 </button>
-                 <button 
+                    className="flex-1 py-3 rounded-xl bg-blue-50 text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <RotateCcw size={16} /> Restore
+                  </button>
+                  <button 
                     onClick={() => setConfirmId(item.id)} 
-                    className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center shadow-md border border-red-100 active:scale-95 transition-all"
-                    title="Purge Permanently"
-                 >
-                    <Trash2 size={20} />
-                 </button>
+                    className="flex-1 py-3 rounded-xl bg-red-50 text-red-600 font-black text-xs uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 size={16} /> Purge
+                  </button>
+                </div>
+              </Card>
+            ))}
+            {items.length === 0 && (
+              <div className="p-10 text-center bg-white rounded-[2rem] border-2 border-dashed border-slate-200">
+                <Archive size={32} className="mx-auto text-slate-300 mb-3" />
+                <p className="text-slate-400 font-black uppercase tracking-widest text-xs">No archives found</p>
               </div>
-           </Card>
-         )) : (
-           <div className="py-24 text-center text-slate-300 font-black uppercase tracking-[0.3em] bg-white rounded-[3rem] border-2 border-dashed border-slate-100 italic">
-              Vault is empty
-           </div>
-         )}
-      </div>
-
-      <div className="p-8 bg-orange-50/50 rounded-[2.5rem] border border-orange-100 flex items-start gap-5">
-         <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-orange-600 flex-shrink-0">
-            <AlertCircle size={24} />
-         </div>
-         <p className="text-xs font-bold text-orange-700 leading-relaxed">
-            ADMIN NOTICE: Restoring a record will immediately return it to the active database with its original status. Permanently purging a record is final and non-recoverable across all system nodes.
-         </p>
-      </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

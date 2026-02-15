@@ -46,6 +46,14 @@ export interface NavLink {
   path: string;
 }
 
+export interface FAQ {
+  id: string;
+  question: string;
+  answer: string;
+  isVisible: boolean;
+  timestamp: string;
+}
+
 export interface Notice {
   id: string;
   subject: string;
@@ -232,6 +240,7 @@ export interface RolePermissions {
     teamIdCards?: boolean;
     deletedUsers?: boolean;
     helpCenterManage?: boolean;
+    moderateFaqs?: boolean;
   };
   rules: {
     canEditProfile: boolean;

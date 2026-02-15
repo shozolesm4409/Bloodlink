@@ -3,8 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, AuthState } from './types';
 import { auth } from './services/firebase';
 import { getUserProfile, logoutUser } from './services/api';
-// Changed to @firebase/auth to match other firebase imports
-import { onAuthStateChanged } from '@firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface AuthContextType extends AuthState {
   login: (user: User) => void;

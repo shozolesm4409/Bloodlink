@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getLandingConfig } from '../services/api';
@@ -116,13 +117,14 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         </Link>
         
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4">
-          {config.footerLinks?.map((link, idx) => (
-            <Link key={idx} to={link.path} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors">
-              {link.label}
-            </Link>
-          ))}
+          <Link to="/privacy" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors">
+            Privacy Policy
+          </Link>
           <Link to="/help-center" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors">
             Help Center
+          </Link>
+          <Link to="/faqs" className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors">
+            FAQ's
           </Link>
         </div>
 
@@ -134,7 +136,6 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
       {/* Mobile Bottom Navigation Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-2 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
          <NavIcon to="/public-feedbacks" icon={MessageSquareQuote} label="Feedback" />
-         <NavIcon to="/privacy" icon={ShieldCheck} label="Privacy" />
          <NavIcon to="/verify" icon={UserCheck} label="Verify" />
          <NavIcon to="/public-notices" icon={Megaphone} label="Notice" />
          <NavIcon to="/help-center" icon={HelpCircle} label="Help" />

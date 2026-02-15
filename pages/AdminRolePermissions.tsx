@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { getAppPermissions, updateAppPermissions, ADMIN_EMAIL, getUsers, updateUserProfile } from '../services/api';
@@ -11,7 +12,7 @@ const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
   'dashboard', 'profile', 'history', 'donors', 'users', 'manageDonations', 
   'logs', 'rolePermissions', 'supportCenter', 'feedback', 'approveFeedback', 
   'landingSettings', 'myNotice', 'summary', 'notifications', 'adminVerify', 
-  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage'
+  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs'
 ];
 
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [

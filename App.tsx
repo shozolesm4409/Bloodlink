@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -27,6 +28,8 @@ import { HelpCenter } from './pages/HelpCenter';
 import { AdminHelpCenter } from './pages/AdminHelpCenter';
 import { PublicNotices } from './pages/PublicNotices';
 import { NoticeDetail } from './pages/NoticeDetail';
+import { PublicFaqs } from './pages/PublicFaqs';
+import { AdminFaqs } from './pages/AdminFaqs';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
 
@@ -90,6 +93,7 @@ const App = () => {
           <Route path="/public-notices/:id" element={<NoticeDetail />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/help-center" element={<HelpCenter />} />
+          <Route path="/faqs" element={<PublicFaqs />} />
           
           {/* Public Verification Route with PublicLayout */}
           <Route path="/verify/:idNumber?" element={<PublicLayout><VerifyMember /></PublicLayout>} />
@@ -108,6 +112,7 @@ const App = () => {
           <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="manageDonations"><AdminDonations /></ProtectedRoute>} />
           <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="approveFeedback"><FeedbackApprovalPage /></ProtectedRoute>} />
           <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="helpCenterManage"><AdminHelpCenter /></ProtectedRoute>} />
+          <Route path="/moderate-faqs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPERADMIN]} requiredPermission="moderateFaqs"><AdminFaqs /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="notifications"><AdminPermissions /></ProtectedRoute>} />
           
           {/* Admin Integrated Verification Routes */}
