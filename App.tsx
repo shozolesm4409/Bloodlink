@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login, Register, ResetPassword } from './pages/Auth';
@@ -32,6 +32,8 @@ import { PublicFaqs } from './pages/PublicFaqs';
 import { AdminFaqs } from './pages/AdminFaqs';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
+
+const { HashRouter, Routes, Route, Navigate } = ReactRouterDOM;
 
 const ProtectedRoute = ({ 
   children, 
@@ -70,9 +72,9 @@ const ProtectedRoute = ({
   return <Layout>{children}</Layout>;
 };
 
+// Removed redirection to Dashboard if authenticated to allow Landing page access via Logo
 const RootRoute = () => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <Landing />;
+  return <Landing />;
 };
 
 const App = () => {
@@ -104,6 +106,9 @@ const App = () => {
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/my-donations" element={<ProtectedRoute><MyDonations /></ProtectedRoute>} />
+          
+          {/* Protected Directory Route for Dashboard */}
+          <Route path="/directory" element={<ProtectedRoute requiredPermission="donors"><DonorDirectory /></ProtectedRoute>} />
           
           <Route path="/support" element={<ProtectedRoute><SupportCenter /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><DonationFeedbackPage /></ProtectedRoute>} />
