@@ -7,6 +7,7 @@ import { User, BloodGroup, UserRole, DonationRecord, DonationFeedback, FeedbackS
 import { Lock, ShieldAlert, MapPin, Phone, Calendar, User as UserIcon, Search, Droplet, Filter, X, Mail, Hash, Activity, CheckCircle2, AlertCircle, Quote, Star, Trophy, Award, Medal, MessageSquareQuote } from 'lucide-react';
 import clsx from 'clsx';
 import { getRankData } from './Profile';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export const DonorDirectory = () => {
   const { user, updateUser } = useAuth();
@@ -16,18 +17,30 @@ export const DonorDirectory = () => {
   const [filter, setFilter] = useState('');
   const [locationFilter, setLocationFilter] = useState('');
   const [group, setGroup] = useState('');
-  const [requesting, setRequesting] = useState(false);
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [userFeedbacks, setUserFeedbacks] = useState<DonationFeedback[]>([]);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    if (user?.hasDirectoryAccess || user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR) {
-      Promise.all([getUsers(), getDonations()]).then(([fetchedUsers, fetchedDonations]) => {
-        setUsers(fetchedUsers);
-        setDonations(fetchedDonations);
-      });
+    // Fetch data for everyone (public access to list)
+    Promise.all([getUsers(), getDonations()]).then(([fetchedUsers, fetchedDonations]) => {
+      setUsers(fetchedUsers);
+      setDonations(fetchedDonations);
+    });
+  }, []);
+
+  // Handle auto-opening of profile after login redirect
+  useEffect(() => {
+    if (location.state?.openProfileId && users.length > 0) {
+      const target = users.find(u => u.id === location.state.openProfileId);
+      if (target) {
+        setViewUser(target);
+        // Clear state to avoid reopening on refresh
+        window.history.replaceState({}, document.title);
+      }
     }
-  }, [user]);
+  }, [location.state, users]);
 
   useEffect(() => {
     if (viewUser) {
@@ -38,19 +51,6 @@ export const DonorDirectory = () => {
       setUserFeedbacks([]);
     }
   }, [viewUser]);
-
-  const hasAccess = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.hasDirectoryAccess;
-
-  const handleRequest = async () => {
-    if (!user) return;
-    setRequesting(true);
-    try {
-      await requestDirectoryAccess(user);
-      updateUser({ ...user, directoryAccessRequested: true });
-      showToast("Access requested.");
-    } catch (e) { showToast("Failed.", "error"); }
-    finally { setRequesting(false); }
-  };
 
   const checkEligibility = (lastDate?: string) => {
     if (!lastDate) return { eligible: true, daysLeft: 0 };
@@ -66,30 +66,18 @@ export const DonorDirectory = () => {
     };
   };
 
-  // Helper to get total donations for a specific user
   const getDonationCount = (userId: string) => {
     return donations.filter(d => d.userId === userId && d.status === 'COMPLETED').length;
   };
 
-  if (!hasAccess) {
-    return (
-      <div className="max-w-2xl mx-auto py-20 px-4 animate-in fade-in duration-500">
-        <Toast {...toastState} onClose={hideToast} />
-        <Card className="p-12 text-center space-y-8 border-0 shadow-2xl bg-white rounded-[3rem]">
-          <div className="w-24 h-24 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-inner"><Lock size={48} /></div>
-          <div className="space-y-4">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Directory Locked</h2>
-            <p className="text-slate-500 font-medium leading-relaxed">নিরাপত্তার স্বার্থে ডোনার ডিরেক্টরি শুধুমাত্র ভেরিফাইড ইউজারদের জন্য উন্মুক্ত। তথ্য দেখতে এক্সেস রিকোয়েস্ট পাঠান।</p>
-          </div>
-          {user?.directoryAccessRequested ? (
-            <div className="p-6 bg-yellow-50 text-yellow-700 rounded-2xl flex items-center justify-center gap-3 border border-yellow-100 font-black uppercase tracking-widest text-xs"><ShieldAlert size={18} /> Awaiting Verification</div>
-          ) : (
-            <Button onClick={handleRequest} isLoading={requesting} className="w-full py-5 rounded-2xl text-lg">Request Access to Directory</Button>
-          )}
-        </Card>
-      </div>
-    );
-  }
+  const handleViewProfile = (u: User) => {
+    if (!user) {
+      // Redirect to login with return path and profile ID
+      navigate('/login', { state: { from: location, openProfileId: u.id } });
+      return;
+    }
+    setViewUser(u);
+  };
 
   // Get Unique Locations for Dropdown
   const uniqueLocations = Array.from(new Set(users.map(u => u.location).filter(Boolean))).sort();
@@ -110,7 +98,7 @@ export const DonorDirectory = () => {
   });
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700 pb-20">
+    <div className="space-y-10 animate-in fade-in duration-700 pb-20 px-4 lg:px-0 max-w-7xl mx-auto">
       <Toast {...toastState} onClose={hideToast} />
       
       {/* View Profile Modal */}
@@ -394,8 +382,8 @@ export const DonorDirectory = () => {
                 </div>
 
                 <div className="mt-auto w-full">
-                  <Button onClick={() => setViewUser(u)} className="w-full rounded-2xl py-4 shadow-lg shadow-red-100 bg-red-600 hover:bg-red-700 group-hover:scale-[1.02] transition-transform">
-                    View Profile
+                  <Button onClick={() => handleViewProfile(u)} className="w-full rounded-2xl py-4 shadow-lg shadow-red-100 bg-red-600 hover:bg-red-700 group-hover:scale-[1.02] transition-transform">
+                    {user ? "View Profile" : "Login to View"}
                   </Button>
                 </div>
               </div>

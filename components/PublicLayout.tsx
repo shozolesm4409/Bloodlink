@@ -3,15 +3,62 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
-import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck } from 'lucide-react';
+import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck, Users } from 'lucide-react';
 import clsx from 'clsx';
 
 interface PublicLayoutProps {
   children: React.ReactNode;
 }
 
+interface NavIconProps {
+  to: string;
+  icon: any;
+  label: string;
+  currentPath: string;
+}
+
+const NavIcon = ({ to, icon: Icon, label, currentPath }: NavIconProps) => {
+  const isActive = currentPath === to;
+  return (
+    <Link to={to} className={clsx("flex flex-col items-center gap-1 p-2 transition-all", isActive ? "text-red-600" : "text-slate-400 hover:text-slate-600")}>
+      <Icon size={20} className={isActive ? "fill-current" : ""} />
+      <span className="text-[9px] font-black uppercase tracking-tight">{label}</span>
+    </Link>
+  );
+};
+
+interface DesktopNavLinkProps {
+  to: string;
+  icon: any;
+  label: string;
+  currentPath: string;
+}
+
+const DesktopNavLink: React.FC<DesktopNavLinkProps> = ({ to, icon: Icon, label, currentPath }) => {
+  const isActive = currentPath === to;
+  return (
+    <Link 
+      to={to} 
+      className={clsx(
+        "flex items-center gap-2 font-bold text-sm transition-colors group", 
+        isActive ? "text-red-600" : "text-slate-600 hover:text-red-600"
+      )}
+    >
+      <Icon 
+        size={18} 
+        className={clsx(
+          "transition-colors", 
+          isActive ? "text-red-600 fill-current" : "text-slate-400 group-hover:text-red-600"
+        )} 
+      />
+      <span>{label}</span>
+    </Link>
+  );
+};
+
 export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const currentPath = location.pathname;
   const [config, setConfig] = useState<LandingPageConfig>({
     heroTitle: 'এক ফোঁটা রক্ত\nহাজারো জীবনের আশা',
     heroSubtitle: 'রক্তদাতা ও প্রয়োজনের মাঝে সবচেয়ে দ্রুত ও নিরাপদ সেতু। আজই আমাদের কমিউনিটিতে যোগ দিন — একটি জীবন বাঁচানোর মহান সুযোগ নিন।',
@@ -42,38 +89,6 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     });
   }, []);
 
-  const NavIcon = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
-    const isActive = location.pathname === to;
-    return (
-      <Link to={to} className={clsx("flex flex-col items-center gap-1 p-2 transition-all", isActive ? "text-red-600" : "text-slate-400 hover:text-slate-600")}>
-        <Icon size={20} className={isActive ? "fill-current" : ""} />
-        <span className="text-[9px] font-black uppercase tracking-tight">{label}</span>
-      </Link>
-    );
-  };
-
-  const DesktopNavLink = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
-    const isActive = location.pathname === to;
-    return (
-      <Link 
-        to={to} 
-        className={clsx(
-          "flex items-center gap-2 font-bold text-sm transition-colors group", 
-          isActive ? "text-red-600" : "text-slate-600 hover:text-red-600"
-        )}
-      >
-        <Icon 
-          size={18} 
-          className={clsx(
-            "transition-colors", 
-            isActive ? "text-red-600 fill-current" : "text-slate-400 group-hover:text-red-600"
-          )} 
-        />
-        <span>{label}</span>
-      </Link>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-[#f8f9fa] font-sans selection:bg-red-100 selection:text-red-600 overflow-x-hidden pb-16 lg:pb-0">
       <header className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 px-[5%] py-4 flex justify-between items-center h-16 lg:h-20 transition-all">
@@ -86,10 +101,10 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         <div className="flex items-center gap-4 lg:gap-8">
           <div className="hidden lg:flex items-center gap-6">
             {config.navbarLinks?.map((link, idx) => (
-              <DesktopNavLink key={idx} to={link.path} icon={MessageSquareQuote} label={link.label} />
+              <DesktopNavLink key={idx} to={link.path} icon={MessageSquareQuote} label={link.label} currentPath={currentPath} />
             ))}
-            <DesktopNavLink to="/public-notices" icon={Megaphone} label="Notice" />
-            <DesktopNavLink to="/help-center" icon={HelpCircle} label="Help Center" />
+            <DesktopNavLink to="/public-notices" icon={Megaphone} label="Notice" currentPath={currentPath} />
+            <DesktopNavLink to="/help-center" icon={HelpCircle} label="Help Center" currentPath={currentPath} />
           </div>
           
           <div className="flex items-center">
@@ -104,7 +119,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="pt-10 lg:pt-20 min-h-[60vh]">
+      <main className="pt-24 lg:pt-28 min-h-[60vh]">
         {children}
       </main>
 
@@ -135,10 +150,11 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
 
       {/* Mobile Bottom Navigation Bar */}
       <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-slate-200 flex justify-around items-center py-2 z-50 shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-         <NavIcon to="/public-feedbacks" icon={MessageSquareQuote} label="Feedback" />
-         <NavIcon to="/verify" icon={UserCheck} label="Verify" />
-         <NavIcon to="/public-notices" icon={Megaphone} label="Notice" />
-         <NavIcon to="/help-center" icon={HelpCircle} label="Help" />
+         <NavIcon to="/public-feedbacks" icon={MessageSquareQuote} label="Feedback" currentPath={currentPath} />
+         <NavIcon to="/verify" icon={UserCheck} label="Verify" currentPath={currentPath} />
+         <NavIcon to="/donors" icon={Users} label="Directory" currentPath={currentPath} />
+         <NavIcon to="/public-notices" icon={Megaphone} label="Notice" currentPath={currentPath} />
+         <NavIcon to="/help-center" icon={HelpCircle} label="Help" currentPath={currentPath} />
       </div>
     </div>
   );

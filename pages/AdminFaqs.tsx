@@ -4,7 +4,7 @@ import { useAuth } from '../AuthContext';
 import { getAllFaqs, addFaq, updateFaq, deleteFaq, toggleFaqVisibility } from '../services/api';
 import { Card, Button, Toast, useToast, ConfirmModal, Input } from '../components/UI';
 import { FAQ } from '../types';
-import { FileQuestion, Plus, Edit, Trash2, Eye, EyeOff, X, Save } from 'lucide-react';
+import { FileQuestion, Plus, Edit, Trash2, Eye, EyeOff, X, CornerDownRight, MessageCircle } from 'lucide-react';
 import clsx from 'clsx';
 
 export const AdminFaqs = () => {
@@ -161,66 +161,82 @@ export const AdminFaqs = () => {
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-widest">
               <tr>
-                <th className="px-6 py-5 w-16 text-center">SL</th>
-                <th className="px-6 py-5">FAQ Details</th>
-                <th className="px-6 py-5 text-right w-40">Action</th>
+                <th className="px-8 py-6 w-20 text-center">No.</th>
+                <th className="px-8 py-6">Knowledge Base Content</th>
+                <th className="px-8 py-6 text-right w-48">Status & Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {faqs.map((faq, index) => (
-                <tr key={faq.id} className={clsx("hover:bg-slate-50 transition-colors group", !faq.isVisible && "bg-slate-50/50 opacity-60")}>
-                  <td className="px-6 py-6 text-center font-black text-slate-300 text-xs">{index + 1}</td>
-                  <td className="px-6 py-6">
-                    <div className="space-y-4">
-                       <div>
-                          <div className="flex items-center gap-2 mb-1">
-                             <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                             <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Question</span>
-                          </div>
-                          <p className="font-bold text-slate-900 text-sm pl-4">{faq.question}</p>
+                <tr key={faq.id} className={clsx("hover:bg-slate-50/50 transition-colors group", !faq.isVisible && "bg-slate-50 opacity-75 grayscale")}>
+                  <td className="px-8 py-8 text-center font-black text-slate-300 text-sm align-top pt-8">{index + 1}</td>
+                  <td className="px-8 py-8 align-top">
+                    <div className="flex gap-5">
+                       {/* Q Icon */}
+                       <div className="flex-shrink-0 mt-1">
+                          <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center font-black shadow-sm text-sm border border-blue-100">Q</div>
                        </div>
-                       <div>
-                          <div className="flex items-center gap-2 mb-1">
-                             <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                             <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Answer</span>
+                       
+                       <div className="space-y-6 w-full max-w-3xl">
+                          <div>
+                             <p className="text-lg font-black text-slate-800 leading-snug">{faq.question}</p>
                           </div>
-                          <p className="text-slate-600 font-medium text-sm leading-relaxed pl-4">{faq.answer}</p>
+                          
+                          <div className="flex gap-4">
+                             <div className="flex-shrink-0 mt-1">
+                                <CornerDownRight size={20} className="text-slate-300" />
+                             </div>
+                             <div className="bg-slate-50 rounded-2xl p-5 border border-slate-100 w-full relative transition-all group-hover:bg-white group-hover:shadow-sm">
+                                <p className="text-sm text-slate-600 leading-relaxed font-medium">{faq.answer}</p>
+                                <div className="absolute -top-3 -left-2 bg-white text-slate-300 rounded-full p-1 border border-slate-100 shadow-sm">
+                                   <MessageCircle size={14} fill="currentColor" className="opacity-50" />
+                                </div>
+                             </div>
+                          </div>
                        </div>
                     </div>
                   </td>
-                  <td className="px-6 py-6 text-right align-middle">
-                    <div className="flex justify-end gap-2">
-                      <button 
-                        onClick={() => openEditModal(faq)} 
-                        className="p-2.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white rounded-xl transition-all shadow-sm"
-                        title="Edit"
-                      >
-                        <Edit size={18} />
-                      </button>
-                      <button 
-                        onClick={() => handleToggle(faq.id, faq.isVisible)} 
-                        className={clsx(
-                          "p-2.5 rounded-xl transition-all shadow-sm",
-                          faq.isVisible ? "bg-slate-50 text-slate-400 hover:bg-slate-200 hover:text-slate-600" : "bg-orange-50 text-orange-500 hover:bg-orange-500 hover:text-white"
-                        )}
-                        title={faq.isVisible ? "Hide" : "Show"}
-                      >
-                        {faq.isVisible ? <Eye size={18} /> : <EyeOff size={18} />}
-                      </button>
-                      <button 
-                        onClick={() => setDeleteId(faq.id)} 
-                        className="p-2.5 bg-red-50 text-red-500 hover:bg-red-600 hover:text-white rounded-xl transition-all shadow-sm"
-                        title="Delete"
-                      >
-                        <Trash2 size={18} />
-                      </button>
+                  <td className="px-8 py-8 text-right align-top pt-8">
+                    <div className="flex flex-col items-end gap-3">
+                       <div className={clsx("px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border mb-2", faq.isVisible ? "bg-green-50 text-green-600 border-green-100" : "bg-slate-100 text-slate-400 border-slate-200")}>
+                          {faq.isVisible ? 'Published' : 'Draft / Hidden'}
+                       </div>
+                       
+                       <div className="flex items-center gap-1 bg-white border border-slate-100 p-1.5 rounded-xl shadow-sm">
+                          <button 
+                            onClick={() => openEditModal(faq)} 
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                            title="Edit"
+                          >
+                            <Edit size={18} />
+                          </button>
+                          <div className="w-px h-6 bg-slate-100"></div>
+                          <button 
+                            onClick={() => handleToggle(faq.id, faq.isVisible)} 
+                            className={clsx(
+                              "p-2 rounded-lg transition-all",
+                              faq.isVisible ? "text-slate-400 hover:text-orange-500 hover:bg-orange-50" : "text-orange-500 bg-orange-50 hover:bg-orange-100"
+                            )}
+                            title={faq.isVisible ? "Hide" : "Show"}
+                          >
+                            {faq.isVisible ? <Eye size={18} /> : <EyeOff size={18} />}
+                          </button>
+                          <div className="w-px h-6 bg-slate-100"></div>
+                          <button 
+                            onClick={() => setDeleteId(faq.id)} 
+                            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                            title="Delete"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                       </div>
                     </div>
                   </td>
                 </tr>
               ))}
               {faqs.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-[0.3em] italic">
+                  <td colSpan={3} className="px-8 py-20 text-center text-slate-300 font-black uppercase tracking-[0.3em] italic border-2 border-dashed border-slate-100 m-8 rounded-[2rem]">
                     No FAQs found. Add one to get started.
                   </td>
                 </tr>

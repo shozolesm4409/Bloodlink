@@ -98,10 +98,13 @@ const App = () => {
           {/* Public Verification Route with PublicLayout */}
           <Route path="/verify/:idNumber?" element={<PublicLayout><VerifyMember /></PublicLayout>} />
           
+          {/* Publicly accessible Directory with internal login prompt */}
+          <Route path="/donors" element={<PublicLayout><DonorDirectory /></PublicLayout>} />
+          
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/my-donations" element={<ProtectedRoute><MyDonations /></ProtectedRoute>} />
-          <Route path="/donors" element={<ProtectedRoute><DonorDirectory /></ProtectedRoute>} />
+          
           <Route path="/support" element={<ProtectedRoute><SupportCenter /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><DonationFeedbackPage /></ProtectedRoute>} />
           <Route path="/notices" element={<ProtectedRoute><MyNotice /></ProtectedRoute>} />

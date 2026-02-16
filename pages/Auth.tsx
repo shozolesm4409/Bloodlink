@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { login as apiLogin, register as apiRegister, getLandingConfig, initiatePasswordResetLink } from '../services/api';
 import { Button } from '../components/UI';
@@ -86,6 +87,7 @@ const CustomInput = ({ icon: Icon, type = "text", name, placeholder, value, onCh
 
 export const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -126,7 +128,10 @@ export const Login = () => {
       }
 
       login(user);
-      navigate('/');
+      
+      // Navigate back to where they came from or default to dashboard
+      const from = location.state?.from?.pathname || '/dashboard';
+      navigate(from, { replace: true, state: location.state });
     } catch (err: any) {
       setError("ইমেইল অথবা পাসওয়ার্ড সঠিক নয়।");
     } finally {

@@ -4,9 +4,10 @@ import { Link } from 'react-router-dom';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, subscribeToApprovedFeedbacks, getLandingConfig, getCachedFeedbacks, getUsers } from '../services/api';
 import { DonationStatus, DonationFeedback, LandingPageConfig, User, BloodGroup } from '../types';
-import { Droplet, Users, HeartPulse, Activity, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Quote, Trophy, Sparkles } from 'lucide-react';
+import { Droplet, Users, HeartPulse, Activity, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Quote, Trophy, Sparkles, Search } from 'lucide-react';
 import { PublicLayout } from '../components/PublicLayout';
 import { getRankData } from './Profile';
+import { Card } from '../components/UI';
 import clsx from 'clsx';
 
 export const Landing = () => {
@@ -120,17 +121,29 @@ export const Landing = () => {
           <p className="text-lg lg:text-2xl opacity-90 max-w-2xl mx-auto mb-12 font-medium leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
             {config.heroSubtitle}
           </p>
-          <div className="flex flex-col sm:flex-row gap-5 justify-center animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-            <Link to="/register" className="bg-white text-[#c1121f] px-6 py-3 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-slate-50 transition-all text-center flex items-center justify-center gap-2 group">
-              {config.heroButtonPrimary} <ArrowRight className="group-hover:translate-x-2 transition-transform" />
-            </Link>
-            <Link to="/login" className="bg-transparent border-2 border-white/40 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-white/10 transition-all text-center flex items-center justify-center">
-              {config.heroButtonSecondary}
-            </Link>
-            <Link to="/verify" className="bg-slate-900/40 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-slate-900/60 transition-all text-center flex items-center justify-center gap-2">
-              <ShieldCheck size={20} /> Verify Users
-            </Link>
+          
+          <div className="flex flex-col gap-4 animate-fade-in-up items-center w-full" style={{ animationDelay: '0.4s' }}>
+            {/* Row 1: Register and Login (Request/Search Blood) */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
+              <Link to="/register" className="bg-white text-[#c1121f] px-6 py-3 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-slate-50 transition-all text-center flex items-center justify-center gap-2 group flex-1 sm:flex-none min-w-[200px]">
+                {config.heroButtonPrimary} <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+              </Link>
+              <Link to="/login" className="bg-transparent border-2 border-white/40 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-white/10 transition-all text-center flex items-center justify-center flex-1 sm:flex-none min-w-[200px]">
+                {config.heroButtonSecondary}
+              </Link>
+            </div>
+            
+            {/* Row 2: Directory and Verify */}
+            <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
+              <Link to="/donors" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-black transition-all text-center flex items-center justify-center gap-2 flex-1 sm:flex-none min-w-[200px]">
+                <Search size={20} /> Donor Directory
+              </Link>
+              <Link to="/verify" className="bg-slate-900/40 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-slate-900/60 transition-all text-center flex items-center justify-center gap-2 flex-1 sm:flex-none min-w-[200px]">
+                <ShieldCheck size={20} /> Verify Users
+              </Link>
+            </div>
           </div>
+
         </div>
       </section>
 
@@ -154,7 +167,7 @@ export const Landing = () => {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-4 animate-in fade-in slide-in-from-bottom-8 duration-700">
-            {Object.entries(bloodStats)
+            {(Object.entries(bloodStats) as [string, { count: number; volume: number }][])
               .filter(([_, data]) => data.count > 0)
               .map(([bg, data]) => (
               <div key={bg} className="bg-white rounded-2xl p-4 shadow-lg shadow-slate-200/50 border border-slate-100 flex flex-col items-center justify-center text-center hover:shadow-xl hover:-translate-y-1 transition-all group">
@@ -317,13 +330,13 @@ export const Landing = () => {
 };
 
 const StatCard = ({ value, label, icon: Icon }: any) => (
-  <div className="bg-white p-5 rounded-[2.5rem] border border-slate-100 shadow-[0_15px_40px_-15px_rgba(0,0,0,0.08)] text-center hover:-translate-y-2 transition-transform group flex flex-col items-center">
-    <div className="w-16 h-16 bg-red-50 text-[#c1121f] rounded-xl mb-2 flex items-center justify-center group-hover:scale-110 transition-transform">
-      <Icon size={32} />
+  <Card className="p-6 border-0 shadow-lg flex items-center gap-5 hover:shadow-xl transition-all bg-white rounded-[2rem] group">
+    <div className="p-5 rounded-2xl bg-red-50 text-red-600 transition-transform group-hover:scale-110 shadow-inner">
+      <Icon size={28} />
     </div>
-    <div className="text-5xl lg:text-6xl font-black text-[#c1121f] mb-4 tracking-tighter">
-      {typeof value === 'number' ? `${value}+` : value}
+    <div>
+      <p className="text-3xl font-black text-slate-900 tracking-tighter">{value}</p>
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1 leading-none">{label}</p>
     </div>
-    <div className="text-lg font-bold text-slate-500 uppercase tracking-widest">{label}</div>
-  </div>
+  </Card>
 );
