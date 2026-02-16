@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { useNavigate } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { 
   getUsers, 
   deleteUserRecord, 
@@ -21,6 +21,8 @@ import { User, UserRole, BloodGroup, DonationStatus } from '../types';
 import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter } from 'lucide-react';
 import { getRankData } from './Profile';
 import clsx from 'clsx';
+
+const { useNavigate } = ReactRouterDOM;
 
 const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: { 
   users: User[], 

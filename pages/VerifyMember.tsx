@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db, logVerificationCheck } from '../services/api';
 import { User, DonationFeedback, FeedbackStatus, DonationStatus } from '../types';
@@ -8,6 +8,8 @@ import { Card, Badge, Button } from '../components/UI';
 import { CheckCircle2, ShieldCheck, Droplet, MapPin, Calendar, AlertCircle, Search, User as UserIcon, MessageSquareQuote, Quote, QrCode, Clock, History, Award } from 'lucide-react';
 import { getRankData } from './Profile';
 import clsx from 'clsx';
+
+const { useParams, useNavigate, useLocation } = ReactRouterDOM;
 
 export const VerifyMember = () => {
   const { idNumber } = useParams();
@@ -165,150 +167,129 @@ export const VerifyMember = () => {
           <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[1rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
             <AlertCircle size={40} />
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-2">Invalid Credentials</h1>
-          <p className="text-slate-500 font-medium mb-8">This identity token or phone number could not be found in our verified member database.</p>
-          <div className="space-y-3">
-            <Button onClick={() => navigate(baseRoute)} className="w-full rounded-xl py-4 shadow-lg shadow-red-100">Try Another Search</Button>
-          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">সদস্য খুঁজে পাওয়া যায়নি</h2>
+          <p className="text-slate-500 font-medium mb-8">প্রদত্ত আইডি বা ফোন নম্বরের সাথে কোনো নিবন্ধিত রক্তদাতা পাওয়া যায়নি। দয়া করে তথ্য যাচাই করে আবার চেষ্টা করুন।</p>
+          <Button onClick={() => navigate(baseRoute)} variant="outline" className="w-full py-4 rounded-xl border-slate-200">আবার খুঁজুন</Button>
         </Card>
       </div>
     );
   }
 
-  const { eligible, daysLeft } = checkEligibility(member.lastDonationDate);
+  const { eligible } = checkEligibility(member.lastDonationDate);
   const rank = getRankData(donationCount);
 
   return (
-    <div className={clsx("px-4 lg:px-6", !isAdminView && "py-8 lg:py-12")}>
-      <div className="max-w-xl mx-auto space-y-8 animate-in fade-in duration-700">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-           <div className="flex items-center gap-4">
-             <button onClick={() => navigate(baseRoute)} className="flex items-center gap-2 text-slate-500 font-bold hover:text-red-600 transition-colors text-sm">
-               <Search size={18} /> New Search
-             </button>
-           </div>
-           <div className="flex items-center gap-2 text-red-600 font-black text-xs uppercase tracking-widest bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
-             <ShieldCheck size={16} /> Verified Member
-           </div>
+    <div className={clsx("animate-in fade-in zoom-in-95 duration-500", !isAdminView && "py-12 px-6 lg:py-20")}>
+      <Card className="max-w-4xl mx-auto border-0 shadow-2xl rounded-[3rem] bg-white overflow-hidden relative">
+        <div className="absolute top-0 left-0 w-full h-40 bg-[#001f3f] z-0">
+           <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:20px_20px]"></div>
         </div>
 
-        <Card className="p-0 border-0 shadow-2xl rounded-[2.5rem] bg-white relative overflow-hidden text-center pb-8">
-          <div className="h-32 w-full relative">
-             {member.coverImage ? (
-                <img src={member.coverImage} className="w-full h-full object-cover" alt="Cover" />
-             ) : (
-                <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200"></div>
-             )}
-             <div className={`absolute bottom-0 left-0 w-full h-1 ${eligible ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          </div>
-          
-          <div className="-mt-16 mb-6 relative px-6 lg:px-10">
-             <div className={clsx(
-               "w-32 h-32 rounded-full bg-slate-100 mx-auto overflow-hidden border-[6px] shadow-xl relative transition-all isolation-auto",
-               rank ? rank.color.replace('text-', 'border-') : "border-white"
-             )}>
-               {member.avatar ? (
-                 <img src={member.avatar} className="w-full h-full object-cover" alt={member.name} />
-               ) : (
-                 <div className="w-full h-full flex items-center justify-center"><UserIcon size={48} className="text-slate-200" /></div>
-               )}
-             </div>
-             
-             <div className={clsx(
-               "absolute -bottom-3 left-1/2 -translate-x-1/2 text-white w-10 h-10 rounded-full flex items-center justify-center border-4 border-white shadow-lg",
-               eligible ? 'bg-green-500' : 'bg-red-500'
-             )}>
-                <CheckCircle2 size={20} />
-             </div>
-             
-             {rank && (
-               <div className={clsx(
-                 "absolute top-0 right-[20%] lg:right-[30%] w-10 h-10 rounded-xl flex items-center justify-center shadow-xl border-2 border-white animate-bounce",
-                 rank.bg, rank.color, rank.shadow
-               )}>
-                 <rank.icon size={20} fill="currentColor" />
-               </div>
-             )}
-          </div>
-
-          <div className="px-6 lg:px-10 space-y-8">
-            <div className="space-y-2 mb-10">
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase leading-tight">{member.name}</h1>
-              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">{member.idNumber}</p>
-              <div className="flex flex-wrap justify-center gap-2 mt-4">
-                <Badge color="blue" className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-blue-50 uppercase tracking-widest font-black">Authentic</Badge>
-                <Badge color={eligible ? 'green' : 'red'} className="px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-red-50 uppercase tracking-widest font-black">
-                  {eligible ? 'ELIGIBLE' : 'RESTING'}
-                </Badge>
-                {rank && <Badge className={clsx("px-4 py-1.5 text-[8px] lg:text-[10px] ring-2 ring-slate-50 uppercase tracking-widest font-black", rank.bg, rank.color)}>{rank.name}</Badge>}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 lg:gap-4 text-left">
-              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Droplet size={20} /></div>
+        <div className="relative z-10 px-8 lg:px-12 pt-12 pb-12">
+           <div className="flex flex-col lg:flex-row gap-10 items-start">
+              {/* Left Column: Identity */}
+              <div className="flex flex-col items-center lg:items-start text-center lg:text-left w-full lg:w-auto">
+                 <div className="w-40 h-40 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden bg-slate-100 mb-6 relative">
+                    {member.avatar ? (
+                      <img src={member.avatar} className="w-full h-full object-cover" alt={member.name} />
+                    ) : (
+                      <UserIcon className="p-8 text-slate-300 w-full h-full" />
+                    )}
+                    {rank && (
+                      <div className={clsx("absolute bottom-0 right-0 w-12 h-12 bg-white flex items-center justify-center rounded-tl-2xl shadow-inner", rank.color)}>
+                        <rank.icon size={24} fill="currentColor" />
+                      </div>
+                    )}
+                 </div>
+                 
                  <div>
-                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">রক্তের গ্রুপ</p>
-                    <p className="text-base lg:text-xl font-black text-slate-900">{member.bloodGroup}</p>
+                    <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-none mb-2">{member.name}</h2>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Official Donor</p>
+                    <div className="flex flex-wrap justify-center lg:justify-start gap-2">
+                       <Badge color="blue" className="px-3 py-1 ring-1 ring-blue-100 font-black">{member.idNumber || 'NO ID'}</Badge>
+                       <Badge color={eligible ? 'green' : 'red'} className="px-3 py-1 ring-1 ring-current font-black">{eligible ? 'Active' : 'Resting'}</Badge>
+                    </div>
                  </div>
               </div>
-              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><MapPin size={20} /></div>
-                 <div className="w-full min-w-0">
-                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">ডোনার এলাকা</p>
-                    <p className="text-sm lg:text-lg font-bold text-slate-700 truncate">{member.location}</p>
-                 </div>
-              </div>
-              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><History size={20} /></div>
-                 <div>
-                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">মোট রক্তদান</p>
-                    <p className="text-base lg:text-xl font-black text-slate-900">{donationCount} বার</p>
-                 </div>
-              </div>
-              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col items-center lg:items-start text-center lg:text-left">
-                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-green-100 text-green-600 rounded-xl flex items-center justify-center shadow-sm mb-3"><Clock size={20} /></div>
-                 <div>
-                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">পরবর্তী রক্তদান</p>
-                    <p className={clsx("text-sm lg:text-lg font-black", eligible ? "text-green-600" : "text-red-600")}>
-                      {eligible ? 'এখনই সম্ভব' : `${daysLeft} দিন`}
-                    </p>
-                 </div>
-              </div>
-              <div className="bg-slate-50 p-4 lg:p-6 rounded-[1rem] border border-slate-100 flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-5 col-span-2 text-center sm:text-left">
-                 <div className="w-10 h-10 lg:w-12 lg:h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shadow-sm flex-shrink-0"><Calendar size={20} /></div>
-                 <div>
-                    <p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">সর্বশেষ রক্তদানের তারিখ</p>
-                    <p className="text-sm lg:text-lg font-black text-slate-900">
-                      {member.lastDonationDate ? new Date(member.lastDonationDate).toLocaleDateString('bn-BD') : 'তথ্য নেই'}
-                    </p>
-                 </div>
-              </div>
-            </div>
 
-            {feedbacks.length > 0 && (
-              <div className="mt-10 pt-10 border-t border-slate-100 text-left">
-                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                   <MessageSquareQuote size={18} className="text-red-600" /> ডোনার অভিজ্ঞতা
-                 </h3>
-                 <div className="space-y-4">
-                   {feedbacks.map(f => (
-                     <div key={f.id} className="p-6 bg-slate-50/80 rounded-[1rem] border border-slate-200/50 relative group">
-                       <Quote size={20} className="absolute top-4 right-4 text-slate-200 group-hover:text-red-100 transition-colors" />
-                       <p className="text-slate-600 font-medium italic text-sm leading-relaxed relative z-10">"{f.message}"</p>
-                       <p className="mt-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">Shared on {new Date(f.timestamp).toLocaleDateString()}</p>
-                     </div>
-                   ))}
+              {/* Right Column: Details */}
+              <div className="flex-1 w-full space-y-8 mt-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                       <div className="w-12 h-12 bg-red-100 text-red-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <Droplet size={24} className="fill-current" />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Blood Group</p>
+                          <p className="text-2xl font-black text-slate-900">{member.bloodGroup}</p>
+                       </div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                       <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <MapPin size={24} className="fill-current" />
+                       </div>
+                       <div className="min-w-0">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Location</p>
+                          <p className="text-lg font-black text-slate-900 truncate">{member.location}</p>
+                       </div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                       <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <Award size={24} className="fill-current" />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Donated</p>
+                          <p className="text-xl font-black text-slate-900">{donationCount} Times</p>
+                       </div>
+                    </div>
+                    <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 flex items-center gap-4">
+                       <div className="w-12 h-12 bg-orange-100 text-orange-600 rounded-xl flex items-center justify-center shadow-sm">
+                          <Calendar size={24} className="fill-current" />
+                       </div>
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Last Donation</p>
+                          <p className="text-lg font-black text-slate-900">{member.lastDonationDate ? new Date(member.lastDonationDate).toLocaleDateString() : 'N/A'}</p>
+                       </div>
+                    </div>
                  </div>
-              </div>
-            )}
 
-            <div className="mt-12 pt-8 border-t border-dashed border-slate-100 text-slate-400 font-medium text-[9px] uppercase tracking-widest">
-              Verification Hash ID: {member.id} <br/> Generated: {new Date().toLocaleString()}
-            </div>
-          </div>
-        </Card>
-      </div>
+                 {/* Feedbacks */}
+                 {feedbacks.length > 0 && (
+                   <div className="pt-8 border-t border-slate-100">
+                      <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400 mb-6 flex items-center gap-2">
+                         <MessageSquareQuote size={16} /> Community Reviews
+                      </h3>
+                      <div className="space-y-4">
+                         {feedbacks.slice(0, 3).map(f => (
+                           <div key={f.id} className="p-4 bg-[#f8f9fa] rounded-2xl border border-slate-100 relative">
+                              <Quote size={16} className="absolute top-4 left-4 text-slate-300 fill-current" />
+                              <p className="text-sm text-slate-600 font-medium pl-6 italic mb-2">"{f.message}"</p>
+                              <div className="flex justify-end items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                 <Clock size={12} />
+                                 {new Date(f.timestamp).toLocaleDateString()}
+                              </div>
+                           </div>
+                         ))}
+                      </div>
+                   </div>
+                 )}
+              </div>
+           </div>
+
+           <div className="mt-10 pt-8 border-t border-slate-100 flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-6 py-3 rounded-full border border-green-200 shadow-sm">
+                 <CheckCircle2 size={18} className="fill-current" />
+                 <span className="text-xs font-black uppercase tracking-widest">Verified Member of BloodLink</span>
+              </div>
+           </div>
+           
+           <div className="mt-8 text-center">
+              <Button onClick={() => navigate(baseRoute)} variant="outline" className="border-slate-200 text-slate-500 rounded-xl px-8">
+                 Verify Another ID
+              </Button>
+           </div>
+        </div>
+      </Card>
     </div>
   );
 };

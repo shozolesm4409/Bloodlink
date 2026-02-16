@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { login as apiLogin, register as apiRegister, getLandingConfig, initiatePasswordResetLink } from '../services/api';
 import { Button } from '../components/UI';
@@ -10,6 +10,8 @@ import { LandingPageConfig } from '../types';
 import { PublicLayout } from '../components/PublicLayout';
 // Added missing import for clsx
 import clsx from 'clsx';
+
+const { useNavigate, Link, useLocation } = ReactRouterDOM;
 
 const AuthLayout = ({ children, title, subtitle, headline, description, styles }: any) => {
   return (

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { 
   requestSupportAccess, 
@@ -15,6 +16,8 @@ import { Card, Button, Input, Badge, Toast, useToast } from '../components/UI';
 import { LifeBuoy, Lock, BookOpen, MessageSquare, PhoneCall, HelpCircle, CheckCircle, Send, ArrowLeft, Search, User as UserIcon, AlertCircle, ArrowRight, ShieldAlert, Paperclip, Smile, MoreHorizontal, MessageCircle, X } from 'lucide-react';
 import { ChatMessage, UserRole, User, AppPermissions } from '../types';
 import clsx from 'clsx';
+
+const { useNavigate } = ReactRouterDOM;
 
 const EMOJIS = ['❤️', '🩸', '🙏', '😊', '👍', '💪', '🏥', '🚑', '💉', '🙌', '✨', '🔥', '🤝', '👋', '🌟', '💝'];
 
@@ -148,18 +151,48 @@ export const SupportCenter = () => {
       }
     };
 
+    // Helper to determine the correct receiver ID to mark as read based on context
+    // If I'm Admin in Support Chat, I read messages sent to 'SYSTEM'.
+    // If I'm User in Support Chat, I read messages sent to ME (from Admin).
+    // If I'm in Private Chat, I read messages sent to ME.
+    const isStaffUser = user.role === UserRole.ADMIN || user.role === UserRole.EDITOR || user.role === UserRole.SUPERADMIN;
+    const myReceiverId = (activeView === 'system-chat' && isStaffUser) ? 'SYSTEM' : user.id;
+
+    const attemptMarkRead = (rid: string) => {
+       markMessagesAsRead(rid, myReceiverId).catch(() => {});
+    };
+
     if (activeView === 'system-chat') {
       const targetRoomId = user.role === UserRole.USER ? `SUPPORT_${user.id}` : `SUPPORT_${selectedRecipient?.id}`;
+      
+      unsubscribe = subscribeToRoomMessages(targetRoomId, (msgs) => {
+        setMessages(msgs);
+        // Real-time check: If there are unread messages for ME while chat is open, mark read immediately
+        const hasUnread = msgs.some(m => !m.read && m.receiverId === myReceiverId);
+        if (hasUnread) {
+           attemptMarkRead(targetRoomId);
+        }
+      }, handleError);
+
+      // Initial read check on open
       if (selectedRecipient || user.role === UserRole.USER) {
-        markMessagesAsRead(targetRoomId, user.id).catch(() => {});
+        attemptMarkRead(targetRoomId);
       }
-      unsubscribe = subscribeToRoomMessages(targetRoomId, setMessages, handleError);
+
     } else if (activeView === 'private-chat' && selectedRecipient) {
       const roomId = [user.id, selectedRecipient.id].sort().join('_');
-      markMessagesAsRead(roomId, user.id).catch(() => {});
+      
       unsubscribe = subscribeToRoomMessages(roomId, (msgs) => {
         setMessages(msgs);
+        // Real-time check for private chat
+        const hasUnread = msgs.some(m => !m.read && m.receiverId === user.id);
+        if (hasUnread) {
+           attemptMarkRead(roomId);
+        }
       }, handleError);
+
+      // Initial read check on open
+      attemptMarkRead(roomId);
     }
 
     return () => unsubscribe();

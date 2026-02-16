@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { UserRole, AppPermissions, RolePermissions, DonationStatus, HelpStatus } from '../types';
 import { 
@@ -42,6 +42,8 @@ import {
   FileQuestion
 } from 'lucide-react';
 import clsx from 'clsx';
+
+const { Link, useLocation, useNavigate } = ReactRouterDOM;
 
 interface BadgeConfig {
   count: number;
@@ -207,7 +209,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         "fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col shadow-2xl lg:shadow-none h-screen overflow-hidden",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="h-20 flex-shrink-0 flex items-center px-6 gap-3 mb-2">
+        <Link to="/" className="h-20 flex-shrink-0 flex items-center px-6 gap-3 mb-2 hover:opacity-80 transition-opacity">
           <div className="w-10 h-10 bg-red-600 rounded-2xl flex items-center justify-center shadow-xl shadow-red-100 ring-4 ring-red-50">
             <Droplet className="text-white fill-current" size={22} />
           </div>
@@ -215,7 +217,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             <span className="text-xl font-black text-slate-900 tracking-tighter block leading-none">BloodLink</span>
             <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Management Hub</span>
           </div>
-        </div>
+        </Link>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
           <SidebarSection title="User Hub">
@@ -225,7 +227,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
           </SidebarSection>
 
           <SidebarSection title="Community">
-             {s.donors && <NavItem to="/donors" icon={Search} label="Donor Directory" />}
+             {s.donors && <NavItem to="/directory" icon={Search} label="Donor Directory" />}
              {s.myNotice && <NavItem to="/notices" icon={Megaphone} label="Board Notices" />}
              {s.supportCenter && (
                <NavItem 
@@ -287,12 +289,12 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
       <main className="flex-1 flex flex-col min-0 h-screen overflow-hidden relative">
         <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex-shrink-0 flex items-center justify-between px-3 shadow-sm z-40 sticky top-0">
-          <div className="flex items-center gap-2 lg:hidden">
+          <Link to="/" className="flex items-center gap-2 lg:hidden">
             <div className="w-8 h-8 bg-red-600 rounded-l flex items-center justify-center">
               <Droplet className="text-white fill-current" size={18} />
             </div>
             <span className="font-black text-slate-900 tracking-tighter text-lg">BloodLink</span>
-          </div>
+          </Link>
           <div className="hidden lg:block">
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Authenticated Session</span>
           </div>

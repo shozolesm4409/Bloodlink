@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
@@ -5,8 +6,10 @@ import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handle
 import { Card, Badge, Button } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import clsx from 'clsx';
+
+const { Link } = ReactRouterDOM;
 
 export const Dashboard = () => {
   const { user } = useAuth();

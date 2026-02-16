@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db, subscribeToApprovedFeedbacks, getLandingConfig, getCachedFeedbacks, getUsers } from '../services/api';
 import { DonationStatus, DonationFeedback, LandingPageConfig, User, BloodGroup } from '../types';
@@ -9,6 +9,8 @@ import { PublicLayout } from '../components/PublicLayout';
 import { getRankData } from './Profile';
 import { Card } from '../components/UI';
 import clsx from 'clsx';
+
+const { Link } = ReactRouterDOM;
 
 export const Landing = () => {
   const [stats, setStats] = useState({
@@ -25,7 +27,7 @@ export const Landing = () => {
     heroTitle: 'এক ফোঁটা রক্ত\nহাজারো জীবনের আশা',
     heroSubtitle: 'রক্তদাতা ও প্রয়োজনের মাঝে সবচেয়ে দ্রুত ও নিরাপদ সেতু। আজই আমাদের কমিউনিটিতে যোগ দিন — একটি জীবন বাঁচানোর মহান সুযোগ নিন।',
     heroButtonPrimary: 'রক্তদাতা হিসেবে নিবন্ধন',
-    heroButtonSecondary: 'রক্তের অনুরোধ করুন',
+    heroButtonSecondary: 'রক্তের অনুসন্ধান করুন',
     statsSectionTitle: 'আমাদের লাইভ পরিসংখ্যান',
     feedbackSectionTitle: 'ডোনারদের বাস্তব অভিজ্ঞতা',
     feedbackSectionSubtitle: 'সফল রক্তদাতাদের শেয়ার করা অনুপ্রেরণামূলক গল্পসমূহ',
@@ -114,7 +116,7 @@ export const Landing = () => {
           <Droplet className="absolute top-10 left-[10%] rotate-12" size={120} />
           <Droplet className="absolute bottom-20 right-[15%] -rotate-12" size={160} />
         </div>
-        <div className="relative z-10 max-w-4xl">
+        <div className="relative z-10 max-w-5xl">
           <h1 className="font-galada text-4xl lg:text-7xl font-black leading-[1.3] mb-6 animate-fade-in-up whitespace-pre-line">
             {config.heroTitle}
           </h1>
@@ -122,26 +124,18 @@ export const Landing = () => {
             {config.heroSubtitle}
           </p>
           
-          <div className="flex flex-col gap-4 animate-fade-in-up items-center w-full" style={{ animationDelay: '0.4s' }}>
-            {/* Row 1: Register and Login (Request/Search Blood) */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-              <Link to="/register" className="bg-white text-[#c1121f] px-6 py-3 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-slate-50 transition-all text-center flex items-center justify-center gap-2 group flex-1 sm:flex-none min-w-[200px]">
-                {config.heroButtonPrimary} <ArrowRight className="group-hover:translate-x-2 transition-transform" />
-              </Link>
-              <Link to="/login" className="bg-transparent border-2 border-white/40 backdrop-blur-sm text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-white/10 transition-all text-center flex items-center justify-center flex-1 sm:flex-none min-w-[200px]">
-                {config.heroButtonSecondary}
-              </Link>
-            </div>
+          <div className="flex flex-col md:flex-row gap-4 justify-center w-full animate-fade-in-up mt-8 items-stretch" style={{ animationDelay: '0.4s' }}>
+            <Link to="/register" className="bg-white text-[#c1121f] px-8 py-4 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-slate-50 transition-all text-center flex items-center justify-center gap-2 group flex-1 md:flex-none min-w-[220px]">
+              {config.heroButtonPrimary} <ArrowRight className="group-hover:translate-x-2 transition-transform" />
+            </Link>
             
-            {/* Row 2: Directory and Verify */}
-            <div className="flex flex-col sm:flex-row gap-4 justify-center w-full sm:w-auto">
-              <Link to="/donors" className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg shadow-2xl hover:bg-black transition-all text-center flex items-center justify-center gap-2 flex-1 sm:flex-none min-w-[200px]">
-                <Search size={20} /> Donor Directory
-              </Link>
-              <Link to="/verify" className="bg-slate-900/40 backdrop-blur-md border border-white/20 text-white px-6 py-3 rounded-xl font-black text-base lg:text-lg hover:bg-slate-900/60 transition-all text-center flex items-center justify-center gap-2 flex-1 sm:flex-none min-w-[200px]">
-                <ShieldCheck size={20} /> Verify Users
-              </Link>
-            </div>
+            <Link to="/donors" className="bg-slate-900/40 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-xl font-black text-base lg:text-lg hover:bg-slate-900/60 transition-all text-center flex items-center justify-center gap-2 flex-1 md:flex-none min-w-[220px]">
+              <Search size={20} /> {config.heroButtonSecondary}
+            </Link>
+
+            <Link to="/verify" className="bg-slate-900/40 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-xl font-black text-base lg:text-lg hover:bg-slate-900/60 transition-all text-center flex items-center justify-center gap-2 flex-1 md:flex-none min-w-[220px]">
+              <ShieldCheck size={20} /> Verify Users
+            </Link>
           </div>
 
         </div>

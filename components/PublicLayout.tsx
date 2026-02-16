@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { getLandingConfig } from '../services/api';
 import { LandingPageConfig } from '../types';
-import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck, Users } from 'lucide-react';
+import { useAuth } from '../AuthContext';
+import { Droplet, LogIn, MessageSquareQuote, ShieldCheck, Megaphone, HelpCircle, UserCheck, Users, User as UserIcon } from 'lucide-react';
 import clsx from 'clsx';
 
 interface PublicLayoutProps {
@@ -58,6 +59,7 @@ const DesktopNavLink: React.FC<DesktopNavLinkProps> = ({ to, icon: Icon, label, 
 
 export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
   const location = useLocation();
+  const { user, isAuthenticated } = useAuth();
   const currentPath = location.pathname;
   const [config, setConfig] = useState<LandingPageConfig>({
     heroTitle: 'এক ফোঁটা রক্ত\nহাজারো জীবনের আশা',
@@ -108,13 +110,35 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
           </div>
           
           <div className="flex items-center">
-            <Link 
-              to="/login" 
-              className="shimmer-effect relative flex items-center gap-2.5 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-black hover:scale-[1.03] hover:shadow-2xl hover:shadow-slate-400/30 transition-all duration-300 active:scale-95 group"
-            >
-              <LogIn size={18} className="relative z-10 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-500 ease-out" /> 
-              <span className="relative z-10 tracking-tight">Sign In</span>
-            </Link>
+            {isAuthenticated && user ? (
+              <Link 
+                to="/dashboard" 
+                className="flex items-center gap-3 pl-4 border-l border-slate-200 group"
+                title="Go to Dashboard"
+              >
+                <div className="text-right hidden sm:block">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dashboard</p>
+                  <p className="text-xs font-bold text-slate-900 leading-none">{user.name}</p>
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white border-2 border-slate-100 p-0.5 shadow-md overflow-hidden group-hover:border-red-500 transition-colors relative">
+                   {user.avatar ? (
+                     <img src={user.avatar} className="w-full h-full object-cover rounded-full" alt="Profile" />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center bg-slate-100 rounded-full text-slate-400">
+                       <UserIcon size={18} />
+                     </div>
+                   )}
+                </div>
+              </Link>
+            ) : (
+              <Link 
+                to="/login" 
+                className="shimmer-effect relative flex items-center gap-2.5 bg-slate-900 text-white px-6 py-2.5 rounded-xl font-black text-sm hover:bg-black hover:scale-[1.03] hover:shadow-2xl hover:shadow-slate-400/30 transition-all duration-300 active:scale-95 group"
+              >
+                <LogIn size={18} className="relative z-10 group-hover:translate-x-1 group-hover:scale-110 transition-all duration-500 ease-out" /> 
+                <span className="relative z-10 tracking-tight">Sign In</span>
+              </Link>
+            )}
           </div>
         </div>
       </header>

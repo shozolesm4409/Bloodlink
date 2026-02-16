@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import * as ReactRouterDOM from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { addNotice, updateNotice, subscribeToNotices, deleteNotice, getUsers, getAppPermissions, ADMIN_EMAIL } from '../services/api';
 import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../components/UI';
 import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown, Globe } from 'lucide-react';
 import { Notice, User, UserRole, AppPermissions, NoticeType } from '../types';
 import clsx from 'clsx';
+
+const { Link } = ReactRouterDOM;
 
 export const MyNotice = () => {
   const { user } = useAuth();
