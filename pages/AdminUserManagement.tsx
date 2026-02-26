@@ -34,7 +34,7 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
   
   // Filter Logic for Access Hub
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (u.name || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchesSearch) return false;
     
@@ -185,7 +185,7 @@ export const AdminUserManagement = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const isSuperAdminViewer = admin?.role === UserRole.SUPERADMIN || admin?.email.trim().toLowerCase() === ADMIN_EMAIL;
+  const isSuperAdminViewer = admin?.role === UserRole.SUPERADMIN || (admin?.email || '').trim().toLowerCase() === ADMIN_EMAIL;
 
   const handleDelete = async () => {
     if (!admin || !deleteUserId) return;
@@ -279,7 +279,7 @@ export const AdminUserManagement = () => {
 
   // User List filtering
   const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (u.name || '').toLowerCase().includes(searchTerm.toLowerCase()) || (u.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = roleFilter === 'ALL' || u.role === roleFilter;
     return matchesSearch && matchesRole;
   });

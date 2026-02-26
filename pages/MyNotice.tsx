@@ -41,7 +41,7 @@ export const MyNotice = () => {
     return () => unsubscribe();
   }, []);
 
-  const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || user?.email.trim().toLowerCase() === ADMIN_EMAIL;
+  const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || (user?.email || '').trim().toLowerCase() === ADMIN_EMAIL;
   
   // Effective Permission Check
   const canPost = (() => {
@@ -51,13 +51,13 @@ export const MyNotice = () => {
     // 2. Super Admins always can
     if (user.role === UserRole.SUPERADMIN) return true;
     // 3. Fallback to Role Global Permission
-    const roleKey = user.role.toLowerCase() as keyof AppPermissions;
+    const roleKey = (user.role || '').toLowerCase() as keyof AppPermissions;
     return perms?.[roleKey]?.rules?.canPostNotice ?? isStaff;
   })();
 
   // Filter notices based on role and tab
   const filteredNotices = notices.filter(n => {
-    const matchesSearch = n.subject.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = (n.subject || '').toLowerCase().includes(searchQuery.toLowerCase());
     // Filter strictly by active tab type
     if (activeTab === 'WEB') {
         return matchesSearch && n.type === NoticeType.WEB;

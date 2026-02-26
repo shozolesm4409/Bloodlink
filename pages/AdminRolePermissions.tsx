@@ -181,7 +181,7 @@ export const AdminRolePermissions = () => {
 
   const filteredUsers = allUsers.filter(u => 
     u.id !== admin?.id && 
-    (u.name.toLowerCase().includes(searchQuery.toLowerCase()) || u.email.toLowerCase().includes(searchQuery.toLowerCase()))
+    ((u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || (u.email || '').toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   if (loading) return <div className="p-10 text-center font-black text-slate-300 animate-pulse">Syncing...</div>;

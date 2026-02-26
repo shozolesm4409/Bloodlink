@@ -149,7 +149,7 @@ export const AdminIDCards = () => {
     
     const lowerSearch = searchTerm.toLowerCase();
     const matchesSearch = !lowerSearch || 
-      u.name.toLowerCase().includes(lowerSearch) || 
+      (u.name || '').toLowerCase().includes(lowerSearch) || 
       (u.idNumber && u.idNumber.toLowerCase().includes(lowerSearch)) || 
       (u.phone && u.phone.toLowerCase().includes(lowerSearch));
 

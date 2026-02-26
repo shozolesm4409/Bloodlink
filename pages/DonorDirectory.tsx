@@ -89,8 +89,8 @@ export const DonorDirectory = () => {
     const searchLower = filter.toLowerCase();
     
     const matchesSearch = 
-      u.name.toLowerCase().includes(searchLower) || 
-      u.location.toLowerCase().includes(searchLower) ||
+      (u.name || '').toLowerCase().includes(searchLower) || 
+      (u.location || '').toLowerCase().includes(searchLower) ||
       (u.idNumber && u.idNumber.toLowerCase().includes(searchLower));
       
     const matchesGroup = group === '' || u.bloodGroup === group;

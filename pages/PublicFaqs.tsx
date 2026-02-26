@@ -24,8 +24,8 @@ export const PublicFaqs = () => {
   };
 
   const filteredFaqs = faqs.filter(f => 
-    f.question.toLowerCase().includes(search.toLowerCase()) || 
-    f.answer.toLowerCase().includes(search.toLowerCase())
+    (f.question || '').toLowerCase().includes(search.toLowerCase()) || 
+    (f.answer || '').toLowerCase().includes(search.toLowerCase())
   );
 
   return (

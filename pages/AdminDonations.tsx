@@ -55,8 +55,8 @@ export const AdminDonations = () => {
 
   const filtered = donations.filter(d => {
     const matchesFilter = filter === 'ALL' || d.status === filter;
-    const matchesSearch = d.userName.toLowerCase().includes(search.toLowerCase()) || 
-                          d.location.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = (d.userName || '').toLowerCase().includes(search.toLowerCase()) || 
+                          (d.location || '').toLowerCase().includes(search.toLowerCase());
     return matchesFilter && matchesSearch;
   });
 

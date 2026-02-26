@@ -299,7 +299,7 @@ export const Profile = () => {
         cacheBust: true,
       });
       const link = document.createElement('a');
-      link.download = `BloodLink-ID-${user.name.replace(/\s+/g, '-').toLowerCase()}.jpg`;
+      link.download = `BloodLink-ID-${(user.name || 'User').replace(/\s+/g, '-').toLowerCase()}.jpg`;
       link.href = dataUrl;
       link.click();
       showToast("ID Card downloaded successfully.");
