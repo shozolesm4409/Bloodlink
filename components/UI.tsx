@@ -6,7 +6,7 @@ import { Loader2, X, AlertTriangle, CheckCircle2, Info, AlertCircle } from 'luci
 // Fix: Support ref for Card component to resolve TS error in Dashboard.tsx
 export const Card = React.forwardRef<HTMLDivElement, { children?: React.ReactNode; className?: string }>(
   ({ children, className }, ref) => (
-    <div ref={ref} className={clsx("bg-white rounded-xl border border-slate-200 shadow-sm", className)}>
+    <div ref={ref} className={clsx("bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm", className)}>
       {children}
     </div>
   )
@@ -16,9 +16,9 @@ export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
   ({ className, isLoading, variant = 'primary', children, disabled, ...props }, ref) => {
     const variants = {
       primary: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-lg shadow-red-100 active:scale-95",
-      secondary: "bg-slate-900 text-white hover:bg-black focus:ring-slate-700 shadow-lg shadow-slate-100 active:scale-95",
+      secondary: "bg-slate-900 dark:bg-slate-800 text-white hover:bg-black dark:hover:bg-slate-700 focus:ring-slate-700 shadow-lg shadow-slate-100 active:scale-95",
       danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-lg shadow-red-100 active:scale-95",
-      outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 focus:ring-slate-500 active:scale-95"
+      outline: "border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 focus:ring-slate-500 active:scale-95"
     };
 
     return (
@@ -42,12 +42,12 @@ export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement> & { label?: string, error?: string }>(
   ({ className, label, error, ...props }, ref) => (
     <div className="w-full">
-      {label && <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">{label}</label>}
+      {label && <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 ml-1">{label}</label>}
       <input
         ref={ref}
         className={clsx(
-          "w-full px-4 py-3.5 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 font-medium placeholder:text-slate-300",
-          error ? "border-red-300 bg-red-50/50" : "border-slate-100",
+          "w-full px-4 py-3.5 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600",
+          error ? "border-red-300 bg-red-50/50 dark:bg-red-950/20" : "border-slate-100 dark:border-slate-700",
           className
         )}
         {...props}
@@ -60,11 +60,11 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement> & { label?: string }>(
   ({ className, label, children, ...props }, ref) => (
     <div className="w-full">
-      {label && <label className="block text-xs font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">{label}</label>}
+      {label && <label className="block text-xs font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2 ml-1">{label}</label>}
       <select
         ref={ref}
         className={clsx(
-          "w-full px-4 py-3.5 border border-slate-100 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 cursor-pointer font-medium appearance-none",
+          "w-full px-4 py-3.5 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 cursor-pointer font-medium appearance-none",
           className
         )}
         {...props}
@@ -78,12 +78,12 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
 // Fix: Converted to React.FC to handle internal props like key correctly in TS
 export const Badge: React.FC<{ children?: React.ReactNode, color?: 'blue' | 'green' | 'red' | 'yellow' | 'gray' | 'purple', className?: string }> = ({ children, color = 'blue', className }) => {
   const colors = {
-    blue: "bg-blue-100 text-blue-700",
-    green: "bg-green-100 text-green-700",
-    red: "bg-red-100 text-red-700",
-    yellow: "bg-yellow-100 text-yellow-800",
-    gray: "bg-slate-100 text-slate-700",
-    purple: "bg-purple-100 text-purple-700"
+    blue: "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
+    green: "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400",
+    red: "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+    yellow: "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-400",
+    gray: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400",
+    purple: "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400"
   };
   return (
     <span className={clsx("inline-flex items-center px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter", colors[color], className)}>
@@ -99,18 +99,22 @@ export const ConfirmModal: React.FC<{
   title: string;
   message: string;
   isLoading?: boolean;
-}> = ({ isOpen, onClose, onConfirm, title, message, isLoading }) => {
+  children?: React.ReactNode;
+}> = ({ isOpen, onClose, onConfirm, title, message, isLoading, children }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-      <Card className="w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200 bg-white border-0 rounded-xl">
+    <div className="fixed inset-0 bg-slate-900/40 dark:bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
+      <Card className="w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200 bg-white dark:bg-slate-900 border-0 rounded-xl">
         <div className="flex flex-col items-center text-center">
-          <div className="p-4 bg-red-50 rounded-full text-red-600 mb-6 shadow-inner">
+          <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-full text-red-600 dark:text-red-400 mb-6 shadow-inner transition-colors">
             <AlertTriangle size={32} />
           </div>
-          <h3 className="text-xl font-black text-slate-900 mb-3 tracking-tighter">{title}</h3>
-          <p className="text-sm text-slate-500 mb-8 leading-relaxed font-medium">{message}</p>
+          <h3 className="text-xl font-black text-slate-900 dark:text-white mb-3 tracking-tighter transition-colors">{title}</h3>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 leading-relaxed font-medium transition-colors">{message}</p>
+          
+          {children && <div className="w-full mb-8 text-left">{children}</div>}
+
           <div className="flex gap-4 w-full">
             <Button 
               variant="danger" 
@@ -122,7 +126,7 @@ export const ConfirmModal: React.FC<{
             </Button>
             <Button 
               variant="outline" 
-              className="flex-1 border-slate-100 text-slate-400" 
+              className="flex-1 border-slate-100 dark:border-slate-800 text-slate-400 dark:text-slate-500" 
               onClick={onClose}
               disabled={isLoading}
             >
@@ -154,10 +158,10 @@ export const Toast: React.FC<{
   if (!isVisible) return null;
 
   const styles = {
-    success: "bg-white border-green-500 text-green-700",
-    error: "bg-white border-red-500 text-red-700",
-    info: "bg-white border-blue-500 text-blue-700",
-    warning: "bg-white border-yellow-500 text-yellow-700"
+    success: "bg-white dark:bg-slate-900 border-green-500 text-green-700 dark:text-green-400 transition-colors",
+    error: "bg-white dark:bg-slate-900 border-red-500 text-red-700 dark:text-red-400 transition-colors",
+    info: "bg-white dark:bg-slate-900 border-blue-500 text-blue-700 dark:text-blue-400 transition-colors",
+    warning: "bg-white dark:bg-slate-900 border-yellow-500 text-yellow-700 dark:text-yellow-400 transition-colors"
   };
 
   const Icons = {
@@ -170,9 +174,9 @@ export const Toast: React.FC<{
   return (
     <div className="fixed top-6 right-6 z-[200] animate-in slide-in-from-right-10 duration-300">
       <Card className={clsx("flex items-center gap-4 p-4 pr-6 border-l-4 shadow-2xl rounded-lg", styles[type])}>
-        <div className="p-2 bg-slate-50 rounded-full">{Icons[type]}</div>
-        <p className="text-sm font-black tracking-tight">{message}</p>
-        <button onClick={onClose} className="p-1 text-slate-300 hover:text-slate-500 transition-colors ml-4">
+        <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-full transition-colors">{Icons[type]}</div>
+        <p className="text-sm font-black tracking-tight transition-colors">{message}</p>
+        <button onClick={onClose} className="p-1 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 transition-colors ml-4">
           <X size={16} />
         </button>
       </Card>

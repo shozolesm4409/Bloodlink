@@ -241,6 +241,7 @@ export interface RolePermissions {
     deletedUsers?: boolean;
     helpCenterManage?: boolean;
     moderateFaqs?: boolean;
+    serverStatus?: boolean;
   };
   rules: {
     canEditProfile: boolean;
@@ -266,6 +267,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   token: string | null;
+  impersonatingAdmin?: User | null;
 }
 
 export interface RevokedPermission {

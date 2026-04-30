@@ -1,39 +1,39 @@
 
 import React from 'react';
-import * as ReactRouterDOM from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { Layout } from './components/Layout';
 import { Login, Register, ResetPassword } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
-import { Profile } from './pages/Profile';
-import { Landing } from './pages/Landing';
-import { AdminUserManagement } from './pages/AdminUserManagement';
-import { AdminDonations } from './pages/AdminDonations';
-import { AdminSystemLogs } from './pages/AdminSystemLogs';
-import { AdminArchives } from './pages/AdminArchives';
-import { AdminPermissions } from './pages/AdminPermissions';
-import { AdminPageCustomizer } from './pages/AdminPageCustomizer';
-import { AdminSummary } from './pages/AdminSummary';
-import { AdminRolePermissions } from './pages/AdminRolePermissions';
-import { DonorDirectory } from './pages/DonorDirectory';
-import { MyDonations } from './pages/MyDonations';
-import { SupportCenter } from './pages/SupportCenter';
-import { DonationFeedbackPage, FeedbackApprovalPage, PublicFeedbackPage } from './pages/Feedback';
-import { MyNotice } from './pages/MyNotice';
-import { AdminIDCards } from './pages/AdminIDCards';
-import { VerifyMember } from './pages/VerifyMember';
-import { AdminVerificationHistory } from './pages/AdminVerificationHistory';
-import { PrivacyPolicy } from './pages/PrivacyPolicy';
-import { HelpCenter } from './pages/HelpCenter';
-import { AdminHelpCenter } from './pages/AdminHelpCenter';
-import { PublicNotices } from './pages/PublicNotices';
-import { NoticeDetail } from './pages/NoticeDetail';
-import { PublicFaqs } from './pages/PublicFaqs';
-import { AdminFaqs } from './pages/AdminFaqs';
+import { Profile } from './pages/Users/Profile';
+import { Landing } from './pages/Webpage/Landing';
+import { AdminUserManagement } from './pages/Admin/AdminUserManagement';
+import { AdminDonations } from './pages/Admin/AdminDonations';
+import { AdminSystemLogs } from './pages/Admin/AdminSystemLogs';
+import { AdminServerStatus } from './pages/Admin/AdminServerStatus';
+import { AdminArchives } from './pages/Admin/AdminArchives';
+import { AdminPermissions } from './pages/Admin/AdminPermissions';
+import { AdminPageCustomizer } from './pages/Admin/AdminPageCustomizer';
+import { AdminSummary } from './pages/Admin/AdminSummary';
+import { AdminRolePermissions } from './pages/Admin/AdminRolePermissions';
+import { DonorDirectory } from './pages/Users/DonorDirectory';
+import { MyDonations } from './pages/Users/MyDonations';
+import { SupportCenter } from './pages/Users/SupportCenter';
+import { DonationFeedbackPage, FeedbackApprovalPage, PublicFeedbackPage } from './pages/Users/Feedback';
+import { MyNotice } from './pages/Users/MyNotice';
+import { AdminIDCards } from './pages/Admin/AdminIDCards';
+import { VerifyMember } from './pages/Webpage/VerifyMember';
+import { AdminVerificationHistory } from './pages/Admin/AdminVerificationHistory';
+import { PrivacyPolicy } from './pages/Webpage/PrivacyPolicy';
+import { HelpCenter } from './pages/Webpage/HelpCenter';
+import { AdminHelpCenter } from './pages/Admin/AdminHelpCenter';
+import { PublicNotices } from './pages/Webpage/PublicNotices';
+import { NoticeDetail } from './pages/Webpage/NoticeDetail';
+import { PublicFaqs } from './pages/Webpage/PublicFaqs';
+import { AdminFaqs } from './pages/Admin/AdminFaqs';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
-
-const { HashRouter, Routes, Route, Navigate } = ReactRouterDOM;
+import { ThemeProvider } from './ThemeContext';
 
 const ProtectedRoute = ({ 
   children, 
@@ -79,9 +79,10 @@ const RootRoute = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <HashRouter>
-        <Routes>
+    <ThemeProvider>
+      <AuthProvider>
+        <HashRouter>
+          <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -130,12 +131,14 @@ const App = () => {
           <Route path="/role-permissions" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="rolePermissions"><AdminRolePermissions /></ProtectedRoute>} />
           <Route path="/deleted-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="deletedUsers"><AdminArchives /></ProtectedRoute>} />
           <Route path="/logs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="logs"><AdminSystemLogs /></ProtectedRoute>} />
+          <Route path="/server-status" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="serverStatus"><AdminServerStatus /></ProtectedRoute>} />
           <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="teamIdCards"><AdminIDCards /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </HashRouter>
     </AuthProvider>
+    </ThemeProvider>
   );
 };
 

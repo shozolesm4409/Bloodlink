@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import * as ReactRouterDOM from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { UserRole, AppPermissions, RolePermissions, DonationStatus, HelpStatus } from '../types';
 import { 
@@ -39,11 +39,14 @@ import {
   ClipboardList,
   Lock,
   HelpCircle,
-  FileQuestion
+  FileQuestion,
+  Sun,
+  Moon
 } from 'lucide-react';
+import { useTheme } from '../ThemeContext';
 import clsx from 'clsx';
 
-const { Link, useLocation, useNavigate } = ReactRouterDOM;
+
 
 interface BadgeConfig {
   count: number;
@@ -51,7 +54,8 @@ interface BadgeConfig {
 }
 
 export const Layout = ({ children }: { children?: React.ReactNode }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, impersonatingAdmin, stopImpersonation } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -69,7 +73,10 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
   useEffect(() => {
     getAppPermissions().then(setPerms);
     
-    if (user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN) {
+    // Check if user has admin/editor access to fetch counts, 
+    // even if they are currently impersonating a normal user (use originalAdmin to check roles)
+    const currentUser = impersonatingAdmin || user;
+    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.EDITOR || currentUser?.role === UserRole.SUPERADMIN) {
       const fetchCounts = async () => {
         try {
           const [users, donations, feedbacks, helpReqs] = await Promise.all([
@@ -119,12 +126,12 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         className={clsx(
           "flex items-center justify-between px-2 py-1.5 rounded-lg transition-all duration-200 group relative",
           isActive 
-            ? "bg-red-50 text-red-600 font-bold shadow-sm" 
-            : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold shadow-sm" 
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
         )}
       >
         <div className="flex items-center gap-3">
-          <Icon size={18} className={clsx(isActive ? "text-red-600" : "text-slate-400 group-hover:text-slate-600")} />
+          <Icon size={18} className={clsx(isActive ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
           <span className="text-[13px] tracking-tight">{label}</span>
         </div>
         
@@ -170,14 +177,21 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   if (perms) {
     if (isSuperAdmin) {
-      basePerms = perms.superadmin?.sidebar || { 
+      basePerms = {
         summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
         logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
         landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true
+        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true, serverStatus: true,
+        ...(perms.superadmin?.sidebar || {})
       };
+      if (perms.superadmin?.sidebar && perms.superadmin.sidebar.serverStatus === undefined) {
+          basePerms.serverStatus = true;
+      }
     } else if (isAdmin) {
       basePerms = perms.admin?.sidebar || basePerms;
+      if (perms.admin?.sidebar && perms.admin.sidebar.serverStatus === undefined) {
+          basePerms.serverStatus = true;
+      }
     } else if (isEditor) {
       basePerms = perms.editor?.sidebar || basePerms;
     } else {
@@ -189,7 +203,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
       summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
       logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
       landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true
+      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true, serverStatus: true
     };
   }
 
@@ -200,21 +214,21 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     : basePerms;
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] flex">
+    <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex transition-colors duration-300">
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[60] lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-[60] lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
       )}
 
       <aside className={clsx(
-        "fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-in-out lg:transform-none flex flex-col shadow-2xl lg:shadow-none h-screen overflow-hidden",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        "fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none h-screen overflow-hidden",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         <Link to="/" className="h-20 flex-shrink-0 flex items-center px-6 gap-3 mb-2 hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-xl shadow-red-100 ring-4 ring-red-50">
+          <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-xl shadow-red-100 dark:shadow-red-900/20 ring-4 ring-red-50 dark:ring-red-950/20">
             <Droplet className="text-white fill-current" size={22} />
           </div>
           <div>
-            <span className="text-xl font-black text-slate-900 tracking-tighter block leading-none">BloodLink</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter block leading-none">BloodLink</span>
             <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Management Hub</span>
           </div>
         </Link>
@@ -262,25 +276,33 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
           </SidebarSection>
 
           <SidebarSection title="System Intel">
-            {s.rolePermissions && <NavItem to="/role-permissions" icon={Lock} label="Role Permissions" />}
+            {s.serverStatus && <NavItem to="/server-status" icon={Monitor} label="Server Status" />}
+            {s.rolePermissions && isSuperAdmin && <NavItem to="/role-permissions" icon={Lock} label="Role Permissions" />}
             {s.deletedUsers && <NavItem to="/deleted-users" icon={Trash2} label="System Archives" />}
             {s.logs && <NavItem to="/logs" icon={FileText} label="Activity Logs" />}
           </SidebarSection>
         </div>
 
-        <div className="p-2 border-t border-slate-100 bg-slate-50/50 flex-shrink-0">
-          <div className="flex items-center gap-3 p-2 bg-white rounded-lg border border-slate-200 shadow-sm mb-2">
-            <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center font-black overflow-hidden border border-red-100">
+        <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex-shrink-0">
+          <div className="flex items-center gap-3 p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm mb-2 group/profile relative">
+            <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 flex items-center justify-center font-black overflow-hidden border border-red-100 dark:border-red-900/50">
               {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : user?.name.charAt(0)}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-black text-slate-900 truncate">{user?.name}</p>
+              <p className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate">{user?.name}</p>
               <p className="text-[9px] font-black text-red-500 uppercase tracking-widest">{user?.role}</p>
             </div>
+            <button 
+              onClick={toggleTheme}
+              className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all active:scale-90"
+              title={!isDarkMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+            >
+              {!isDarkMode ? <Moon size={16} /> : <Sun size={16} />}
+            </button>
           </div>
           <button 
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 hover:text-red-600 transition-colors bg-white rounded-lg border border-slate-200 hover:border-red-100 shadow-sm active:scale-95"
+            className="w-full flex items-center justify-center gap-2 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-900/50 shadow-sm active:scale-95"
           >
             <LogOut size={16} /> Sign Out
           </button>
@@ -288,22 +310,50 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
       </aside>
 
       <main className="flex-1 flex flex-col min-0 h-screen overflow-hidden relative">
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 h-16 flex-shrink-0 flex items-center justify-between px-3 shadow-sm z-40 sticky top-0">
+        <header className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-16 flex-shrink-0 flex items-center justify-between px-3 shadow-sm z-40 sticky top-0 transition-colors">
           <Link to="/" className="flex items-center gap-2 lg:hidden">
             <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
               <Droplet className="text-white fill-current" size={18} />
             </div>
-            <span className="font-black text-slate-900 tracking-tighter text-lg">BloodLink</span>
+            <span className="font-black text-slate-900 dark:text-white tracking-tighter text-lg">BloodLink</span>
           </Link>
-          <div className="hidden lg:block">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Authenticated Session</span>
+          <div className="flex items-center gap-4">
+            <div className="hidden lg:block">
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Authenticated Session</span>
+            </div>
+
+            {impersonatingAdmin && (
+              <button 
+                onClick={stopImpersonation}
+                className="flex items-center gap-3 p-1.5 pr-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-600 group transition-all shadow-sm animate-in slide-in-from-right duration-500"
+                title="Return to SuperAdmin Dashboard"
+              >
+                <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md group-hover:bg-white group-hover:text-red-600 transition-colors">
+                  {impersonatingAdmin.avatar ? <img src={impersonatingAdmin.avatar} className="w-full h-full object-cover" /> : impersonatingAdmin.name.charAt(0)}
+                </div>
+                <div className="text-left hidden sm:block">
+                  <p className="text-[10px] font-black text-slate-900 dark:text-white group-hover:text-white leading-none mb-1 transition-colors uppercase tracking-tight">{impersonatingAdmin.name}</p>
+                  <p className="text-[8px] font-black text-red-600 dark:text-red-400 group-hover:text-red-100 uppercase tracking-widest leading-none transition-colors">Switch to Admin</p>
+                </div>
+              </button>
+            )}
+
+            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 lg:hidden">
+              <Menu size={20} className="text-slate-700 dark:text-slate-300" />
+            </button>
           </div>
-          <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-slate-50/50 rounded-lg border border-slate-100 lg:hidden">
-            <Menu size={20} className="text-slate-700" />
-          </button>
         </header>
 
-        <div className="flex-1 overflow-auto p-2 lg:p-4 custom-scrollbar">
+        <div className="flex-1 overflow-auto p-2 lg:p-4 custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300">
+          {impersonatingAdmin && user?.role !== UserRole.SUPERADMIN && (
+            <div className="mb-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-4 rounded-xl flex items-center justify-between shadow-sm">
+                <div>
+                  <p className="text-[11px] font-black text-amber-900 dark:text-amber-100 italic">Currently impersonating: {user?.name}</p>
+                  <p className="text-[9px] text-amber-700 dark:text-amber-300">Admin session is active.</p>
+                </div>
+                <button onClick={stopImpersonation} className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-md transition-colors">Return</button>
+            </div>
+          )}
           <div className="max-w-7xl mx-auto">
             {children}
           </div>

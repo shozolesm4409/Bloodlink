@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, AuthState } from './types';
+import { User, AuthState, UserRole } from './types';
 import { auth } from './services/firebase';
 import { getUserProfile, logoutUser } from './services/api';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -9,6 +9,8 @@ interface AuthContextType extends AuthState {
   login: (user: User) => void;
   logout: () => void;
   updateUser: (user: User) => void;
+  impersonateUser: (user: User) => void;
+  stopImpersonation: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,7 +19,8 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
-    token: null
+    token: null,
+    impersonatingAdmin: null
   });
   const [loading, setLoading] = useState(true);
 
@@ -30,23 +33,42 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
             setState({
               user: userProfile,
               isAuthenticated: true,
-              token: await firebaseUser.getIdToken()
+              token: await firebaseUser.getIdToken(),
+              impersonatingAdmin: null
             });
           } else {
             // User authenticated in Firebase but no profile in Firestore (edge case)
-            setState({ user: null, isAuthenticated: false, token: null });
+            setState({ user: null, isAuthenticated: false, token: null, impersonatingAdmin: null });
           }
         } catch (error) {
           console.error("Error fetching user profile:", error);
-          setState({ user: null, isAuthenticated: false, token: null });
+          setState({ user: null, isAuthenticated: false, token: null, impersonatingAdmin: null });
         }
       } else {
-        setState({ user: null, isAuthenticated: false, token: null });
+        setState({ user: null, isAuthenticated: false, token: null, impersonatingAdmin: null });
       }
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Fallback timeout in case Firebase doesn't respond
+    const timeout = setTimeout(() => {
+      // We check the state updater function to get the latest value if needed, 
+      // but here we just force loading false if it's still true.
+      // Since we can't easily access the current state value inside the closure without deps,
+      // we'll use the functional update form of setLoading to check.
+      setLoading(prevLoading => {
+        if (prevLoading) {
+          console.warn("Auth state change timeout - forcing loading to false");
+          return false;
+        }
+        return prevLoading;
+      });
+    }, 5000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   const login = (user: User) => {
@@ -62,6 +84,27 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
     setState({ user: null, isAuthenticated: false, token: null });
   };
 
+  const impersonateUser = (targetUser: User) => {
+    if (state.user?.role === UserRole.SUPERADMIN) {
+      setState(prev => ({
+        ...prev,
+        user: targetUser,
+        isAuthenticated: true,
+        impersonatingAdmin: prev.impersonatingAdmin || prev.user
+      }));
+    }
+  };
+
+  const stopImpersonation = () => {
+    if (state.impersonatingAdmin) {
+      setState(prev => ({
+        ...prev,
+        user: prev.impersonatingAdmin || null,
+        impersonatingAdmin: null
+      }));
+    }
+  };
+
   const updateUser = (user: User) => {
     setState(prev => ({ ...prev, user }));
   }
@@ -73,7 +116,7 @@ export const AuthProvider = ({ children }: { children?: ReactNode }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ ...state, login, logout, updateUser, impersonateUser, stopImpersonation }}>
       {children}
     </AuthContext.Provider>
   );

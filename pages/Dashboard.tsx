@@ -3,16 +3,18 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
 import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, updateDonationStatus, ADMIN_EMAIL } from '../services/api';
-import { Card, Badge, Button } from '../components/UI';
+import { Card, Badge, Button, Toast, useToast } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint } from 'lucide-react';
+import { useTheme } from '../ThemeContext';
 import * as ReactRouterDOM from 'react-router-dom';
 import clsx from 'clsx';
 
 const { Link } = ReactRouterDOM;
-
 export const Dashboard = () => {
   const { user } = useAuth();
+  const { isDarkMode } = useTheme();
+  const { toastState, showToast, hideToast } = useToast();
   const [userDonations, setUserDonations] = useState<DonationRecord[]>([]);
   const [allDonations, setAllDonations] = useState<DonationRecord[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -64,8 +66,9 @@ export const Dashboard = () => {
       } else if (type === 'DONATION') {
         await updateDonationStatus(itemId, approve ? DonationStatus.COMPLETED : DonationStatus.REJECTED, user);
       }
+      showToast("Verification action completed successfully.");
       fetchData();
-    } catch (e) { alert("Action failed."); }
+    } catch (e) { showToast("Action failed.", "error"); }
   };
 
   if (loading) return <div className="p-10 text-center text-slate-400 font-black uppercase tracking-widest animate-pulse">Initializing Dashboard...</div>;
@@ -102,10 +105,11 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-10 animate-in fade-in duration-700">
+      <Toast {...toastState} onClose={hideToast} />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tighter">Dashboard</h1>
-          <p className="text-slate-500 font-medium">Monitoring system analytics and community activity.</p>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium">Monitoring system analytics and community activity.</p>
         </div>
       </div>
 
@@ -118,32 +122,32 @@ export const Dashboard = () => {
 
       {isSuperAdmin && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-green-50 text-green-600 rounded-lg flex items-center justify-center"><UserIcon size={28} /></div>
+          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
+             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center"><UserIcon size={28} /></div>
              <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400">Total Users</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900">{allUsers.filter(u => u.role === UserRole.USER).length}</p>
+                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Users</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.USER).length}</p>
              </div>
           </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-red-50 text-red-600 rounded-lg flex items-center justify-center"><ShieldIcon size={28} /></div>
+          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
+             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center"><ShieldIcon size={28} /></div>
              <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400">Total Admin</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900">{allUsers.filter(u => u.role === UserRole.ADMIN).length}</p>
+                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Admin</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.ADMIN).length}</p>
              </div>
           </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center"><Edit size={28} /></div>
+          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
+             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center"><Edit size={28} /></div>
              <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400">Total Editor</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900">{allUsers.filter(u => u.role === UserRole.EDITOR).length}</p>
+                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Editor</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.EDITOR).length}</p>
              </div>
           </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-purple-50 text-purple-600 rounded-lg flex items-center justify-center"><Fingerprint size={28} /></div>
+          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
+             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center"><Fingerprint size={28} /></div>
              <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400">Total Super Admin</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900">{allUsers.filter(u => u.role === UserRole.SUPERADMIN).length}</p>
+                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Super Admin</p>
+                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.SUPERADMIN).length}</p>
              </div>
           </Card>
         </div>
@@ -153,29 +157,29 @@ export const Dashboard = () => {
         <div className="lg:col-span-2 space-y-8">
           {isSuperAdmin && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="p-8 border-0 shadow-lg bg-white rounded-xl">
-                <h3 className="text-lg font-black text-slate-900 mb-8 flex items-center gap-3 uppercase tracking-widest"><Activity size={24} className="text-red-600" /> Role Distribution</h3>
+              <Card className="p-8 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3 uppercase tracking-widest"><Activity size={24} className="text-red-600 dark:text-red-400" /> Role Distribution</h3>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={roleData} innerRadius={60} outerRadius={80} paddingAngle={8} dataKey="value" stroke="none">
                         {roleData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', fontWeight: '900' }} />
+                      <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', fontWeight: '900', color: isDarkMode ? '#f1f5f9' : '#0f172a' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
               </Card>
-
-              <Card className="p-8 border-0 shadow-lg bg-white rounded-xl">
-                <h3 className="text-lg font-black text-slate-900 mb-8 flex items-center gap-3 uppercase tracking-widest"><Droplet size={24} className="text-blue-600" /> Blood Spread</h3>
+ 
+              <Card className="p-8 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
+                <h3 className="text-lg font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3 uppercase tracking-widest"><Droplet size={24} className="text-blue-600 dark:text-blue-400" /> Blood Spread</h3>
                 <div className="h-[250px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={groupData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="group" fontSize={10} axisLine={false} tickLine={false} />
-                      <YAxis fontSize={10} axisLine={false} tickLine={false} />
-                      <Tooltip cursor={{fill: '#f8fafc', radius: 12}} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: '900' }} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
+                      <XAxis dataKey="group" fontSize={10} axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#94a3b8' : '#64748b'}} />
+                      <YAxis fontSize={10} axisLine={false} tickLine={false} tick={{fill: isDarkMode ? '#94a3b8' : '#64748b'}} />
+                      <Tooltip cursor={{fill: isDarkMode ? '#1e293b' : '#f8fafc', radius: 12}} contentStyle={{ borderRadius: '16px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', fontWeight: '900', color: isDarkMode ? '#f1f5f9' : '#0f172a' }} />
                       <Bar dataKey="count" fill="#3b82f6" radius={[10, 10, 0, 0]} barSize={24} />
                     </BarChart>
                   </ResponsiveContainer>
@@ -184,59 +188,61 @@ export const Dashboard = () => {
             </div>
           )}
 
-          <Card className="p-10 border-0 shadow-2xl bg-white relative overflow-hidden rounded-xl">
+          <Card className="p-10 border-0 shadow-2xl bg-white dark:bg-slate-900 relative overflow-hidden rounded-xl">
             <div className="relative z-10">
               <div className="flex items-center gap-3 mb-10">
-                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-lg">
+                <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-lg">
                   <ShieldCheck size={20} />
                 </div>
-                <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest">Health & Eligibility</h3>
+                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Health & Eligibility</h3>
               </div>
-
+ 
               <div className="flex flex-col lg:flex-row gap-12">
                 <div className="flex-1 space-y-8">
                   <div className={clsx(
                     "p-8 rounded-xl border-2 transition-all duration-500",
-                    isEligible ? "bg-green-50 border-green-100 ring-4 ring-green-50/50" : "bg-blue-50 border-blue-100 ring-4 ring-blue-50/50"
+                    isEligible 
+                      ? "bg-green-50 dark:bg-green-950/10 border-green-100 dark:border-green-900/30 ring-4 ring-green-50/50 dark:ring-green-900/20" 
+                      : "bg-blue-50 dark:bg-blue-950/10 border-blue-100 dark:border-blue-900/30 ring-4 ring-blue-50/50 dark:ring-blue-900/20"
                   )}>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Current Status</p>
-                    <p className={clsx("text-3xl font-black tracking-tighter mb-1", isEligible ? "text-green-600" : "text-blue-600")}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">Current Status</p>
+                    <p className={clsx("text-3xl font-black tracking-tighter mb-1", isEligible ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400")}>
                       {isEligible ? "ELIGIBLE TO DONATE" : "RESTING PERIOD"}
                     </p>
                     {!isEligible && (
-                      <p className="text-sm font-bold text-slate-500/80">
-                        Next blood donation possible in <span className="text-blue-600 font-black">{diffDays} days</span>.
+                      <p className="text-sm font-bold text-slate-500/80 dark:text-slate-400">
+                        Next blood donation possible in <span className="text-blue-600 dark:text-blue-400 font-black">{diffDays} days</span>.
                       </p>
                     )}
                   </div>
-
+ 
                   <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50/50 p-6 rounded-lg border border-slate-100">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Last Donated</p>
-                      <p className="text-lg font-black text-slate-900">{user?.lastDonationDate ? new Date(user.lastDonationDate).toLocaleDateString() : 'No Records'}</p>
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Last Donated</p>
+                      <p className="text-lg font-black text-slate-900 dark:text-slate-100">{user?.lastDonationDate ? new Date(user.lastDonationDate).toLocaleDateString() : 'No Records'}</p>
                     </div>
-                    <div className="bg-slate-50/50 p-6 rounded-lg border border-slate-100">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Contribution</p>
-                      <p className="text-lg font-black text-slate-900">{completedCount} Times</p>
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-100 dark:border-slate-800">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Contribution</p>
+                      <p className="text-lg font-black text-slate-900 dark:text-slate-100">{completedCount} Times</p>
                     </div>
                   </div>
                 </div>
-
+ 
                 <div className="lg:w-48 flex flex-col items-center justify-center text-center space-y-6">
                    <div className="relative w-32 h-32 flex items-center justify-center">
-                      <Heart className={clsx("w-full h-full stroke-[1.5] transition-colors duration-500", isEligible ? "text-green-100" : "text-blue-100")} />
+                      <Heart className={clsx("w-full h-full stroke-[1.5] transition-colors duration-500", isEligible ? "text-green-100 dark:text-green-950/30" : "text-blue-100 dark:text-blue-950/30")} />
                       <Activity className={clsx("absolute text-red-600 animate-pulse", isEligible ? "opacity-100" : "opacity-30")} size={32} />
-                      <div className="absolute -bottom-2 right-0 bg-white shadow-xl border border-slate-50 px-3 py-1 rounded-full flex items-center gap-1">
-                        <span className="text-xl font-black text-slate-900">{Math.round(progressPercent)}%</span>
+                      <div className="absolute -bottom-2 right-0 bg-white dark:bg-slate-800 shadow-xl border border-slate-50 dark:border-slate-700 px-3 py-1 rounded-full flex items-center gap-1">
+                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{Math.round(progressPercent)}%</span>
                       </div>
                    </div>
                    <div className="space-y-2">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recovery Progress</p>
-                     <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Recovery Progress</p>
+                     <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                        <div className={clsx("h-full transition-all duration-1000", isEligible ? "bg-green-500" : "bg-blue-500")} style={{ width: `${progressPercent}%` }} />
                      </div>
                    </div>
-                   <p className="text-[10px] text-slate-400 font-bold leading-relaxed max-w-[150px]">
+                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed max-w-[150px]">
                       মেডিকেল গাইডলাইন অনুযায়ী একবার রক্ত দেওয়ার পর শরীর স্বাভাবিক অবস্থায় ফিরতে ৩ মাস বা ৯০ দিন সময় লাগে।
                    </p>
                 </div>
@@ -245,37 +251,37 @@ export const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="space-y-8">
+        <div className="lg:col-span-1 space-y-8">
           {isManagement && (
-            <Card className="p-8 border-0 shadow-xl bg-white overflow-hidden rounded-xl">
+            <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-xl">
               <div className="flex items-center justify-between mb-8">
-                <h3 className="font-black text-slate-900 text-xs uppercase tracking-widest flex items-center gap-3"><BellRing className="text-red-600" size={20} /> Recent Updates</h3>
+                <h3 className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-widest flex items-center gap-3"><BellRing className="text-red-600 dark:text-red-400" size={20} /> Recent Updates</h3>
                 {pendingItems.length > 0 && <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-l shadow-sm animate-pulse">{pendingItems.length}</span>}
               </div>
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {pendingItems.slice(0, 10).map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 rounded-lg border border-slate-100 hover:border-red-100 transition-colors">
+                  <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-900/50 transition-colors">
                     <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-white border border-slate-100 overflow-hidden flex items-center justify-center">
-                        {item.userAvatar || item.avatar ? <img src={item.userAvatar || item.avatar} className="w-full h-full object-cover" /> : <Droplet className="text-red-600" size={20} />}
+                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 overflow-hidden flex items-center justify-center">
+                        {item.userAvatar || item.avatar ? <img src={item.userAvatar || item.avatar} className="w-full h-full object-cover" /> : <Droplet className="text-red-600 dark:text-red-400" size={20} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-900 truncate">{item.userName || item.name}</p>
+                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.userName || item.name}</p>
                         <Badge color={item.type === 'DONATION' ? 'red' : 'blue'} className="text-[8px] py-0 px-1.5">{item.accessType === 'IDCard' ? 'ID Card' : item.accessType} Request</Badge>
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => handleAction(item.id, item.type, item.accessType, true)} className="flex-1 bg-white border border-slate-200 p-2 rounded-lg text-green-600 hover:bg-green-600 hover:text-white transition-all flex justify-center shadow-sm"><Check size={16} /></button>
-                      <button onClick={() => handleAction(item.id, item.type, item.accessType, false)} className="flex-1 bg-white border border-slate-200 p-2 rounded-lg text-red-600 hover:bg-red-600 hover:text-white transition-all flex justify-center shadow-sm"><X size={16} /></button>
+                      <button onClick={() => handleAction(item.id, item.type, item.accessType, true)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-2 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-600 dark:hover:bg-green-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><Check size={16} /></button>
+                      <button onClick={() => handleAction(item.id, item.type, item.accessType, false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-600 dark:hover:bg-red-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><X size={16} /></button>
                     </div>
                   </div>
                 ))}
-                {pendingItems.length === 0 && <div className="text-center py-12 opacity-30 font-black uppercase text-[10px]">Nothing pending</div>}
+                {pendingItems.length === 0 && <div className="text-center py-12 opacity-30 font-black uppercase text-[10px] dark:text-slate-500 transition-colors">Nothing pending</div>}
               </div>
             </Card>
           )}
-
-          <Card className="p-10 bg-[#0F172A] text-white border-0 shadow-2xl relative overflow-hidden rounded-xl group">
+          
+          <Card className="p-10 bg-[#0F172A] dark:bg-slate-900 text-white border-0 shadow-2xl relative overflow-hidden rounded-xl group transition-colors">
             <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.2),transparent_70%)] pointer-events-none"></div>
             <div className="relative z-10 flex flex-col items-center text-center">
               <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-full mb-10">
@@ -326,8 +332,13 @@ export const Dashboard = () => {
 };
 
 const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-  <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-shadow group rounded-xl text-center lg:text-left">
-    <div className={`p-3 lg:p-4 rounded-lg ${bg} transition-transform group-hover:scale-110 shadow-inner`}><Icon className={`w-5 h-5 lg:w-6 lg:h-6 ${color} fill-current`} /></div>
-    <div><p className="text-[8px] lg:text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none">{title}</p><p className="text-xl lg:text-2xl font-black text-slate-900 tracking-tighter">{value}</p></div>
+  <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-all group rounded-xl text-center lg:text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+    <div className={clsx("p-3 lg:p-4 rounded-lg transition-transform group-hover:scale-110 shadow-inner", bg, "dark:bg-slate-800")}>
+      <Icon className={clsx("w-5 h-5 lg:w-6 lg:h-6", color, "dark:text-white/80 fill-current")} />
+    </div>
+    <div>
+      <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none transition-colors">{title}</p>
+      <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter transition-colors">{value}</p>
+    </div>
   </Card>
 );
