@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
@@ -16,10 +16,6 @@
 }
 
 @layer base {
-  * {
-    @apply transition-colors duration-300;
-  }
-  
   html.dark {
     color-scheme: dark;
   }
@@ -28,8 +24,41 @@
     @apply bg-slate-50 text-slate-900 antialiased;
   }
   
-  html.dark body {
+  .dark body {
     @apply bg-slate-950 text-slate-50;
   }
+
+  button, 
+  [role="button"], 
+  [role="tab"], 
+  [role="menuitem"], 
+  [role="switch"],
+  [role="checkbox"],
+  [role="radio"],
+  select, 
+  a,
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="submit"],
+  input[type="button"],
+  input[type="file"]::-webkit-file-upload-button {
+    cursor: pointer !important;
+  }
 }
+
+/* Custom scrollbar for thin look */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1; /* slate-300 */
+  border-radius: 20px;
+}
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #475569; /* slate-600 */
+}
+
 

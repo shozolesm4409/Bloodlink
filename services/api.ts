@@ -16,7 +16,8 @@ import {
   writeBatch,
   serverTimestamp,
   Timestamp,
-  deleteField
+  deleteField,
+  arrayUnion
 } from "firebase/firestore";
 import { 
   signInWithEmailAndPassword, 
@@ -46,7 +47,8 @@ import {
   HelpStatus,
   NoticeType,
   RolePermissions,
-  RevokedPermission
+  RevokedPermission,
+  BloodRequest
 } from "../types";
 
 export const ADMIN_EMAIL = "shozolesm4409@gmail.com";
@@ -64,12 +66,14 @@ const COLLECTIONS = {
   SETTINGS: 'settings',      // Changed from 'config' to match rules
   VERIFICATION_LOGS: 'verification_logs',
   FAQS: 'faqs',
+  BLOOD_REQUESTS: 'blood_requests',
   DELETED_USERS: 'deleted_users', // Changed from 'archived_users'
   DELETED_DONATIONS: 'deleted_donations',
   DELETED_LOGS: 'deleted_logs',
   DELETED_FEEDBACKS: 'deleted_feedbacks',
   DELETED_NOTICES: 'deleted_notices',
   DELETED_HELP_REQUESTS: 'deleted_help_requests',
+  DELETED_VERIFICATION_LOGS: 'deleted_verification_logs',
   REVOKED_PERMISSIONS: 'revoked_permissions'
 };
 
@@ -139,6 +143,16 @@ export const register = async (data: any): Promise<User> => {
     phone: data.phone,
     idNumber: nextId,
     avatar: data.avatar || '',
+    hasDirectoryAccess: false,
+    directoryAccessRequested: false,
+    hasSupportAccess: false,
+    supportAccessRequested: false,
+    hasFeedbackAccess: false,
+    feedbackAccessRequested: false,
+    hasIDCardAccess: false,
+    idCardAccessRequested: false,
+    hasRequestedDonorAccess: false,
+    requestedDonorAccessRequested: false,
   };
   await setDoc(doc(db, COLLECTIONS.USERS, newUser.id), newUser);
   await createLog('REGISTER', newUser.id, newUser.name, `New user registered with sequential ID ${nextId}`);
@@ -187,6 +201,11 @@ export const getUsers = async (): Promise<User[]> => {
   const q = query(collection(db, COLLECTIONS.USERS));
   const snap = await getDocs(q);
   return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as User));
+};
+
+export const updateUser = async (userId: string, data: Partial<User>): Promise<void> => {
+  const ref = doc(db, COLLECTIONS.USERS, userId);
+  await updateDoc(ref, data);
 };
 
 export const updateUserProfile = async (userId: string, data: Partial<User>, modifier: User): Promise<User> => {
@@ -321,9 +340,9 @@ export const getAppPermissions = async (): Promise<AppPermissions> => {
     return snap.data() as AppPermissions;
   }
   return {
-    user: { sidebar: {}, rules: { canEditProfile: true, canViewDonorDirectory: false, canRequestDonation: true, canPostNotice: false } } as RolePermissions,
-    editor: { sidebar: {}, rules: {} } as RolePermissions,
-    admin: { sidebar: {}, rules: {} } as RolePermissions
+    user: { sidebar: { requestedDonor: true }, rules: { canEditProfile: true, canViewDonorDirectory: false, canRequestDonation: true, canPostNotice: false } } as RolePermissions,
+    editor: { sidebar: { requestedDonor: true }, rules: {} } as RolePermissions,
+    admin: { sidebar: { requestedDonor: true }, rules: {} } as RolePermissions
   };
 };
 
@@ -359,6 +378,11 @@ export const requestIDCardAccess = async (user: User) => {
   await updateDoc(doc(db, COLLECTIONS.USERS, user.id), { idCardAccessRequested: true });
 };
 export const handleIDCardAccess = (uid: string, approve: boolean, admin: User) => handleAccess(uid, 'hasIDCardAccess', 'idCardAccessRequested', approve, admin);
+
+export const requestRequestedDonorAccess = async (user: User) => {
+  await updateDoc(doc(db, COLLECTIONS.USERS, user.id), { requestedDonorAccessRequested: true });
+};
+export const handleRequestedDonorAccess = (uid: string, approve: boolean, admin: User) => handleAccess(uid, 'hasRequestedDonorAccess', 'requestedDonorAccessRequested', approve, admin);
 
 // --- Donations ---
 
@@ -405,6 +429,12 @@ export const updateDonationStatus = async (id: string, status: DonationStatus, a
     }
   }
   await createLog('DONATION_UPDATE', admin.id, admin.name, `Updated donation status to ${status}`);
+};
+
+export const updateDonation = async (id: string, updates: any, admin: User) => {
+  const ref = doc(db, COLLECTIONS.DONATIONS, id);
+  await updateDoc(ref, updates);
+  await createLog('DONATION_UPDATE', admin.id, admin.name, `Updated donation record ${id}`);
 };
 
 export const deleteDonationRecord = async (id: string, user: User) => {
@@ -475,6 +505,7 @@ export const submitFeedback = async (message: string, user: User) => {
     userId: user.id,
     userName: user.name,
     userAvatar: user.avatar || '',
+    userApprovedBadge: user.approvedBadge || null,
     message,
     status: FeedbackStatus.PENDING,
     isVisible: true,
@@ -755,6 +786,49 @@ export const getVerificationLogs = async () => {
   return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
 };
 
+export const archiveVerificationLog = async (id: string) => {
+  const ref = doc(db, COLLECTIONS.VERIFICATION_LOGS, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await addDoc(collection(db, COLLECTIONS.DELETED_VERIFICATION_LOGS), {
+      ...snap.data(),
+      deletedAt: new Date().toISOString(),
+      deletedBy: 'System' // Or get from context if available, but for now system
+    });
+    await deleteDoc(ref);
+  }
+};
+
+export const getDeletedVerificationLogs = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_VERIFICATION_LOGS), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+};
+
+export const restoreDeletedVerificationLog = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.DELETED_VERIFICATION_LOGS, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const { deletedAt, deletedBy, ...data } = snap.data();
+    await setDoc(doc(db, COLLECTIONS.VERIFICATION_LOGS, id), data);
+    await deleteDoc(ref);
+    await createLog('VERIFICATION_RESTORE', user.id, user.name, `Restored verification log ${id}`);
+  }
+};
+
+export const permanentlyDeleteArchivedVerificationLog = async (id: string, user: User) => {
+  await deleteDoc(doc(db, COLLECTIONS.DELETED_VERIFICATION_LOGS, id));
+  await createLog('VERIFICATION_PURGE', user.id, user.name, 'Permanently deleted archived verification log');
+};
+
+export const purgeAllArchivedVerificationLogs = async (user: User) => {
+  const snap = await getDocs(collection(db, COLLECTIONS.DELETED_VERIFICATION_LOGS));
+  const batch = writeBatch(db);
+  snap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  await createLog('VERIFICATION_PURGE_ALL', user.id, user.name, 'Permanently deleted all archived verification logs');
+};
+
 // --- FAQs ---
 
 export const getPublicFaqs = async (): Promise<FAQ[]> => {
@@ -907,4 +981,69 @@ export const purgeAllLogs = async (admin: User, actionCodes?: string[]) => {
   }
   
   await createLog('LOGS_ARCHIVE_FILTERED', admin.id, admin.name, `Archived audit logs with actions: ${actionCodes?.join(', ') || 'ALL'}`);
+};
+
+// --- Blood Requests ---
+
+export const getBloodRequests = async (): Promise<BloodRequest[]> => {
+  const q = query(collection(db, COLLECTIONS.BLOOD_REQUESTS), orderBy("timestamp", "desc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as unknown as BloodRequest));
+};
+
+export const subscribeToBloodRequests = (callback: (data: BloodRequest[]) => void) => {
+  const q = query(collection(db, COLLECTIONS.BLOOD_REQUESTS), orderBy("timestamp", "desc"));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(d => ({ ...d.data(), id: d.id } as unknown as BloodRequest)));
+  });
+};
+
+export const createBloodRequest = async (requestData: Partial<BloodRequest>, user: User) => {
+  const newRequest = {
+    ...requestData,
+    requesterId: user.id,
+    requesterName: user.name,
+    status: 'OPEN',
+    timestamp: Date.now(),
+    acceptedBy: []
+  };
+  await addDoc(collection(db, COLLECTIONS.BLOOD_REQUESTS), newRequest);
+  await createLog('CREATE_BLOOD_REQUEST', user.id, user.name, `Created blood request for ${requestData.bloodGroup} at ${requestData.location}`);
+};
+
+export const acceptBloodRequest = async (requestId: string, user: User) => {
+  const reqRef = doc(db, COLLECTIONS.BLOOD_REQUESTS, requestId);
+  const reqSnap = await getDoc(reqRef);
+  if (!reqSnap.exists()) throw new Error("Request not found");
+  
+  const req = reqSnap.data() as unknown as BloodRequest;
+  if (req.acceptedBy && req.acceptedBy.find(a => a.userId === user.id)) {
+    throw new Error("Already accepted");
+  }
+  
+  const acceptor = {
+    userId: user.id,
+    name: user.name,
+    phone: user.phone || 'N/A',
+    timestamp: Date.now()
+  };
+  
+  await updateDoc(reqRef, {
+    acceptedBy: arrayUnion(acceptor)
+  });
+  await createLog('ACCEPT_BLOOD_REQUEST', user.id, user.name, `Accepted blood request ${requestId}`);
+};
+
+export const deleteBloodRequest = async (requestId: string, user: User) => {
+  const reqRef = doc(db, COLLECTIONS.BLOOD_REQUESTS, requestId);
+  const reqSnap = await getDoc(reqRef);
+  if (!reqSnap.exists()) throw new Error("Request not found");
+  
+  const reqData = reqSnap.data();
+  if (reqData.requesterId !== user.id && user.role !== 'SUPERADMIN' && user.role !== 'ADMIN') {
+     throw new Error("Permission denied");
+  }
+
+  await deleteDoc(reqRef);
+  await createLog('DELETE_BLOOD_REQUEST', user.id, user.name, `Deleted blood request ${requestId}`);
 };

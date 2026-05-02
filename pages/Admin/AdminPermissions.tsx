@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
-import { getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, getAllFeedbacks, updateFeedbackStatus } from '../../services/api';
+import { getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, handleRequestedDonorAccess, getAllFeedbacks, updateFeedbackStatus } from '../../services/api';
 import { Card, Button, Badge, Toast, useToast } from '../../components/UI';
 import { User, DonationFeedback, FeedbackStatus } from '../../types';
-import { ShieldAlert, Check, X, User as UserIcon, MessageSquareQuote, Users, Search, LifeBuoy, MessageSquare, IdCard } from 'lucide-react';
+import { ShieldAlert, Check, X, User as UserIcon, MessageSquareQuote, Users, Search, LifeBuoy, MessageSquare, IdCard, Droplet } from 'lucide-react';
 import clsx from 'clsx';
 
 export const AdminPermissions = () => {
@@ -18,7 +18,7 @@ export const AdminPermissions = () => {
     setLoading(true);
     try {
       const [allUsers, allFeedbacks] = await Promise.all([getUsers(), getAllFeedbacks()]);
-      setRequests(allUsers.filter(u => u.directoryAccessRequested || u.supportAccessRequested || u.feedbackAccessRequested || u.idCardAccessRequested));
+      setRequests(allUsers.filter(u => u.directoryAccessRequested || u.supportAccessRequested || u.feedbackAccessRequested || u.idCardAccessRequested || u.requestedDonorAccessRequested));
       setPendingFeedbacks(allFeedbacks.filter(f => f.status === FeedbackStatus.PENDING));
     } catch (e) {
       showToast("Data fetch failed.", "error");
@@ -29,13 +29,14 @@ export const AdminPermissions = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard', approve: boolean) => {
+  const handleAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor', approve: boolean) => {
     if (!admin) return;
     try {
       if (type === 'directory') await handleDirectoryAccess(uid, approve, admin);
       else if (type === 'support') await handleSupportAccess(uid, approve, admin);
       else if (type === 'feedback') await handleFeedbackAccess(uid, approve, admin);
       else if (type === 'idcard') await handleIDCardAccess(uid, approve, admin);
+      else if (type === 'requested_donor') await handleRequestedDonorAccess(uid, approve, admin);
       showToast(`Access ${approve ? 'Granted' : 'Denied'}.`);
       fetchData();
     } catch (e) { showToast("Action failed.", "error"); }
@@ -64,13 +65,13 @@ export const AdminPermissions = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-h-[700px] overflow-y-auto custom-scrollbar p-2 transition-colors">
           {requests.map(u => (
-            <Card key={u.id} className="p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm overflow-hidden group transition-colors">
-              <div className="flex items-center gap-5 mb-8">
-                <div className="w-16 h-16 rounded-sm bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-700 shadow-md overflow-hidden flex items-center justify-center font-black text-slate-400 dark:text-slate-500 transition-colors">
+            <Card key={u.id} className="p-3 lg:p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm overflow-hidden group transition-colors">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 rounded-sm bg-slate-100 dark:bg-slate-800 border-2 border-white dark:border-slate-700 shadow-md overflow-hidden flex items-center justify-center font-black text-slate-400 dark:text-slate-500 transition-colors">
                   {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : u.name.charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-black text-slate-900 dark:text-white truncate tracking-tight transition-colors">{u.name}</h3>
+                  <h3 className="text-lg font-black text-slate-900 dark:text-white truncate tracking-tight transition-colors">{u.name}</h3>
                   <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">{u.email}</p>
                 </div>
               </div>
@@ -88,6 +89,9 @@ export const AdminPermissions = () => {
                 {u.idCardAccessRequested && (
                   <RequestItem title="Digital ID Card" type="idcard" uid={u.id} onAction={handleAction} icon={IdCard} color="text-orange-600 dark:text-orange-400" bg="bg-orange-50 dark:bg-orange-950/20" />
                 )}
+                {u.requestedDonorAccessRequested && (
+                  <RequestItem title="Requested Donor" type="requested_donor" uid={u.id} onAction={handleAction} icon={Droplet} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/20" />
+                )}
               </div>
             </Card>
           ))}
@@ -103,9 +107,9 @@ export const AdminPermissions = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-h-[700px] overflow-y-auto custom-scrollbar p-2 transition-colors">
           {pendingFeedbacks.map(f => (
-            <Card key={f.id} className="p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm flex flex-col justify-between transition-colors">
+            <Card key={f.id} className="p-4 lg:p-5 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm flex flex-col justify-between transition-colors">
               <div>
-                <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center gap-3 mb-5">
                   <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
                     {f.userAvatar ? <img src={f.userAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-3 text-slate-300 dark:text-slate-600" />}
                   </div>
@@ -133,7 +137,7 @@ export const AdminPermissions = () => {
 };
 
 const RequestItem = ({ title, type, uid, onAction, icon: Icon, color, bg }: any) => (
-  <div className={clsx("flex items-center justify-between p-4 rounded-2xl border border-transparent shadow-sm hover:border-slate-200 dark:hover:border-slate-700 transition-all bg-slate-50/50 dark:bg-slate-950/50 group transition-colors")}>
+  <div className={clsx("flex items-center justify-between p-3 rounded-2xl border border-transparent shadow-sm hover:border-slate-200 dark:hover:border-slate-700 transition-all bg-slate-50/50 dark:bg-slate-950/50 group transition-colors")}>
     <div className="flex items-center gap-3">
       <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shadow-sm", bg, color)}>
         <Icon size={18} />

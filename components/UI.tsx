@@ -4,9 +4,9 @@ import clsx from 'clsx';
 import { Loader2, X, AlertTriangle, CheckCircle2, Info, AlertCircle } from 'lucide-react';
 
 // Fix: Support ref for Card component to resolve TS error in Dashboard.tsx
-export const Card = React.forwardRef<HTMLDivElement, { children?: React.ReactNode; className?: string }>(
-  ({ children, className }, ref) => (
-    <div ref={ref} className={clsx("bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm", className)}>
+export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode; className?: string }>(
+  ({ children, className, ...props }, ref) => (
+    <div ref={ref} className={clsx("bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm", className)} {...props}>
       {children}
     </div>
   )
@@ -26,7 +26,7 @@ export const Button = React.forwardRef<HTMLButtonElement, React.ButtonHTMLAttrib
         ref={ref}
         disabled={disabled || isLoading}
         className={clsx(
-          "inline-flex items-center justify-center px-6 py-3 text-sm font-black uppercase tracking-widest rounded-lg transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
+          "inline-flex items-center justify-center px-3 py-2 text-sm font-black uppercase tracking-widest rounded-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed",
           variants[variant],
           className
         )}
@@ -46,7 +46,7 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
       <input
         ref={ref}
         className={clsx(
-          "w-full px-4 py-3.5 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600",
+          "w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 font-medium placeholder:text-slate-300 dark:placeholder:text-slate-600",
           error ? "border-red-300 bg-red-50/50 dark:bg-red-950/20" : "border-slate-100 dark:border-slate-700",
           className
         )}
@@ -64,7 +64,7 @@ export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttrib
       <select
         ref={ref}
         className={clsx(
-          "w-full px-4 py-3.5 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 cursor-pointer font-medium appearance-none",
+          "w-full px-3 py-2 border border-slate-100 dark:border-slate-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all bg-slate-50 dark:bg-slate-800 dark:text-slate-100 cursor-pointer font-medium appearance-none",
           className
         )}
         {...props}
@@ -88,6 +88,22 @@ export const Badge: React.FC<{ children?: React.ReactNode, color?: 'blue' | 'gre
   return (
     <span className={clsx("inline-flex items-center px-3 py-1 rounded-md text-[10px] font-black uppercase tracking-tighter", colors[color], className)}>
       {children}
+    </span>
+  );
+};
+
+export const RoleBadge: React.FC<{ role: string, className?: string }> = ({ role, className }) => {
+  const getRoleStyle = () => {
+    switch (role) {
+      case 'SUPERADMIN': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800';
+      case 'ADMIN': return 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800';
+      case 'EDITOR': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800';
+      default: return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';
+    }
+  };
+  return (
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-[0.1em] border", getRoleStyle(), className)}>
+      {role}
     </span>
   );
 };

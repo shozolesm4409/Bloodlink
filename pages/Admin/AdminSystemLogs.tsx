@@ -90,7 +90,7 @@ export const AdminSystemLogs = () => {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-20 transition-colors">
+    <div className="space-y-4 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10 transition-colors">
       <Toast {...toastState} onClose={hideToast} />
       <ConfirmModal 
         isOpen={!!deleteId} 
@@ -137,7 +137,7 @@ export const AdminSystemLogs = () => {
         </div>
       </ConfirmModal>
       
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b border-slate-200 dark:border-slate-800 pb-6 transition-colors">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3 transition-colors">
              <Activity className="text-red-600" /> Security Audit Logs
@@ -145,11 +145,11 @@ export const AdminSystemLogs = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1 transition-colors">Monitoring global administrative events.</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div className="flex flex-row items-center gap-2 w-full lg:w-auto">
            {/* ALL DELETE button */}
            {logs.length > 0 && (
-             <Button onClick={() => setConfirmAll(true)} className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white rounded-sm px-6 py-3.5 shadow-xl shadow-red-100 dark:shadow-red-900/10 text-[10px] font-black uppercase tracking-widest transition-all">
-               <Trash2 size={16} className="mr-2" /> ALL DELETE
+             <Button onClick={() => setConfirmAll(true)} className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white rounded-sm px-4 py-2 shadow-xl shadow-red-100 dark:shadow-red-900/10 text-[10px] font-black uppercase tracking-widest transition-all">
+               <Trash2 size={14} className="mr-1.5" /> DELETE
              </Button>
            )}
 
@@ -161,18 +161,18 @@ export const AdminSystemLogs = () => {
               <select 
                 value={actionFilter}
                 onChange={(e) => setActionFilter(e.target.value)}
-                className="w-full sm:w-60 pl-11 pr-10 py-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm appearance-none cursor-pointer transition-colors"
+                className="w-full sm:w-40 pl-8 pr-6 py-1.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm appearance-none cursor-pointer transition-colors"
               >
-                <option value="ALL">All Event Types</option>
+                <option value="ALL">All Event</option>
                 {uniqueActions.map(action => (
                   <option key={action} value={action} className="bg-white dark:bg-slate-900">{action}</option>
                 ))}
               </select>
            </div>
 
-           <Button onClick={fetchLogs} variant="outline" className="w-full sm:w-auto flex items-center gap-3 rounded-sm px-8 py-3.5 border-slate-200 dark:border-slate-800 shadow-sm hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all text-[10px] font-black uppercase tracking-widest transition-colors">
-             <RotateCcw size={16} className={clsx(loading && "animate-spin")} /> 
-             Refresh Feed
+           <Button onClick={fetchLogs} variant="outline" className="flex items-center gap-1 rounded-sm px-1.5 py-1 border-slate-200 dark:border-slate-800 shadow-sm hover:bg-white dark:hover:bg-slate-800 active:scale-95 transition-all text-[9px] font-black uppercase tracking-widest transition-colors">
+             <RotateCcw size={10} className={clsx(loading && "animate-spin")} /> 
+             Refresh
            </Button>
         </div>
       </div>
@@ -243,41 +243,41 @@ export const AdminSystemLogs = () => {
       {/* Mobile Card View */}
       <div className="lg:hidden space-y-6 pb-20 px-1">
         {filteredLogs.length > 0 ? filteredLogs.map(log => (
-          <Card key={log.id} className="p-8 border border-slate-100 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm relative overflow-hidden group active:scale-[0.98] transition-colors transition-all">
-            <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 overflow-hidden border-2 border-white dark:border-slate-700 shadow-md flex items-center justify-center flex-shrink-0 transition-colors">
+          <Card key={log.id} className="p-3 border border-slate-100 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm relative overflow-hidden group active:scale-[0.98] transition-colors transition-all">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-800 overflow-hidden border border-white dark:border-slate-700 shadow-md flex items-center justify-center flex-shrink-0 transition-colors">
                   {log.userAvatar ? (
                     <img src={log.userAvatar} className="w-full h-full object-cover" alt={log.userName} />
                   ) : (
-                    <UserIcon className="text-slate-200 dark:text-slate-600" size={24} />
+                    <UserIcon className="text-slate-200 dark:text-slate-600" size={14} />
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="font-black text-slate-900 dark:text-white text-lg leading-tight truncate transition-colors">{log.userName}</p>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <Clock size={12} className="text-slate-300 dark:text-slate-600" />
-                    <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">
+                  <p className="font-black text-slate-900 dark:text-white text-xs leading-tight truncate transition-colors">{log.userName}</p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Clock size={8} className="text-slate-300 dark:text-slate-600" />
+                    <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">
                       {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(log.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric' })}
                     </span>
                   </div>
                 </div>
               </div>
-              <Badge color="blue" className="text-[8px] px-2 py-0.5 ring-4 ring-blue-50/50 dark:ring-blue-900/20 uppercase tracking-tighter">{log.action}</Badge>
+              <Badge color="blue" className="text-[7px] px-1 py-0.5 ring-1 ring-blue-50/50 dark:ring-blue-900/20 uppercase tracking-tighter">{log.action}</Badge>
             </div>
 
-            <div className="bg-slate-50/80 dark:bg-slate-800/50 p-6 rounded-sm border border-slate-100 dark:border-slate-700 mb-6 transition-colors">
-               <p className="text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed italic transition-colors">
+            <div className="bg-slate-50/80 dark:bg-slate-800/50 p-2 rounded-sm border border-slate-100 dark:border-slate-700 mb-2 transition-colors">
+               <p className="text-[10px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed italic transition-colors">
                  "{log.details}"
                </p>
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-0.5">
               <button 
                 onClick={() => setDeleteId(log.id)} 
-                className="flex items-center gap-3 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 px-6 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all shadow-sm border border-red-100 dark:border-red-900/30 transition-colors"
+                className="flex items-center gap-1.5 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 hover:bg-red-600 hover:text-white dark:hover:bg-red-600 px-2 py-1.5 rounded-sm font-black text-[8px] uppercase tracking-[0.1em] transition-all shadow-sm border border-red-100 dark:border-red-900/30 transition-colors"
               >
-                <Trash2 size={16} /> Archive Event
+                <Trash2 size={10} /> Archive Event
               </button>
             </div>
           </Card>

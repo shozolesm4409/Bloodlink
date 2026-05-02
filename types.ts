@@ -41,6 +41,30 @@ export enum HelpStatus {
   REJECTED = 'REJECTED'
 }
 
+export enum BloodRequestStatus {
+  OPEN = 'OPEN',
+  CLOSED = 'CLOSED'
+}
+
+export interface BloodRequestAcceptor {
+  userId: string;
+  name: string;
+  phone: string;
+  timestamp: number;
+}
+
+export interface BloodRequest {
+  id: string;
+  requesterId: string;
+  requesterName: string;
+  bloodGroup: string;
+  location: string;
+  details?: string;
+  timestamp: number;
+  status: BloodRequestStatus;
+  acceptedBy: BloodRequestAcceptor[];
+}
+
 export interface NavLink {
   label: string;
   path: string;
@@ -167,8 +191,11 @@ export interface User {
   feedbackAccessRequested?: boolean;
   hasIDCardAccess?: boolean;
   idCardAccessRequested?: boolean;
+  hasRequestedDonorAccess?: boolean;
+  requestedDonorAccessRequested?: boolean;
   isSuspended?: boolean;
   permissions?: RolePermissions;
+  approvedBadge?: 'pink' | 'red' | 'green' | 'blue';
 }
 
 export interface DonationRecord {
@@ -189,6 +216,7 @@ export interface DonationFeedback {
   userId: string;
   userName: string;
   userAvatar?: string;
+  userApprovedBadge?: string;
   message: string;
   status: FeedbackStatus;
   isVisible: boolean;
@@ -229,6 +257,7 @@ export interface RolePermissions {
     logs?: boolean;
     rolePermissions?: boolean;
     supportCenter?: boolean;
+    badgeManage?: boolean;
     feedback?: boolean;
     approveFeedback?: boolean;
     landingSettings?: boolean;
@@ -242,6 +271,7 @@ export interface RolePermissions {
     helpCenterManage?: boolean;
     moderateFaqs?: boolean;
     serverStatus?: boolean;
+    requestedDonor?: boolean;
   };
   rules: {
     canEditProfile: boolean;

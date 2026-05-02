@@ -4,9 +4,9 @@ import { useAuth } from '../../AuthContext';
 import { getUsers, requestDirectoryAccess, getDonations, getUserFeedbacks } from '../../services/api';
 import { Card, Badge, Button, Toast, useToast } from '../../components/UI';
 import { User, BloodGroup, UserRole, DonationRecord, DonationFeedback, FeedbackStatus } from '../../types';
-import { Lock, ShieldAlert, MapPin, Phone, Calendar, User as UserIcon, Search, Droplet, Filter, X, Mail, Hash, Activity, CheckCircle2, AlertCircle, Quote, Star, Trophy, Award, Medal, MessageSquareQuote, ChevronDown } from 'lucide-react';
+import { Lock, ShieldAlert, MapPin, Phone, Calendar, User as UserIcon, Search, Droplet, Filter, X, Mail, Hash, Activity, CheckCircle2, AlertCircle, Quote, Star, Trophy, Award, Medal, MessageSquareQuote, ChevronDown, BadgeCheck } from 'lucide-react';
 import clsx from 'clsx';
-import { getRankData } from './Profile';
+import { getBadgeData } from './Profile';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 
@@ -21,6 +21,7 @@ export const DonorDirectory = () => {
   const [group, setGroup] = useState('');
   const [viewUser, setViewUser] = useState<User | null>(null);
   const [userFeedbacks, setUserFeedbacks] = useState<DonationFeedback[]>([]);
+  const [isRequesting, setIsRequesting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -72,12 +73,34 @@ export const DonorDirectory = () => {
     return donations.filter(d => d.userId === userId && d.status === 'COMPLETED').length;
   };
 
+  const handleRequestAccess = async () => {
+    if (!user) return;
+    setIsRequesting(true);
+    try {
+      await requestDirectoryAccess(user);
+      updateUser({ ...user, directoryAccessRequested: true });
+      showToast("Access requested successfully.");
+    } catch (e) {
+      showToast("Request failed.", "error");
+    } finally {
+      setIsRequesting(false);
+    }
+  };
+
+  const hasAccess = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || user?.hasDirectoryAccess;
+
   const handleViewProfile = (u: User) => {
     if (!user) {
       // Redirect to login with return path and profile ID
       navigate('/login', { state: { from: location, openProfileId: u.id } });
       return;
     }
+    
+    if (!hasAccess) {
+       showToast("Access Restricted. Please request permission.", "error");
+       return;
+    }
+    
     setViewUser(u);
   };
 
@@ -99,10 +122,41 @@ export const DonorDirectory = () => {
     return matchesSearch && matchesGroup && matchesLocation;
   });
 
+  if (user && !hasAccess) {
+    return (
+      <div className="space-y-10 animate-in fade-in duration-700 pb-20 px-4 lg:px-0 max-w-7xl mx-auto transition-colors">
+        <Toast {...toastState} onClose={hideToast} />
+        <div className="max-w-2xl mx-auto py-12 px-4 animate-in fade-in duration-500 transition-colors">
+          <Card className="p-12 text-center space-y-8 border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 transition-colors">
+            <div className="w-24 h-24 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-sm flex items-center justify-center mx-auto shadow-inner transition-colors">
+              <Lock size={48} />
+            </div>
+            <div className="space-y-4">
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">Directory Access Restricted</h2>
+              <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed transition-colors">
+                ডোনার ডিরেক্টরি এবং পার্সোনাল প্রোফাইল অ্যাক্সেস শুধুমাত্র ভেরিফাইড মেম্বারদের জন্য। এ্যাডমিনের কাছে এক্সেস রিকোয়েস্ট পাঠান।
+              </p>
+            </div>
+            
+            {user.directoryAccessRequested ? (
+              <div className="p-6 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-500 rounded-2xl flex items-center justify-center gap-3 border border-yellow-100 dark:border-yellow-900/30 font-black uppercase tracking-widest text-xs transition-colors">
+                <ShieldAlert size={18} /> Request Pending Approval
+              </div>
+            ) : (
+              <Button onClick={handleRequestAccess} isLoading={isRequesting} className="w-full py-5 rounded-2xl text-lg shadow-xl shadow-red-100 dark:shadow-none bg-red-600 hover:bg-red-700">
+                Request Access to Directory
+              </Button>
+            )}
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-10 animate-in fade-in duration-700 pb-20 px-4 lg:px-0 max-w-7xl mx-auto transition-colors">
       <Toast {...toastState} onClose={hideToast} />
-      
+
       {/* View Profile Modal */}
       {viewUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-200">
@@ -137,8 +191,9 @@ export const DonorDirectory = () => {
                 
                 {/* Modal Rank Badge */}
                 {(() => {
-                  const rank = getRankData(getDonationCount(viewUser.id));
-                  return rank && (
+                  const rank = getBadgeData(viewUser);
+                  const donationCount = getDonationCount(viewUser.id);
+                  return rank && donationCount > 0 && (
                     <div className={clsx(
                       "absolute bottom-0 right-0 translate-x-1 translate-y-1 w-10 h-10 rounded-full flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-lg z-10",
                       rank.bg, rank.color
@@ -153,7 +208,10 @@ export const DonorDirectory = () => {
             <div className="pt-20 pb-8 px-8 text-center space-y-8">
               {/* Identity Header */}
               <div className="space-y-2">
-                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">{viewUser.name}</h2>
+                <div className="flex items-center justify-center gap-2">
+                  <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">{viewUser.name}</h2>
+                  {getBadgeData(viewUser) && <BadgeCheck className={clsx(getBadgeData(viewUser)?.color, "flex-shrink-0")} size={24} />}
+                </div>
                 <div className="flex justify-center gap-2">
                   <Badge color="blue" className="text-[10px] uppercase tracking-widest px-3 ring-1 ring-blue-100 dark:ring-blue-900/50">{viewUser.role}</Badge>
                   <Badge color="gray" className="text-[10px] uppercase tracking-widest px-3 font-mono ring-1 ring-slate-100 dark:ring-slate-800">{viewUser.idNumber}</Badge>
@@ -316,7 +374,7 @@ export const DonorDirectory = () => {
         {filtered.map(u => {
           const { eligible } = checkEligibility(u.lastDonationDate);
           const donationCount = getDonationCount(u.id);
-          const rank = getRankData(donationCount);
+          const rank = getBadgeData(u);
 
           return (
             <Card key={u.id} className="group overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900 rounded-[2.5rem] hover:shadow-2xl dark:hover:shadow-red-900/10 border border-slate-100 dark:border-slate-800 transition-all duration-300 flex flex-col">
@@ -354,7 +412,7 @@ export const DonorDirectory = () => {
                   </div>
 
                   {/* Rank Badge (Bottom Right) */}
-                  {rank && (
+                  {rank && donationCount > 0 && (
                     <div className={clsx(
                       "absolute bottom-0 right-0 translate-x-2 translate-y-1 w-8 h-8 rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-md z-10 transition-colors",
                       rank.bg, rank.color
@@ -364,7 +422,10 @@ export const DonorDirectory = () => {
                   )}
                 </div>
 
-                <h3 className="text-xl font-black text-slate-900 dark:text-white text-center leading-tight mb-1 transition-colors">{u.name}</h3>
+                <div className="flex items-center justify-center gap-1.5 mb-1 group transition-colors">
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white text-center leading-tight transition-colors">{u.name}</h3>
+                  {rank && <BadgeCheck className={clsx(rank.color, "flex-shrink-0")} size={20} />}
+                </div>
                 
                 <div className="flex items-center gap-2 mb-6">
                   <div className="flex items-center gap-1 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors">

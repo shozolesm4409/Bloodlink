@@ -190,6 +190,16 @@ export const getUsers = async (): Promise<User[]> => {
   return users.map(({ password, ...u }) => u);
 };
 
+export const updateUser = async (userId: string, data: Partial<User>): Promise<void> => {
+  await delay(MOCK_DELAY);
+  const users = getStorage<any[]>(STORAGE_KEYS.USERS, []);
+  const idx = users.findIndex(u => u.id === userId);
+  if (idx > -1) {
+    users[idx] = { ...users[idx], ...data };
+    setStorage(STORAGE_KEYS.USERS, users);
+  }
+};
+
 export const updateUserProfile = async (userId: string, data: Partial<User>): Promise<User> => {
   await delay(MOCK_DELAY);
   const users = getStorage<any[]>(STORAGE_KEYS.USERS, []);

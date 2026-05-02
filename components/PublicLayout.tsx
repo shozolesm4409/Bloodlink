@@ -157,7 +157,7 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         {children}
       </main>
 
-      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-6 px-[5%] flex flex-col items-center mb-16 lg:mb-0 transition-colors">
+      <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-6 px-[5%] flex flex-col items-center transition-colors">
         <Link to="/" className="flex items-center gap-2 mb-4 group transition-all hover:brightness-110 active:scale-95">
           <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-200 dark:shadow-red-900/20 group-hover:rotate-12 transition-transform">
             <Droplet className="text-white fill-current" size={18} />

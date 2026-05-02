@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
-import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, updateDonationStatus, ADMIN_EMAIL } from '../services/api';
+import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, handleRequestedDonorAccess, updateDonationStatus, ADMIN_EMAIL } from '../services/api';
 import { Card, Badge, Button, Toast, useToast } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint } from 'lucide-react';
@@ -41,9 +41,10 @@ export const Dashboard = () => {
         const supportReqs = u.filter(usr => usr.supportAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'Support' }));
         const feedbackReqs = u.filter(usr => usr.feedbackAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'Feedback' }));
         const idCardReqs = u.filter(usr => usr.idCardAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'IDCard' }));
+        const requestedDonorReqs = u.filter(usr => usr.requestedDonorAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'Requested_Donor' }));
         const donationReqs = globalDons.filter(don => don.status === DonationStatus.PENDING).map(don => ({ ...don, type: 'DONATION', accessType: 'Donation' }));
         
-        setPendingItems([...directoryReqs, ...supportReqs, ...feedbackReqs, ...idCardReqs, ...donationReqs].sort((a,b) => b.id.localeCompare(a.id)));
+        setPendingItems([...directoryReqs, ...supportReqs, ...feedbackReqs, ...idCardReqs, ...requestedDonorReqs, ...donationReqs].sort((a,b) => b.id.localeCompare(a.id)));
       }
     } catch (err) {
       console.error(err);
@@ -63,6 +64,7 @@ export const Dashboard = () => {
         else if (sub === 'support') await handleSupportAccess(itemId, approve, user);
         else if (sub === 'feedback') await handleFeedbackAccess(itemId, approve, user);
         else if (sub === 'idcard') await handleIDCardAccess(itemId, approve, user);
+        else if (sub === 'requested_donor') await handleRequestedDonorAccess(itemId, approve, user);
       } else if (type === 'DONATION') {
         await updateDonationStatus(itemId, approve ? DonationStatus.COMPLETED : DonationStatus.REJECTED, user);
       }
@@ -267,7 +269,7 @@ export const Dashboard = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.userName || item.name}</p>
-                        <Badge color={item.type === 'DONATION' ? 'red' : 'blue'} className="text-[8px] py-0 px-1.5">{item.accessType === 'IDCard' ? 'ID Card' : item.accessType} Request</Badge>
+                        <Badge color={item.type === 'DONATION' || item.accessType === 'Requested_Donor' ? 'red' : 'blue'} className="text-[8px] py-0 px-1.5">{item.accessType === 'IDCard' ? 'ID Card' : item.accessType.replace('_', ' ')} Request</Badge>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -334,7 +336,7 @@ export const Dashboard = () => {
 const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
   <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-all group rounded-xl text-center lg:text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
     <div className={clsx("p-3 lg:p-4 rounded-lg transition-transform group-hover:scale-110 shadow-inner", bg, "dark:bg-slate-800")}>
-      <Icon className={clsx("w-5 h-5 lg:w-6 lg:h-6", color, "dark:text-white/80 fill-current")} />
+      <Icon className={clsx("w-5 h-5 lg:w-6 lg:h-6", color, "fill-current dark:opacity-80")} />
     </div>
     <div>
       <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none transition-colors">{title}</p>

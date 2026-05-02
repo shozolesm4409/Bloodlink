@@ -11,8 +11,8 @@ import clsx from 'clsx';
 const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
   'dashboard', 'profile', 'history', 'donors', 'users', 'manageDonations', 
   'logs', 'rolePermissions', 'supportCenter', 'feedback', 'approveFeedback', 
-  'landingSettings', 'myNotice', 'summary', 'notifications', 'adminVerify', 
-  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus'
+  'landingSettings', 'myNotice', 'summary', 'notifications', 'badgeManage', 'adminVerify', 
+  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus', 'requestedDonor'
 ];
 
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [
@@ -189,43 +189,49 @@ export const AdminRolePermissions = () => {
   const currentRole = permissions ? (permissions as any)[activeRole.toLowerCase()] : null;
 
   return (
-    <div className="space-y-6 lg:space-y-10 animate-in fade-in duration-500 max-w-7xl mx-auto pb-10 px-4 transition-colors">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 animate-in fade-in duration-500">
+      <div className="max-w-7xl mx-auto space-y-4">
       <Toast {...toastState} onClose={hideToast} />
 
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 lg:gap-8 border-b border-slate-200 dark:border-slate-800 pb-4 lg:pb-8 transition-colors">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-           <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-full mb-3 lg:mb-4 transition-colors">
-              <Shield size={14} />
-              <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">Master Security Hub</span>
+           <div className="flex items-center gap-2 text-red-600 dark:text-red-400 mb-1">
+              <Shield size={16} />
+              <span className="text-xs font-black uppercase tracking-widest">Master Security Hub</span>
            </div>
-           <h1 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tight lg:tracking-[-0.04em] transition-colors">Role Permissions</h1>
+           <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Role Permissions</h1>
         </div>
         
-        <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl lg:rounded-xl shadow-inner border border-slate-200 dark:border-slate-800 w-full lg:w-auto transition-colors">
-          <button onClick={() => { setActiveTab('global'); setSelectedUser(null); }} className={clsx("flex-1 lg:px-5 py-2 rounded-xl text-[10px] lg:text-[11px] font-black uppercase transition-all transition-colors", activeTab === 'global' ? "bg-white dark:bg-slate-800 shadow-lg text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-500")}>Roles</button>
-          <button onClick={() => setActiveTab('individual')} className={clsx("flex-1 lg:px-5 py-2 rounded-xl text-[10px] lg:text-[11px] font-black uppercase transition-all transition-colors", activeTab === 'individual' ? "bg-white dark:bg-slate-800 shadow-lg text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-500")}>User Wish</button>
+        <div className="inline-flex bg-white dark:bg-slate-900 p-1 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
+          <button onClick={() => { setActiveTab('global'); setSelectedUser(null); }} className={clsx("px-4 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all", activeTab === 'global' ? "bg-red-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100")}>Roles</button>
+          <button onClick={() => setActiveTab('individual')} className={clsx("px-4 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all", activeTab === 'individual' ? "bg-red-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100")}>User Wish</button>
         </div>
       </div>
 
       {activeTab === 'global' ? (
-        <div className="space-y-6 lg:space-y-10">
-          <div className="flex bg-slate-100 dark:bg-slate-900 p-1 lg:p-1.5 rounded-xl lg:rounded-[1rem] shadow-inner border border-slate-200 dark:border-slate-800 w-full lg:w-fit overflow-x-auto no-scrollbar transition-colors">
-            {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN, UserRole.SUPERADMIN].map((role) => (
-              <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-4 lg:px-6 py-1.5 lg:py-2 rounded-l lg:rounded-[15rem] text-[10px] lg:text-[11px] font-black uppercase transition-all whitespace-nowrap transition-colors", activeRole === role ? "bg-white dark:bg-slate-800 shadow-md lg:shadow-xl text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-600")}>{role}</button>
-            ))}
+        <div className="space-y-4 lg:space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg shadow-inner border border-slate-200 dark:border-slate-800 w-full lg:w-fit overflow-x-auto no-scrollbar transition-colors">
+              {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN, UserRole.SUPERADMIN].map((role) => (
+                <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all whitespace-nowrap transition-colors", activeRole === role ? "bg-white dark:bg-slate-800 shadow-sm text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-600")}>{role}</button>
+              ))}
+            </div>
+            <Button onClick={handleSaveGlobal} isLoading={saving} className="rounded-sm px-2 py-0.5 text-[12px] font-bold uppercase tracking-wider hidden lg:block">Save</Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
-             <Card className="p-3 lg:p-6 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[1rem] lg:rounded-[1rem] transition-colors">
-                <h3 className="text-lg lg:text-xl font-black text-slate-900 dark:text-white mb-3 lg:mb-6 flex items-center gap-3 transition-colors"><Layout className="text-blue-500" /> Sidebar Visibility</h3>
-                <div className="space-y-2 lg:space-y-3 max-h-[400px] lg:max-h-[500px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4">
+             <Card className="p-3 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl transition-all hover:shadow-md">
+                <h3 className="text-sm font-black text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+                  <Layout className="text-blue-500" size={16} /> Sidebar Visibility
+                </h3>
+                <div className="space-y-1.5 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                    {SIDEBAR_KEYS.map((key) => {
                      const value = currentRole?.sidebar?.[key] ?? false;
                      return (
-                       <div key={key} className="flex items-center justify-between p-1 lg:p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all group transition-colors" onClick={() => handleToggleSidebar(key)}>
-                          <span className="text-[10px] lg:text-xs font-black text-slate-700 dark:text-slate-300 capitalize transition-colors">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <div className={clsx("w-10 lg:w-12 h-5 lg:h-6 rounded-full relative transition-all shadow-inner p-1 transition-colors", value ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800")}>
-                             <div className={clsx("w-3 lg:w-4 h-3 lg:h-4 bg-white rounded-full transition-all shadow-md", value ? "translate-x-5 lg:translate-x-6" : "translate-x-0")} />
+                       <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleSidebar(key)}>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", value ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")}>
+                             <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", value ? "translate-x-4" : "translate-x-0")} />
                           </div>
                        </div>
                      );
@@ -233,50 +239,51 @@ export const AdminRolePermissions = () => {
                 </div>
              </Card>
 
-             <Card className="p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[1rem] lg:rounded-[1rem] flex flex-col transition-colors">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8 transition-colors">
-                   <h3 className="text-lg lg:text-xl font-black text-slate-900 dark:text-white flex items-center gap-3 transition-colors"><Lock className="text-red-500" /> Functional Rules</h3>
-                   <Button onClick={handleSaveGlobal} isLoading={saving} className="w-full sm:w-auto rounded-xl px-6 py-2 text-[10px] lg:text-xs transition-colors">Save Global</Button>
-                </div>
-                <div className="space-y-2 lg:space-y-3 flex-1 overflow-y-auto pr-2 custom-scrollbar max-h-[400px] lg:max-h-[500px] transition-colors">
+             <Card className="p-3 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl flex flex-col transition-all hover:shadow-md">
+                 <div className="mb-5">
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-2">
+                      <Lock className="text-red-500" size={16} /> Functional Rules
+                    </h3>
+                 </div>
+                <div className="space-y-1.5 flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[300px] lg:max-h-[400px]">
                    {RULE_KEYS.map((key) => {
                      const value = currentRole?.rules?.[key] ?? false;
                      return (
-                       <div key={key} className="flex items-center justify-between p-3.5 lg:p-4 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all group transition-colors" onClick={() => handleToggleRule(key)}>
-                          <span className="text-[10px] lg:text-xs font-black text-slate-700 dark:text-slate-300 capitalize transition-colors">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                          <div className={clsx("w-10 lg:w-12 h-5 lg:h-6 rounded-full relative transition-all shadow-inner p-1 transition-colors", value ? "bg-red-600" : "bg-slate-200 dark:bg-slate-800")}>
-                             <div className={clsx("w-3 lg:w-4 h-3 lg:h-4 bg-white rounded-full transition-all shadow-md", value ? "translate-x-5 lg:translate-x-6" : "translate-x-0")} />
+                       <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleRule(key)}>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", value ? "bg-red-500" : "bg-slate-200 dark:bg-slate-700")}>
+                             <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", value ? "translate-x-4" : "translate-x-0")} />
                           </div>
                        </div>
                      );
                    })}
-                </div>
+                 </div>
              </Card>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
            {/* Left Column: User Search - On mobile, hidden if user is selected */}
            <div className={clsx("lg:col-span-1 space-y-6 transition-colors", selectedUser ? "hidden lg:block" : "block")}>
-              <Card className="p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[2rem] lg:rounded-[2.5rem] transition-colors">
-                 <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6 transition-colors">Find User</h3>
-                 <div className="relative group mb-6 transition-colors">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-700" size={18} />
-                    <input type="text" placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-11 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-red-500/20 transition-all outline-none transition-colors" />
+              <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl">
+                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">Find User</h3>
+                 <div className="relative group mb-3">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-red-500 transition-colors" size={18} />
+                    <input type="text" placeholder="Search by name..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-100 dark:bg-slate-950 border-0 rounded-2xl text-sm font-semibold focus:ring-2 focus:ring-red-500 transition-all outline-none" />
                  </div>
-                 <div className="space-y-2 max-h-[600px] lg:max-h-[500px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
+                 <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                     {filteredUsers.map(u => (
-                      <div key={u.id} onClick={() => setSelectedUser(u)} className={clsx("p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group transition-colors", selectedUser?.id === u.id ? "bg-red-50 dark:bg-red-950/20 border-red-100 dark:border-red-900/40 shadow-md" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800")}>
+                      <div key={u.id} onClick={() => setSelectedUser(u)} className={clsx("p-1.5 rounded-sm border transition-all cursor-pointer flex items-center justify-between group", selectedUser?.id === u.id ? "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700")}>
                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 transition-colors">
-                               {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2.5 text-slate-300 dark:text-slate-600" />}
+                            <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0">
+                               {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2.5 text-slate-400" />}
                             </div>
                             <div className="min-w-0">
-                               <p className="text-sm font-black truncate text-slate-900 dark:text-white transition-colors">{u.name}</p>
-                               <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase transition-colors">{u.role}</p>
+                               <p className="text-sm font-bold truncate text-slate-900 dark:text-white">{u.name}</p>
+                               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">{u.role}</p>
                             </div>
                          </div>
-                         <ChevronRight size={16} className="text-slate-200 dark:text-slate-700 group-hover:text-red-300 dark:group-hover:text-red-700 transition-colors lg:hidden" />
+                         <ChevronRight size={16} className={clsx("transition-transform", selectedUser?.id === u.id ? "text-red-500 translate-x-1" : "text-slate-300")} />
                       </div>
                     ))}
                  </div>
@@ -292,7 +299,7 @@ export const AdminRolePermissions = () => {
                       <ArrowLeft size={16} /> Back to User List
                    </button>
 
-                   <Card className="p-6 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[2rem] lg:rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 transition-colors">
+                   <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm flex flex-col sm:flex-row items-center justify-between gap-3 transition-colors">
                       <div className="flex items-center gap-4 w-full sm:w-auto transition-colors">
                          <div className="w-16 h-16 rounded-2xl bg-red-50 dark:bg-red-950/20 flex items-center justify-center border-4 border-white dark:border-slate-800 shadow-lg overflow-hidden transition-colors">
                             {selectedUser.avatar ? <img src={selectedUser.avatar} className="w-full h-full object-cover" /> : <UserCog size={28} className="text-red-600 dark:text-red-500" />}
@@ -306,14 +313,14 @@ export const AdminRolePermissions = () => {
                          </div>
                       </div>
                       <div className="flex gap-2 w-full sm:w-auto transition-colors">
-                         <Button onClick={() => setSelectedUser(null)} variant="outline" className="flex-1 sm:flex-none rounded-xl px-4 py-2.5 text-[10px] lg:text-xs">Cancel</Button>
-                         <Button onClick={handleSaveOverride} isLoading={saving} className="flex-1 sm:flex-none rounded-xl px-6 py-2.5 text-[10px] lg:text-xs">Sync Overrides</Button>
+                         <Button onClick={() => setSelectedUser(null)} variant="outline" className="flex-1 sm:flex-none rounded-sm px-2 py-0.5 text-[10px]">Cancel</Button>
+                         <Button onClick={handleSaveOverride} isLoading={saving} className="flex-1 sm:flex-none rounded-sm px-3 py-0.5 text-[10px]">Sync Overrides</Button>
                       </div>
                    </Card>
 
-                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-                      <Card className="p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[2rem] lg:rounded-[2.5rem] transition-colors">
-                         <h4 className="font-black text-lg mb-6 lg:mb-8 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Layout size={18} className="text-blue-500"/> Custom Sidebar</h4>
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm transition-colors">
+                         <h4 className="font-black text-lg mb-3 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Layout size={18} className="text-blue-500"/> Custom Sidebar</h4>
                          <div className="space-y-2 max-h-[350px] lg:max-h-[450px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
                             {SIDEBAR_KEYS.map((key) => {
                                const userVal = selectedUser.permissions?.sidebar?.[key];
@@ -322,18 +329,18 @@ export const AdminRolePermissions = () => {
                                const isInherited = userVal === undefined && isActive;
 
                                return (
-                                 <div key={key} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all group transition-colors" onClick={() => handleToggleSidebar(key, true)}>
+                                 <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleSidebar(key, true)}>
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white capitalize transition-colors">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                      {isInherited && <span className="text-[8px] font-bold text-blue-400 dark:text-blue-500 uppercase tracking-wider transition-colors">Role Default</span>}
+                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      {isInherited && <span className="text-[8px] font-bold text-blue-500 uppercase tracking-wider">Role Default</span>}
                                     </div>
                                     <div className="flex items-center gap-2">
                                        {userVal !== undefined && (
-                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'sidebar'); }} className="p-1 text-slate-300 dark:text-slate-700 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Reset to Role Default"><X size={12} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'sidebar'); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Reset to Role Default"><X size={12} /></button>
                                        )}
-                                       {userVal !== undefined && <Badge color="red" className="text-[7px] px-1 py-0 shadow-sm border border-red-100 dark:border-red-900/40">Custom</Badge>}
-                                       <div className={clsx("w-9 lg:w-10 h-4.5 lg:h-5 rounded-full relative transition-all shadow-inner p-1 transition-colors", isActive ? "bg-blue-600" : "bg-slate-200 dark:bg-slate-800")}>
-                                          <div className={clsx("w-2.5 lg:w-3 h-2.5 lg:h-3 bg-white rounded-full transition-all shadow-md", isActive ? "translate-x-4.5 lg:translate-x-5" : "translate-x-0")} />
+                                       {userVal !== undefined && <Badge color="red" className="text-[8px] font-bold uppercase shadow-none border-0">Custom</Badge>}
+                                       <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", isActive ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")}>
+                                          <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", isActive ? "translate-x-4" : "translate-x-0")} />
                                        </div>
                                     </div>
                                  </div>
@@ -342,8 +349,8 @@ export const AdminRolePermissions = () => {
                          </div>
                       </Card>
 
-                      <Card className="p-6 lg:p-8 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-[2rem] lg:rounded-[2.5rem] transition-colors">
-                         <h4 className="font-black text-lg mb-6 lg:mb-8 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Lock size={18} className="text-red-500"/> Custom Rules</h4>
+                      <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm transition-colors">
+                         <h4 className="font-black text-lg mb-3 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Lock size={18} className="text-red-500"/> Custom Rules</h4>
                          <div className="space-y-2 max-h-[350px] lg:max-h-[450px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
                             {RULE_KEYS.map((key) => {
                                const userVal = selectedUser.permissions?.rules?.[key];
@@ -352,18 +359,18 @@ export const AdminRolePermissions = () => {
                                const isInherited = userVal === undefined && isActive;
 
                                return (
-                                 <div key={key} className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950/50 rounded-2xl border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-white dark:hover:bg-slate-800 transition-all group transition-colors" onClick={() => handleToggleRule(key, true)}>
+                                 <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleRule(key, true)}>
                                     <div className="flex flex-col">
-                                      <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white capitalize transition-colors">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                      {isInherited && <span className="text-[8px] font-bold text-blue-400 dark:text-blue-500 uppercase tracking-wider transition-colors">Role Default</span>}
+                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      {isInherited && <span className="text-[8px] font-bold text-blue-500 uppercase tracking-wider">Role Default</span>}
                                     </div>
                                     <div className="flex items-center gap-2">
                                        {userVal !== undefined && (
-                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'rules'); }} className="p-1 text-slate-300 dark:text-slate-700 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Reset to Role Default"><X size={12} /></button>
+                                          <button onClick={(e) => { e.stopPropagation(); handleResetOverride(key, 'rules'); }} className="text-slate-400 hover:text-red-500 transition-colors" title="Reset to Role Default"><X size={12} /></button>
                                        )}
-                                       {userVal !== undefined && <Badge color="red" className="text-[7px] px-1 py-0 shadow-sm border border-red-100 dark:border-red-900/40">Custom</Badge>}
-                                       <div className={clsx("w-9 lg:w-10 h-4.5 lg:h-5 rounded-full relative transition-all shadow-inner p-1 transition-colors", isActive ? "bg-red-600" : "bg-slate-200 dark:bg-slate-800")}>
-                                          <div className={clsx("w-2.5 lg:w-3 h-2.5 lg:h-3 bg-white rounded-full transition-all shadow-md", isActive ? "translate-x-4.5 lg:translate-x-5" : "translate-x-0")} />
+                                       {userVal !== undefined && <Badge color="red" className="text-[8px] font-bold uppercase shadow-none border-0">Custom</Badge>}
+                                       <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", isActive ? "bg-red-500" : "bg-slate-200 dark:bg-slate-700")}>
+                                          <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", isActive ? "translate-x-4" : "translate-x-0")} />
                                        </div>
                                     </div>
                                  </div>
@@ -374,7 +381,7 @@ export const AdminRolePermissions = () => {
                    </div>
                 </div>
               ) : (
-                <div className="h-full min-h-[400px] flex flex-col items-center justify-center p-10 lg:p-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem] text-center opacity-40 transition-colors">
+                <div className="h-full min-h-[600px] flex flex-col items-center justify-center p-10 lg:p-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-sm text-center opacity-40 transition-colors">
                    <UserCog size={64} className="dark:text-slate-600" />
                    <p className="font-black uppercase tracking-widest text-sm dark:text-slate-600">Select a user to configure custom overrides</p>
                 </div>
@@ -383,5 +390,6 @@ export const AdminRolePermissions = () => {
         </div>
       )}
     </div>
+  </div>
   );
 };

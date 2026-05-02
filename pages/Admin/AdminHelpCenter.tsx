@@ -110,7 +110,7 @@ export const AdminHelpCenter = () => {
     <button 
       onClick={() => setFilter(status)}
       className={clsx(
-        "flex items-center gap-2 px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all transition-colors",
+        "flex items-center gap-2 px-3 py-2 lg:px-4 lg:py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all transition-colors",
         filter === status ? `bg-white dark:bg-slate-900 shadow-lg ${color}` : "text-slate-400 dark:text-slate-500 hover:bg-white/50 dark:hover:bg-slate-800/50"
       )}
     >
@@ -122,7 +122,7 @@ export const AdminHelpCenter = () => {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 max-w-7xl mx-auto pb-20 transition-colors">
+    <div className="space-y-4 animate-in fade-in duration-500 max-w-7xl mx-auto pb-20 transition-colors">
       <Toast {...toastState} onClose={hideToast} />
       <ConfirmModal 
         isOpen={!!deleteId} 
@@ -152,97 +152,96 @@ export const AdminHelpCenter = () => {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 border-b border-slate-200 dark:border-slate-800 pb-8 transition-colors">
-        <div className="flex items-center gap-4">
-          <div className="p-4 bg-purple-600 text-white rounded-sm shadow-xl shadow-purple-100 dark:shadow-purple-900/30">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 transition-colors">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-purple-600 text-white rounded-2xl shadow-xl shadow-purple-100 dark:shadow-purple-900/30 transition-colors">
             <HelpCircle size={28} />
           </div>
           <div>
-            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">Help Center Manage</h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 font-medium transition-colors">Support tickets and inquiries.</p>
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">Help Center</h1>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-black uppercase tracking-widest mt-1 transition-colors">Manage support tickets and inquiries.</p>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto overflow-x-auto no-scrollbar border border-slate-200 dark:border-slate-700 transition-colors">
+      <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+        <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full md:w-auto overflow-x-auto custom-scrollbar pb-2 lg:pb-1.5 border border-slate-200 dark:border-slate-700 transition-colors">
           <TabButton status={HelpStatus.PENDING} label="Pending" icon={AlertCircle} color="text-yellow-600" />
-          <TabButton status={HelpStatus.COMPLETE} label="Complete" icon={CheckCircle2} color="text-green-600 dark:text-green-400" />
-          <TabButton status={HelpStatus.REJECTED} label="Rejected" icon={XCircle} color="text-red-600 dark:text-red-400" />
+          <TabButton status={HelpStatus.COMPLETE} label="Complete" icon={CheckCircle2} color="text-green-600" />
+          <TabButton status={HelpStatus.REJECTED} label="Rejected" icon={XCircle} color="text-red-600" />
         </div>
         <div className="relative w-full md:w-80">
-           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600" size={18} />
+           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
            <input 
              type="text" 
              placeholder="Search by name or phone..." 
              value={searchTerm}
              onChange={e => setSearchTerm(e.target.value)}
-             className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500/20 shadow-sm transition-colors"
+             className="w-full pl-11 pr-4 py-3 bg-white dark:bg-slate-900 border-2 border-slate-50 dark:border-slate-800 rounded-2xl text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:border-purple-500/50 shadow-sm transition-all"
            />
         </div>
       </div>
 
-      <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 transition-colors">
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
-          {loading ? (
-            <div className="p-20 text-center font-black text-slate-300 dark:text-slate-700 animate-pulse">Loading Requests...</div>
-          ) : (
+      {/* Desktop Table View */}
+      <div className="hidden md:block">
+        <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors">
+          <div className="overflow-x-auto max-h-[650px] overflow-y-auto custom-scrollbar">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest transition-colors">
                 <tr>
-                  <th className="px-1 py-1 w-12 text-center">SL</th>
-                  <th className="px-1 py-1">Name & Phone</th>
-                  <th className="px-1 py-1 max-w-xs">Message</th>
-                  <th className="px-1 py-1 w-48">Remark / Status</th>
-                  {isSuperAdmin && <th className="px-1 py-1 text-right">Action</th>}
+                  <th className="p-1 w-8 text-center">No</th>
+                  <th className="p-1">Requester</th>
+                  <th className="p-1 max-w-xs">Details</th>
+                  <th className="p-1">Status / Action</th>
+                  {isSuperAdmin && <th className="p-1 text-right">Actions</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {filteredRequests.map((req, idx) => (
-                  <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs font-bold font-sans">
-                    <td className="px-1 py-1 text-center text-slate-400 dark:text-slate-600 font-bold transition-colors">{idx + 1}</td>
-                    <td className="px-1 py-1">
-                      <p className="font-black text-slate-900 dark:text-white transition-colors leading-tight">{req.name}</p>
-                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 transition-colors leading-tight">{req.phone}</p>
+                  <tr key={req.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors text-xs">
+                    <td className="p-1 text-center text-slate-300 dark:text-slate-700 font-black">{idx + 1}</td>
+                    <td className="p-1">
+                      <p className="font-black text-slate-900 dark:text-white leading-tight truncate max-w-[100px]">{req.name}</p>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest truncate">{req.phone}</p>
                     </td>
-                    <td className="px-1 py-1">
-                      <p className="text-slate-600 dark:text-slate-300 font-medium line-clamp-1 text-[10px] transition-colors" title={req.message}>{req.message}</p>
+                    <td className="p-1">
+                      <p className="text-slate-600 dark:text-slate-300 font-medium line-clamp-1 text-[10px]" title={req.message}>{req.message}</p>
                     </td>
-                    <td className="px-1 py-1">
-                      <div className="space-y-1">
+                    <td className="p-1">
+                      <div className="flex items-center gap-1">
                         <select 
                           value={remarks[req.id]?.status || HelpStatus.PENDING}
                           onChange={(e) => handleRemarkChange(req.id, 'status', e.target.value)}
                           className={clsx(
-                            "w-full px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border border-transparent dark:border-slate-700 outline-none cursor-pointer appearance-none transition-colors",
-                            remarks[req.id]?.status === HelpStatus.COMPLETE ? "bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900/40" :
-                            remarks[req.id]?.status === HelpStatus.REJECTED ? "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900/40" :
-                            "bg-yellow-50 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-400 border-yellow-200 dark:border-yellow-900/40"
+                            "px-1 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border outline-none cursor-pointer appearance-none transition-all",
+                            remarks[req.id]?.status === HelpStatus.COMPLETE ? "bg-green-50 text-green-700 border-green-100" :
+                            remarks[req.id]?.status === HelpStatus.REJECTED ? "bg-red-50 text-red-700 border-red-100" :
+                            "bg-yellow-50 text-yellow-700 border-yellow-100"
                           )}
                         >
-                          <option value={HelpStatus.PENDING} className="bg-white dark:bg-slate-900">Pending</option>
-                          <option value={HelpStatus.COMPLETE} className="bg-white dark:bg-slate-900">Complete</option>
-                          <option value={HelpStatus.REJECTED} className="bg-white dark:bg-slate-900">Rejected</option>
+                          <option value={HelpStatus.PENDING}>PEND</option>
+                          <option value={HelpStatus.COMPLETE}>DONE</option>
+                          <option value={HelpStatus.REJECTED}>REJT</option>
                         </select>
                         <input 
                           type="text" 
-                          placeholder="Remark..." 
+                          placeholder="Note..." 
                           value={remarks[req.id]?.text || ''}
                           onChange={(e) => handleRemarkChange(req.id, 'text', e.target.value)}
-                          className="w-full px-2 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-[10px] font-medium focus:border-blue-400 dark:focus:border-blue-700 outline-none transition-colors"
+                          className="flex-1 px-1 py-0.5 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-800 text-slate-700 dark:text-slate-300 rounded text-[9px] font-bold outline-none focus:border-blue-400 transition-all"
                         />
                       </div>
                     </td>
                     {isSuperAdmin && (
-                      <td className="px-1 py-1 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button onClick={() => handleSave(req.id)} disabled={savingId === req.id} className="p-1 px-1.5 bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-600 hover:text-white transition-all shadow-sm border border-blue-100 dark:border-blue-900/10" title="Save">
+                      <td className="p-1 text-right">
+                        <div className="flex justify-end gap-0.5">
+                          <button onClick={() => handleSave(req.id)} disabled={savingId === req.id} className="p-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-all" title="Save">
                             <Save size={12} className={clsx(savingId === req.id && "animate-pulse")} />
                           </button>
-                          <button onClick={() => setEditItem(req)} className="p-1 px-1.5 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-slate-200 transition-all shadow-sm border border-slate-100 dark:border-slate-700" title="Edit">
+                          <button onClick={() => setEditItem(req)} className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600 rounded transition-all" title="Edit">
                             <Edit2 size={12} />
                           </button>
-                          <button onClick={() => setDeleteId(req.id)} className="p-1 px-1.5 bg-red-50 dark:bg-red-950/20 text-red-500 dark:text-red-400 rounded-lg hover:bg-red-600 hover:text-white transition-all shadow-sm border border-red-100 dark:border-red-900/10" title="Delete">
+                          <button onClick={() => setDeleteId(req.id)} className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-600 rounded transition-all" title="Delete">
                             <Trash2 size={12} />
                           </button>
                         </div>
@@ -250,16 +249,74 @@ export const AdminHelpCenter = () => {
                     )}
                   </tr>
                 ))}
-                {filteredRequests.length === 0 && (
-                  <tr>
-                    <td colSpan={isSuperAdmin ? 5 : 4} className="px-6 py-20 text-center text-slate-300 dark:text-slate-700 font-black uppercase tracking-[0.2em] italic transition-colors">No requests found</td>
-                  </tr>
-                )}
               </tbody>
             </table>
-          )}
+          </div>
+        </Card>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-1 pb-20 mt-1">
+        {filteredRequests.map((req) => (
+          <Card key={req.id} className="p-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-md rounded-lg transition-colors">
+            <div className="flex justify-between items-start mb-1">
+               <div className="px-1 pt-1">
+                  <h3 className="font-black text-slate-900 dark:text-white leading-tight text-xs truncate max-w-[120px]">{req.name}</h3>
+                  <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{req.phone}</p>
+               </div>
+               <Badge className="text-[7px] font-black mt-1 mr-1" color={req.status === HelpStatus.COMPLETE ? 'green' : (req.status === HelpStatus.REJECTED ? 'red' : 'yellow')}>
+                  {req.status}
+               </Badge>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-lg mb-1 border border-slate-100 dark:border-slate-800 mx-1">
+               <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-tight italic line-clamp-1">"{req.message}"</p>
+            </div>
+
+            <div className="space-y-1 pt-1 border-t border-slate-50 dark:border-slate-800 px-1 pb-1">
+               <div className="flex gap-1">
+                 <select 
+                    value={remarks[req.id]?.status || HelpStatus.PENDING}
+                    onChange={(e) => handleRemarkChange(req.id, 'status', e.target.value)}
+                    className="flex-shrink-0 px-1 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-[8px] font-black uppercase tracking-widest border-0 outline-none"
+                 >
+                    <option value={HelpStatus.PENDING}>PENDING</option>
+                    <option value={HelpStatus.COMPLETE}>RESOLVE</option>
+                    <option value={HelpStatus.REJECTED}>REJECT</option>
+                 </select>
+                 <input 
+                    type="text" 
+                    placeholder="Remark..." 
+                    value={remarks[req.id]?.text || ''}
+                    onChange={(e) => handleRemarkChange(req.id, 'text', e.target.value)}
+                    className="flex-1 px-1 py-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-md text-[9px] font-bold"
+                 />
+               </div>
+               
+               <div className="flex gap-1">
+                  <button onClick={() => handleSave(req.id)} className="flex-1 py-1 bg-blue-600 text-white rounded-md font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-1 shadow-sm">
+                     <Save size={10}/> Save
+                  </button>
+                  <button onClick={() => setEditItem(req)} className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-400 rounded-md">
+                     <Edit2 size={10}/>
+                  </button>
+                  <button onClick={() => setDeleteId(req.id)} className="p-1 bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-red-600 rounded-md">
+                     <Trash2 size={10}/>
+                  </button>
+               </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {filteredRequests.length === 0 && (
+        <div className="py-10 text-center">
+           <div className="w-20 h-20 bg-slate-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+              <HelpCircle size={32} className="text-slate-200" />
+           </div>
+           <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.4em] italic">No support tickets found</p>
         </div>
-      </Card>
+      )}
     </div>
   );
 };

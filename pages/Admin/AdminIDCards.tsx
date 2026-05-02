@@ -132,7 +132,7 @@ export const AdminIDCards = () => {
   const { toastState, showToast, hideToast } = useToast();
   const [registry, setRegistry] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'ALL' | 'TEAM'>('ALL');
+  const [filter, setFilter] = useState<'ALL' | 'TEAM' | 'DONOR'>('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -144,9 +144,10 @@ export const AdminIDCards = () => {
   }, []);
 
   const filteredRegistry = registry.filter(u => {
-    const matchesType = filter === 'TEAM' 
-      ? (u.role === UserRole.ADMIN || u.role === UserRole.EDITOR || u.role === UserRole.SUPERADMIN)
-      : true;
+    const matchesType = 
+      filter === 'TEAM' ? (u.role === UserRole.ADMIN || u.role === UserRole.EDITOR || u.role === UserRole.SUPERADMIN) :                
+      filter === 'DONOR' ? (u.role === UserRole.USER) :                
+      true;
     
     const lowerSearch = searchTerm.toLowerCase();
     const matchesSearch = !lowerSearch || 
@@ -191,42 +192,40 @@ export const AdminIDCards = () => {
   );
 
   return (
-    <div className="space-y-12 pb-24 max-w-7xl mx-auto px-4 animate-in fade-in duration-700 transition-colors">
+    <div className="space-y-12 pb-6 max-w-7xl mx-auto px-4 animate-in fade-in duration-700 transition-colors">
       <Toast {...toastState} onClose={hideToast} />
-      <div className="flex flex-col xl:flex-row justify-between items-center gap-8 border-b border-slate-100 dark:border-slate-800 pb-12 no-print transition-colors">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-3 border-b border-slate-100 dark:border-slate-800 pb-4 no-print transition-colors">
         <div className="text-center xl:text-left">
-           <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-full mb-4 transition-colors">
+           <div className="inline-flex items-center gap-2 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 px-4 py-1.5 rounded-full mb-2 transition-colors">
               <ShieldCheck size={14} />
               <span className="text-[10px] font-black uppercase tracking-widest">Digital Registry Hub</span>
            </div>
-           <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-[-0.04em] transition-colors">Staff Identity System</h1>
-           <p className="text-slate-500 dark:text-slate-400 font-medium mt-2 max-w-lg transition-colors">Manage and download high-resolution identification tokens for verified community members.</p>
+           <h1 className="text-4xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-[-0.04em] transition-colors">Identity System</h1>
         </div>
         
-        <div className="flex flex-col md:flex-row items-center gap-4 w-full xl:w-auto transition-colors">
-           <div className="relative group w-full md:w-64 transition-colors">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-red-600 transition-colors" size={18} />
+        <div className="flex flex-row items-center gap-2 w-full xl:w-auto transition-colors">
+           <div className="relative group flex-1 transition-colors">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-red-600 transition-colors" size={16} />
               <input 
                 type="text" 
                 placeholder="Name, ID or Phone..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 pr-4 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:font-bold transition-colors"
+                className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:font-bold transition-colors"
               />
            </div>
 
-           <div className="flex items-center gap-4 w-full md:w-auto transition-colors">
+           <div className="flex items-center gap-2 transition-colors">
              <select 
                 value={filter} 
                 onChange={(e) => setFilter(e.target.value as any)}
-                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-6 py-4 rounded-sm text-[11px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer flex-1 md:flex-none transition-colors"
+                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 px-2 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white outline-none focus:ring-4 focus:ring-red-500/10 shadow-sm hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer transition-colors"
+                style={{ minWidth: '120px' }}
               >
                 <option value="ALL" className="bg-white dark:bg-slate-900">All Registered</option>
+                <option value="DONOR" className="bg-white dark:bg-slate-900">Verified Donor</option>
                 <option value="TEAM" className="bg-white dark:bg-slate-900">Core Staff</option>
               </select>
-              <Button onClick={() => window.print()} className="rounded-sm px-8 shadow-2xl bg-[#001f3f] dark:bg-slate-800 hover:bg-black dark:hover:bg-slate-700 py-4 group border-0 transition-colors whitespace-nowrap">
-                <Printer size={18} className="mr-2 group-hover:scale-110 transition-transform" /> Print Batch
-              </Button>
            </div>
         </div>
       </div>
@@ -234,14 +233,14 @@ export const AdminIDCards = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-24 place-items-center">
         {filteredRegistry.map(member => (
           <div key={member.id} className="relative group flex flex-col items-center animate-in fade-in slide-in-from-bottom-10 duration-700 transition-colors">
-             <div className="mb-10 transition-transform duration-500 group-hover:-translate-y-2">
+             <div className="mb-4 transition-transform duration-500 group-hover:-translate-y-2">
                 <IDCardFrame user={member} ref={el => { cardRefs.current[member.id] = el; }} />
              </div>
              
              <div className="flex flex-col items-center gap-4 no-print w-full max-w-[280px] transition-colors">
                 <button 
                   onClick={() => downloadAsJpg(member.id, member.name)}
-                  className="w-full bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-5 rounded-sm shadow-lg hover:shadow-xl hover:border-[#001f3f] dark:hover:border-blue-500 transition-all flex items-center justify-center gap-4 group/btn active:scale-95 transition-colors"
+                  className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 p-2 rounded-sm shadow-lg hover:shadow-xl hover:border-[#001f3f] dark:hover:border-blue-500 transition-all flex items-center justify-center gap-4 group/btn active:scale-95 transition-colors"
                 >
                    <div className="w-10 h-10 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-2xl flex items-center justify-center group-hover/btn:bg-[#001f3f] dark:group-hover/btn:bg-blue-600 group-hover/btn:text-white transition-colors">
                       <Download size={20} />

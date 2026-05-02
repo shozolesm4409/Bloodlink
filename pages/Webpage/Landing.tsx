@@ -6,7 +6,7 @@ import { db, subscribeToApprovedFeedbacks, getLandingConfig, getCachedFeedbacks,
 import { DonationStatus, DonationFeedback, LandingPageConfig, User, BloodGroup } from '../../types';
 import { Droplet, Users, HeartPulse, Activity, User as UserIcon, Calendar, ArrowRight, ShieldCheck, Quote, Trophy, Sparkles, Search } from 'lucide-react';
 import { PublicLayout } from '../../components/PublicLayout';
-import { getRankData } from '../Users/Profile';
+import { getBadgeData } from '../Users/Profile';
 import { Card } from '../../components/UI';
 import clsx from 'clsx';
 
@@ -218,7 +218,7 @@ export const Landing = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
             {topThree.length > 0 ? topThree.map((hero, idx) => {
-              const rank = getRankData(hero.donationCount);
+              const rank = getBadgeData(hero);
               return (
                 <div key={hero.id} className={clsx(
                   "relative bg-white dark:bg-slate-900 rounded-sm p-10 border-2 transition-all hover:shadow-2xl group text-center",
@@ -227,8 +227,9 @@ export const Landing = () => {
                 )}>
                   <div className="relative mb-8 mx-auto w-32 h-32">
                     <div className={clsx(
-                      "w-full h-full rounded-sm bg-slate-50 dark:bg-slate-800 overflow-hidden border-4 border-white dark:border-slate-800 shadow-2xl",
-                      idx === 0 && "ring-4 ring-yellow-400 dark:ring-yellow-600"
+                      "w-full h-full rounded-sm bg-slate-50 dark:bg-slate-800 overflow-hidden border-4 shadow-2xl transition-all",
+                      rank ? rank.color.replace('text-', 'border-') : "border-white dark:border-slate-800",
+                      idx === 0 && "ring-4 ring-yellow-400 dark:ring-yellow-600 ring-offset-2 dark:ring-offset-slate-900"
                     )}>
                       {hero.avatar ? <img src={hero.avatar} className="w-full h-full object-cover" /> : <UserIcon className="p-8 text-slate-300 dark:text-slate-600" size={64} />}
                     </div>

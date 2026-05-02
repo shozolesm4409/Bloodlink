@@ -4,19 +4,23 @@ import { useAuth } from '../../AuthContext';
 import { updateUserProfile, changePassword, getAppPermissions, requestIDCardAccess, getUserDonations, getUserFeedbacks } from '../../services/api';
 import { Card, Input, Button, Select, Badge, Toast, useToast } from '../../components/UI';
 import { User, BloodGroup, AppPermissions, UserRole, DonationStatus, DonationRecord, DonationFeedback, FeedbackStatus } from '../../types';
-import { UserCircle, Lock, Camera, Upload, IdCard, Download, X, Clock, ShieldAlert, Trophy, Award, Star, Medal, Edit3, Image as ImageIcon, Key, LayoutDashboard, History, MessageSquareQuote, ChevronRight, Activity, Droplet, Mail, Phone, MapPin, Hash, User as UserIcon, Check, Wallpaper } from 'lucide-react';
+import { UserCircle, Lock, Camera, Upload, IdCard, Download, X, Clock, ShieldAlert, Trophy, Award, Star, Medal, Edit3, Image as ImageIcon, Key, LayoutDashboard, History, MessageSquareQuote, ChevronRight, Activity, Droplet, Mail, Phone, MapPin, Hash, User as UserIcon, Check, Wallpaper, BadgeCheck } from 'lucide-react';
 import { IDCardFrame } from '../Admin/AdminIDCards';
 import { toJpeg } from 'html-to-image';
 import Cropper from 'react-easy-crop';
 import clsx from 'clsx';
 
-// Rank Helper function
-export const getRankData = (count: number) => {
-  if (count >= 16) return { name: 'Hero', color: 'text-orange-600', bg: 'bg-orange-50', icon: Star, shadow: 'shadow-orange-200' };
-  if (count >= 11) return { name: 'Diamond', color: 'text-blue-400', bg: 'bg-blue-50', icon: Trophy, shadow: 'shadow-blue-200' };
-  if (count >= 8) return { name: 'Platinum', color: 'text-slate-400', bg: 'bg-slate-100', icon: Award, shadow: 'shadow-slate-200' };
-  if (count >= 4) return { name: 'Gold', color: 'text-yellow-500', bg: 'bg-yellow-50', icon: Trophy, shadow: 'shadow-yellow-200' };
-  if (count >= 1) return { name: 'Silver', color: 'text-slate-400', bg: 'bg-slate-50', icon: Medal, shadow: 'shadow-slate-200' };
+// Badge Helper function
+export const getBadgeData = (u: User | any) => {
+  if (!u) return null;
+  if(u.role === UserRole.SUPERADMIN) return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-50', icon: Award, shadow: 'shadow-cyan-200' };
+  
+  switch(u.approvedBadge) {
+     case 'blue': return { name: 'Diamond', color: 'text-cyan-400', bg: 'bg-cyan-50', icon: Award, shadow: 'shadow-cyan-200' };
+     case 'green': return { name: 'Platinum', color: 'text-emerald-500', bg: 'bg-emerald-50', icon: Award, shadow: 'shadow-emerald-200' };
+     case 'red': return { name: 'Gold', color: 'text-amber-500', bg: 'bg-amber-50', icon: Award, shadow: 'shadow-amber-200' };
+     case 'pink': return { name: 'Silver', color: 'text-slate-400', bg: 'bg-slate-50', icon: Award, shadow: 'shadow-slate-200' };
+  }
   return null;
 };
 
@@ -121,7 +125,7 @@ export const Profile = () => {
   if (!user) return null;
 
   const donationCount = donations.filter(d => d.status === DonationStatus.COMPLETED).length;
-  const rank = getRankData(donationCount);
+  const rank = getBadgeData(user);
 
   // Helper to check effective permissions (Override > Global)
   const canEditProfile = (() => {
@@ -393,8 +397,11 @@ export const Profile = () => {
                     )}
                  </div>
                  
-                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight mb-2 transition-colors">{user.name}</h2>
-                 <div className="flex justify-center gap-2 mb-8">
+                 <div className="flex items-center justify-center gap-2 mb-2">
+                   <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight transition-colors">{user.name}</h2>
+                   {rank?.color && <BadgeCheck className={clsx(rank.color, "flex-shrink-0")} size={24} />}
+                 </div>
+                 <div className="flex justify-center flex-wrap gap-2 mb-8">
                     <Badge color="red" className="px-3 py-1 text-[10px] ring-1 ring-red-100 dark:ring-red-900/50">{user.bloodGroup} Donor</Badge>
                     <Badge color="blue" className="px-3 py-1 text-[10px] ring-1 ring-blue-100 dark:ring-blue-900/50">{user.role}</Badge>
                  </div>

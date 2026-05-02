@@ -4,7 +4,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { login as apiLogin, register as apiRegister, getLandingConfig, initiatePasswordResetLink } from '../services/api';
 import { Button } from '../components/UI';
-import { Droplet, AlertCircle, ArrowLeft, User, Lock, Mail, Phone, MapPin, CheckCircle, Eye, EyeOff, ShieldCheck, Send, ShieldAlert, X, Crop as CropIcon } from 'lucide-react';
+import { Droplet, AlertCircle, ArrowLeft, User as UserIcon, Lock, Mail, Phone, MapPin, CheckCircle, Eye, EyeOff, ShieldCheck, Send, ShieldAlert, X, Crop as CropIcon } from 'lucide-react';
 import { BLOOD_GROUPS } from '../constants';
 import { LandingPageConfig } from '../types';
 import { PublicLayout } from '../components/PublicLayout';
@@ -92,7 +92,7 @@ const CustomInput = ({ icon: Icon, type = "text", name, placeholder, value, onCh
 export const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [email, setEmail] = useState('');
@@ -100,6 +100,12 @@ export const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [config, setConfig] = useState<LandingPageConfig | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
   useEffect(() => {
     getLandingConfig().then(setConfig);
@@ -154,7 +160,7 @@ export const Login = () => {
       >
         <form onSubmit={handleSubmit}>
           <CustomInput 
-            icon={User} 
+            icon={UserIcon} 
             type="email" 
             name="email" 
             placeholder="User Name / Email" 
@@ -216,11 +222,18 @@ const CheckIcon = ({ className }: { className?: string }) => (
 
 export const Register = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [config, setConfig] = useState<LandingPageConfig | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
+
   const [avatar, setAvatar] = useState<string>('');
   const [tempImage, setTempImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -308,7 +321,7 @@ export const Register = () => {
         <form onSubmit={handleSubmit} className="space-y-0">
           <div className="flex gap-2 sm:gap-2 mb-0.5 items-stretch">
             <div className="flex-1">
-              <CustomInput icon={User} name="name" placeholder="আপনার পূর্ণ নাম" />
+              <CustomInput icon={UserIcon} name="name" placeholder="আপনার পূর্ণ নাম" />
               <CustomInput icon={Mail} type="email" name="email" placeholder="ইমেইল এড্রেস" />
             </div>
             <div className="w-20 sm:w-28 flex-shrink-0 flex flex-col mb-2 lg:mb-3">
@@ -320,7 +333,7 @@ export const Register = () => {
                   <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center text-slate-300 group-hover:text-red-500 transition-colors">
-                    <User size={32} className="opacity-30 mb-1" />
+                    <UserIcon size={32} className="opacity-30 mb-1" />
                     <span className="text-[8px] font-black uppercase tracking-widest">Upload</span>
                   </div>
                 )}

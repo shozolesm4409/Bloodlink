@@ -11,17 +11,20 @@ import {
   handleSupportAccess,
   handleFeedbackAccess,
   handleIDCardAccess,
+  handleRequestedDonorAccess,
   toggleUserSuspension,
   getDonations,
   generateUserId,
   resequenceAllIds,
   ADMIN_EMAIL
 } from '../../services/api';
-import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select } from '../../components/UI';
+import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select, RoleBadge } from '../../components/UI';
 import { User, UserRole, BloodGroup, DonationStatus } from '../../types';
-import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter, LogIn, Mail } from 'lucide-react';
-import { getRankData } from '../Users/Profile';
+import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter, LogIn, Mail, BadgeCheck, Droplet } from 'lucide-react';
+import { getBadgeData } from '../Users/Profile';
 import clsx from 'clsx';
+
+
 
 const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: { 
   users: User[], 
@@ -56,6 +59,9 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
     } else if (accessType === 'idcard') {
       hasAccess = !!u.hasIDCardAccess;
       isRequested = !!u.idCardAccessRequested;
+    } else if (accessType === 'requested_donor') {
+      hasAccess = !!u.hasRequestedDonorAccess;
+      isRequested = !!u.requestedDonorAccessRequested;
     }
 
     if (accessStatus === 'ALL') return true;
@@ -133,6 +139,10 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
             <div className="flex-1 min-w-0">
                <div className="flex items-center gap-2 mb-0.5">
                   <h3 className="text-lg font-black text-white truncate tracking-tight uppercase leading-none">{u.name}</h3>
+                  {(() => {
+                    const badgeClr = getBadgeData(u)?.color;
+                    return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={16} />;
+                  })()}
                </div>
                <div className="flex items-center gap-2">
                   <Mail size={12} className="text-slate-500" />
@@ -146,6 +156,7 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
             <AccessItem title="Support Access" requested={u.supportAccessRequested} has={u.hasSupportAccess} type="support" uid={u.id} icon={LifeBuoy} color="bg-blue-500/20 text-blue-500" />
             <AccessItem title="Feedback Access" requested={u.feedbackAccessRequested} has={u.hasFeedbackAccess} type="feedback" uid={u.id} icon={MessageSquare} color="bg-green-500/20 text-green-500" />
             <AccessItem title="ID Card Access" requested={u.idCardAccessRequested} has={u.hasIDCardAccess} type="idcard" uid={u.id} icon={IdCard} color="bg-orange-500/20 text-orange-500" />
+            <AccessItem title="Req. Donor Access" requested={u.requestedDonorAccessRequested} has={u.hasRequestedDonorAccess} type="requested_donor" uid={u.id} icon={Droplet} color="bg-red-500/20 text-red-500" />
           </div>
         </Card>
       )) : (
@@ -239,13 +250,14 @@ export const AdminUserManagement = () => {
     } catch (e) { showToast("Update failed.", "error"); }
   };
 
-  const handleAccessAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard', approve: boolean) => {
+  const handleAccessAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor', approve: boolean) => {
     if (!admin) return;
     try {
       if (type === 'directory') await handleDirectoryAccess(uid, approve, admin);
       else if (type === 'support') await handleSupportAccess(uid, approve, admin);
       else if (type === 'feedback') await handleFeedbackAccess(uid, approve, admin);
       else if (type === 'idcard') await handleIDCardAccess(uid, approve, admin);
+      else if (type === 'requested_donor') await handleRequestedDonorAccess(uid, approve, admin);
       showToast("Access updated.");
       fetchData();
     } catch (e) { showToast("Update failed.", "error"); }
@@ -506,7 +518,7 @@ export const AdminUserManagement = () => {
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {filteredUsers.map(u => {
                   const count = userRankMap[u.id] || 0;
-                  const rank = getRankData(count);
+                  const rank = getBadgeData(u);
                   
                   return (
                     <tr key={u.id} className={clsx("transition-colors", u.isSuspended ? "bg-red-50/50 dark:bg-red-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800")}>
@@ -522,7 +534,11 @@ export const AdminUserManagement = () => {
                           <div className="min-w-0">
                             <div className="flex items-center gap-1">
                                <p className="font-black text-slate-900 dark:text-white transition-colors truncate text-xs">{u.name}</p>
-                               {rank && <Badge className={clsx("text-[5px] py-0 px-0.5 ring-1 ring-slate-100 dark:ring-slate-800", rank.bg, rank.color)}>{rank.name}</Badge>}
+                               {(() => {
+                                 const badgeClr = getBadgeData(u)?.color;
+                                 return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={14} />;
+                               })()}
+                               {rank && <div className={clsx("w-2 h-2 rounded-full", rank.color.replace('text-', 'bg-'))} title={rank.name} />}
                             </div>
                             {u.isSuspended && <p className="text-[7px] font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Suspended</p>}
                           </div>
@@ -537,24 +553,41 @@ export const AdminUserManagement = () => {
                           value={u.role} 
                           onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)} 
                           disabled={(u.role === UserRole.SUPERADMIN && !isSuperAdminViewer) || (u.email === ADMIN_EMAIL)}
-                          className="bg-transparent border border-slate-200 dark:border-slate-700 rounded px-1 py-0.5 font-black text-[8px] uppercase tracking-widest outline-none cursor-pointer text-slate-700 dark:text-slate-300 disabled:opacity-50 transition-colors"
+                          className={clsx(
+                            "bg-transparent border rounded px-2 py-0.5 font-black text-[9px] uppercase tracking-[0.1em] outline-none cursor-pointer disabled:opacity-50 transition-colors appearance-none text-center inline-block",
+                            u.role === UserRole.SUPERADMIN ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800" :
+                            u.role === UserRole.ADMIN ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800" :
+                            u.role === UserRole.EDITOR ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800" :
+                            "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                          )}
+                          style={{ textAlignLast: 'center' }}
                         >
                           {Object.values(UserRole).filter(r => r !== UserRole.SUPERADMIN || isSuperAdminViewer).map(r => (
-                            <option key={r} value={r}>{r}</option>
+                            <option key={r} value={r} className="bg-white dark:bg-slate-900">{r}</option>
                           ))}
                         </select>
                       </td>
                           <td className="p-1 text-right">
                         <div className="flex justify-end gap-1">
-                           {isSuperAdminViewer && (
-                             <button 
-                               onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })} 
-                               title="Manage Permissions" 
-                               className="p-2 text-slate-300 dark:text-slate-600 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30 rounded-xl transition-all"
-                             >
-                               <Settings size={18} />
-                             </button>
-                           )}
+                            {isSuperAdminViewer && (
+                              <button 
+                                onClick={() => { impersonateUser(u); showToast(`Logged in as ${u.name}`); navigate('/'); }} 
+                                title="Login as User" 
+                                className="p-2 text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-xl transition-all"
+                              >
+                                <LogIn size={18} />
+                              </button>
+                            )}
+                            {isSuperAdminViewer && (
+                              <button 
+                                onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })} 
+                                title="Manage Permissions" 
+                                className="p-2 text-slate-300 dark:text-slate-600 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30 rounded-xl transition-all"
+                              >
+                                <Settings size={18} />
+                              </button>
+                            )}
+                           <button onClick={() => navigate(`/admin/verify/${u.idNumber || u.phone}`, { state: { fromAdminUsers: true } })} title="Verify Identity" className="p-2 rounded-xl text-slate-300 dark:text-slate-600 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 transition-all"><BadgeCheck size={18} /></button>
                            <button onClick={() => setSuspendUserId({id: u.id, current: !!u.isSuspended})} disabled={u.role === UserRole.SUPERADMIN} className={clsx("p-2 rounded-xl transition-all", u.isSuspended ? "text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-950/30" : "text-red-400 dark:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30", u.role === UserRole.SUPERADMIN && "opacity-0 pointer-events-none")}><Ban size={18} /></button>
                            <button onClick={() => setEditUser(u)} disabled={u.role === UserRole.SUPERADMIN && !isSuperAdminViewer} title="Edit User" className="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-20"><Edit2 size={18} /></button>
                            
@@ -563,150 +596,151 @@ export const AdminUserManagement = () => {
                            )}
                            
                            <button onClick={() => setDeleteUserId(u.id)} disabled={u.role === UserRole.SUPERADMIN || u.email === admin?.email} title="Delete User" className="p-2 text-slate-300 dark:text-slate-600 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-0 transition-colors"><Trash2 size={18} /></button>
-                           {admin?.role === UserRole.SUPERADMIN && (
-                             <button onClick={() => { impersonateUser(u); showToast(`Logged in as ${u.name}`); navigate('/'); }} title="Login as User" className="p-2 text-slate-300 dark:text-slate-600 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"><LogIn size={18} /></button>
-                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               </tbody>
             </table>
           </div>
         </Card>
 
-          {/* Mobile Card View */}
-          <div className="lg:hidden space-y-4">
-             {filteredUsers.map(u => {
-               const count = userRankMap[u.id] || 0;
-               const rank = getRankData(count);
-
-               return (
-                 <Card key={u.id} className={clsx("p-3 border-0 shadow-xl bg-[#0d121f] dark:bg-[#0d121f] rounded-xl relative overflow-hidden transition-all border border-slate-800", u.isSuspended && "opacity-75")}>
-                   {/* Top Header Section */}
-                   <div className="flex items-start justify-between mb-4">
-                     <div className="flex items-center gap-2">
-                        <div className={clsx(
-                          "w-16 h-16 rounded-sm overflow-hidden border border-slate-700 shadow-lg flex items-center justify-center relative transition-all",
-                          rank ? `ring-2 ${rank.color.replace('text-', 'ring-')}` : "bg-slate-800"
-                        )}>
-                          {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : <UserIcon size={24} className="text-slate-500" />}
-                          {u.isSuspended && <div className="absolute inset-0 bg-red-600/40 flex items-center justify-center text-white"><Ban size={16}/></div>}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-0.5">
-                            <UserIcon size={16} className="text-red-500" />
-                            <h3 className="text-xl font-bold text-white transition-colors truncate">{u.name}</h3>
-                          </div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <Mail size={12} className="text-slate-500" />
-                            <p className="text-xs font-bold text-slate-500 truncate max-w-[140px] transition-colors">{u.email}</p>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Fingerprint size={12} className="text-slate-400" />
-                            <p className="text-xs font-mono text-slate-400 transition-colors uppercase tracking-tight">{u.idNumber || 'No ID'}</p>
-                            <span className={clsx(
-                              "text-[10px] font-black uppercase tracking-widest",
-                              u.role === UserRole.SUPERADMIN ? "text-red-500" : 
-                              u.role === UserRole.ADMIN ? "text-red-400" : 
-                              u.role === UserRole.EDITOR ? "text-blue-400" : 
-                              "text-green-500"
-                            )}>{u.role}</span>
-                          </div>
-                        </div>
-                     </div>
-                   </div>
-                   
-                   {/* Middle Stats Section */}
-                   <div className="grid grid-cols-2 gap-2 mb-2">
-                      <div className="bg-[#161e31] p-3 rounded-lg flex items-center gap-2 border border-slate-800 transition-colors">
-                         <Shield size={14} className="text-red-500" />
-                         <span className="text-[11px] font-black text-slate-100">{u.bloodGroup} Group</span>
+        {/* Mobile View */}
+        <div className="lg:hidden space-y-4 pb-20">
+           {filteredUsers.map((u) => {
+              const count = userRankMap[u.id] || 0;
+              const rank = getBadgeData(u);
+              return (
+                <Card key={u.id} className="p-3 sm:p-4 rounded-[2rem] border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 transition-colors">
+                   <div className="flex items-start gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
+                      <div className={clsx(
+                        "w-12 h-12 flex-none rounded-xl overflow-hidden shadow-sm flex items-center justify-center relative transition-all",
+                        rank ? `ring-2 ${rank.color.replace('text-', 'ring-')} ring-offset-2 dark:ring-offset-slate-900` : "bg-slate-100 border border-slate-200 dark:border-slate-700 dark:bg-slate-800"
+                      )}>
+                        {u.avatar ? <img src={u.avatar} className="w-full h-full object-cover" /> : <UserIcon size={24} className="text-slate-300 dark:text-slate-600" />}
                       </div>
-                      <div className="bg-[#161e31] p-3 rounded-lg flex items-center gap-2 border border-slate-800 transition-colors">
+                      <div className="flex-1 min-w-0 pt-0.5">
+                         <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="font-black text-slate-900 dark:text-white text-base truncate transition-colors">{u.name}</p>
+                            {(() => {
+                              const badgeClr = getBadgeData(u)?.color;
+                              return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={16} />;
+                            })()}
+                         </div>
+                         <div className="flex items-center gap-1.5 mt-0.5">
+                            <Mail size={12} className="text-slate-400 flex-shrink-0" />
+                            <p className="text-[11px] text-slate-500 font-bold truncate transition-colors">{u.email}</p>
+                         </div>
+                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                            <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 tracking-wider flex items-center gap-1"><Fingerprint size={10} className="text-slate-400"/>{u.idNumber || 'N/A'}</span>
+                            {rank && <div className={clsx("w-2 h-2 rounded-full", rank.color.replace('text-', 'bg-'))} title={rank.name} />}
+                         </div>
+                      </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-2 mt-3 p-2 bg-[#1a2335] rounded-xl border border-slate-800 shadow-inner">
+                      <div className="flex items-center gap-2">
+                         <ShieldCheck size={14} className="text-red-500" />
+                         <span className="text-[11px] font-bold text-slate-100 truncate">{u.bloodGroup || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
                          <MapPin size={14} className="text-blue-500" />
                          <span className="text-[11px] font-bold text-slate-100 truncate">{u.location}</span>
                       </div>
                    </div>
 
-                    {/* Footer Action Section */}
-                    <div className="flex flex-row items-stretch gap-2 mt-2 pt-2 border-t border-slate-800/50">
-                       {/* Role Selection Box */}
-                       <div className="flex-1 bg-[#161e31] px-3 py-2 rounded-lg border border-slate-800 flex flex-col justify-center gap-0.5">
-                          <div className="flex items-center gap-1.5 mb-1">
-                            <ShieldCheck size={10} className="text-slate-500" />
-                            <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none">Account Role</span>
-                          </div>
-                          <div className="relative">
-                            <select 
-                              value={u.role} 
-                              onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)} 
-                              disabled={(u.role === UserRole.SUPERADMIN && !isSuperAdminViewer) || (u.email === ADMIN_EMAIL)}
-                              className="w-full bg-transparent border-0 rounded px-1 py-0.5 font-black text-xs uppercase tracking-widest outline-none cursor-pointer text-white disabled:opacity-50 appearance-none pr-6"
-                            >
-                             {Object.values(UserRole).filter(r => r !== UserRole.SUPERADMIN || isSuperAdminViewer).map(r => (
-                               <option key={r} value={r} className="bg-slate-900">{r}</option>
-                             ))}
-                           </select>
-                           <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                             <MoreVertical size={12} />
-                           </div>
+                   {/* Footer Action Section */}
+                   <div className="flex flex-row items-stretch gap-2 mt-2 pt-2 border-t border-slate-800/50">
+                      {/* Role Selection Box */}
+                      <div className="flex-1 bg-[#161e31] px-2 py-1.5 rounded-lg border border-slate-800 flex flex-col justify-center gap-0.5">
+                         <div className="flex items-center gap-1.5 mb-1">
+                           <ShieldCheck size={10} className="text-slate-500" />
+                           <span className="text-[9px] font-black uppercase text-slate-500 tracking-widest leading-none">Account Role</span>
                          </div>
-                      </div>
-                      
-                      {/* Action Grid */}
-                      <div className="grid grid-cols-3 gap-1.5 self-center">
-                         {isSuperAdminViewer && (
-                           <button 
-                             onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })}
-                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-green-500 hover:bg-green-500/10 transition-all active:scale-90"
+                         <div className="relative">
+                           <select 
+                             value={u.role} 
+                             onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)} 
+                             disabled={(u.role === UserRole.SUPERADMIN && !isSuperAdminViewer) || (u.email === ADMIN_EMAIL)}
+                             className={clsx(
+                               "w-full bg-transparent border rounded px-2 py-1 font-black text-[9px] uppercase tracking-[0.1em] outline-none cursor-pointer disabled:opacity-50 appearance-none pr-6",
+                               u.role === UserRole.SUPERADMIN ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800" :
+                               u.role === UserRole.ADMIN ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800" :
+                               u.role === UserRole.EDITOR ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800" :
+                               "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800"
+                             )}
                            >
-                             <Settings size={14} />
-                           </button>
-                         )}
-                         <button 
-                           onClick={() => setSuspendUserId({id: u.id, current: !!u.isSuspended})} 
-                           disabled={u.role === UserRole.SUPERADMIN}
-                           className={clsx(
-                             "w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 transition-all active:scale-90",
-                             u.isSuspended ? "text-green-500 hover:bg-green-500/10" : "text-red-500 hover:bg-red-500/10"
-                           )}
-                         >
-                           <Ban size={14} />
-                         </button>
-                         <button 
-                           onClick={() => setEditUser(u)} 
-                           disabled={u.role === UserRole.SUPERADMIN && !isSuperAdminViewer}
-                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-blue-500 hover:bg-blue-500/10 transition-all active:scale-90"
-                         >
-                           <Edit2 size={14} />
-                         </button>
-                         <button 
-                           onClick={() => setPwdUser(u)} 
-                           disabled={!isSuperAdminViewer || (u.role === UserRole.SUPERADMIN && !isSuperAdminViewer)}
-                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-orange-500 hover:bg-orange-500/10 transition-all active:scale-90"
-                         >
-                           <Key size={14} />
-                         </button>
-                         <button 
-                           onClick={() => setDeleteUserId(u.id)} 
-                           disabled={u.role === UserRole.SUPERADMIN || u.email === admin?.email}
-                           className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
-                         >
-                           <Trash2 size={14} />
-                         </button>
-                         {admin?.role === UserRole.SUPERADMIN && (
-                           <button 
-                             onClick={() => { impersonateUser(u); showToast(`Logged in as ${u.name}`); navigate('/'); }}
-                             className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-indigo-500 hover:bg-indigo-500/10 transition-all active:scale-90"
-                           >
-                             <LogIn size={14} />
-                           </button>
-                         )}
-                      </div>
-                   </div>
-                 </Card>
+                            {Object.values(UserRole).filter(r => r !== UserRole.SUPERADMIN || isSuperAdminViewer).map(r => (
+                              <option key={r} value={r} className="bg-slate-900 text-white">{r}</option>
+                            ))}
+                          </select>
+                          <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                            <MoreVertical size={12} />
+                          </div>
+                        </div>
+                     </div>
+                     
+                     {/* Action Grid */}
+                     <div className="grid grid-cols-4 gap-1.5 self-center flex-none w-[140px]">
+                        {isSuperAdminViewer && (
+                          <button 
+                            onClick={() => navigate('/role-permissions', { state: { selectedUserId: u.id } })}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-green-500 hover:bg-green-500/10 transition-all active:scale-90"
+                          >
+                            <Settings size={14} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => navigate(`/admin/verify/${u.idNumber || u.phone}`, { state: { fromAdminUsers: true } })}
+                          title="Verify Identity"
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-indigo-500 hover:bg-indigo-500/10 transition-all active:scale-90"
+                        >
+                          <BadgeCheck size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setSuspendUserId({id: u.id, current: !!u.isSuspended})} 
+                          disabled={u.role === UserRole.SUPERADMIN}
+                          className={clsx(
+                            "w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 transition-all active:scale-90",
+                            u.isSuspended ? "text-green-500 hover:bg-green-500/10" : "text-red-500 hover:bg-red-500/10"
+                          )}
+                        >
+                          <Ban size={14} />
+                        </button>
+                        {admin?.role === UserRole.SUPERADMIN && (
+                          <button 
+                            onClick={() => { impersonateUser(u); showToast(`Logged in as ${u.name}`); navigate('/'); }}
+                            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-indigo-500 hover:bg-indigo-500/10 transition-all active:scale-90"
+                          >
+                            <LogIn size={14} />
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => setEditUser(u)} 
+                          disabled={u.role === UserRole.SUPERADMIN && !isSuperAdminViewer}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-blue-500 hover:bg-blue-500/10 transition-all active:scale-90"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setPwdUser(u)} 
+                          disabled={!isSuperAdminViewer || (u.role === UserRole.SUPERADMIN && !isSuperAdminViewer)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-orange-500 hover:bg-orange-500/10 transition-all active:scale-90"
+                        >
+                          <Key size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setDeleteUserId(u.id)} 
+                          disabled={u.role === UserRole.SUPERADMIN || u.email === admin?.email}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-900 border border-slate-800 text-red-500 hover:bg-red-500/10 transition-all active:scale-90"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                     </div>
+                  </div>
+                </Card>
+
                );
              })}
           </div>
@@ -715,8 +749,8 @@ export const AdminUserManagement = () => {
 
       {activeTab === 'access-hub' && (
         <div className="space-y-4">
-           <div className="flex flex-col lg:flex-row gap-4 bg-white dark:bg-slate-900 p-2 sm:p-3 rounded-2xl sm:rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
-              <div className="relative flex-1 group">
+           <div className="flex flex-col lg:flex-row gap-4 bg-white dark:bg-slate-900 p-2 rounded-sm border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
+              <div className="relative w-full lg:w-[30%] flex-none group">
                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-red-600 transition-colors" size={18} />
                  <input 
                    type="text" 
@@ -727,20 +761,21 @@ export const AdminUserManagement = () => {
                  />
               </div>
               
-              <div className="flex flex-row gap-2 w-full overflow-hidden">
-                 <div className="flex-1 flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
+              <div className="flex flex-row gap-2 w-full lg:w-[70%] flex-none">
+                 <div className="w-1/2 flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
                     {[
                       { id: 'ALL', label: 'All Types', icon: Layout },
                       { id: 'directory', label: 'Directory', icon: Search },
                       { id: 'support', label: 'Support', icon: LifeBuoy },
                       { id: 'feedback', label: 'Feedback', icon: MessageSquare },
-                      { id: 'idcard', label: 'ID Card', icon: IdCard }
+                      { id: 'idcard', label: 'ID Card', icon: IdCard },
+                      { id: 'requested_donor', label: 'Req. Donor', icon: Droplet }
                     ].map((t) => (
                       <button 
                         key={t.id} 
                         onClick={() => setAccessTypeFilter(t.id)}
                         className={clsx(
-                          "flex-1 px-3 sm:px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2",
+                          "flex-1 px-2 sm:px-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2",
                           accessTypeFilter === t.id ? "bg-white dark:bg-slate-900 shadow-sm text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400"
                         )}
                         title={t.label}
@@ -751,7 +786,7 @@ export const AdminUserManagement = () => {
                     ))}
                  </div>
 
-                 <div className="flex-1 flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
+                 <div className="w-1/2 flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shadow-inner border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
                     {[
                       { id: 'ALL', label: 'All Status', icon: Filter },
                       { id: 'REQUESTED', label: 'Pending', icon: UserCheck },
@@ -762,7 +797,7 @@ export const AdminUserManagement = () => {
                         key={s.id} 
                         onClick={() => setAccessStatusFilter(s.id)}
                         className={clsx(
-                          "flex-1 px-3 sm:px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2",
+                          "flex-1 px-2 sm:px-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center justify-center gap-2",
                           accessStatusFilter === s.id ? "bg-white dark:bg-slate-900 shadow-sm text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400"
                         )}
                         title={s.label}

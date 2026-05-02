@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import { addNotice, updateNotice, subscribeToNotices, deleteNotice, getUsers, getAppPermissions, ADMIN_EMAIL } from '../../services/api';
 import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../../components/UI';
@@ -14,14 +14,18 @@ export const MyNotice = () => {
   const { user } = useAuth();
   const { toastState, showToast, hideToast } = useToast();
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [editModeId, setEditModeId] = useState<string | null>(null);
   const [deleteNoticeId, setDeleteNoticeId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [perms, setPerms] = useState<AppPermissions | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<'PUBLIC' | 'PRIVATE' | 'WEB'>((location.state as any)?.tab || 'PUBLIC');
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'PUBLIC' | 'PRIVATE' | 'WEB'>('PUBLIC');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [viewedNotice, setViewedNotice] = useState<Notice | null>(null);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const [subject, setSubject] = useState('');
@@ -31,6 +35,7 @@ export const MyNotice = () => {
 
   useEffect(() => {
     getAppPermissions().then(setPerms);
+    getUsers().then(setUsers); // Fetch users
     const unsubscribe = subscribeToNotices((data) => {
       setNotices(data);
       setLoading(false);
@@ -40,6 +45,20 @@ export const MyNotice = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!loading && notices.length > 0) {
+      const state = location.state as any;
+      if (state?.viewNoticeId) {
+        const noticeToView = notices.find(n => n.id === state.viewNoticeId);
+        if (noticeToView) {
+          setViewedNotice(noticeToView);
+        }
+        // clear the state after viewing
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [loading, notices, location.state, navigate, location.pathname]);
 
   const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || (user?.email || '').trim().toLowerCase() === ADMIN_EMAIL;
   
@@ -161,16 +180,16 @@ export const MyNotice = () => {
   const privateCount = notices.filter(n => n.type === 'PRIVATE').length;
 
   return (
-    <div className="max-w-7xl mx-auto pb-20 px-4 animate-in fade-in duration-500 transition-colors">
+    <div className="max-w-7xl mx-auto pb-10 animate-in fade-in duration-500 transition-colors">
       <Toast {...toastState} onClose={hideToast} />
       <ConfirmModal isOpen={!!deleteNoticeId} onClose={() => setDeleteNoticeId(null)} onConfirm={confirmDelete} title="Delete Note?" message="This note will be moved to system archives." />
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pt-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 mb-4 pt-2">
         <div>
            <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight flex items-center gap-2 transition-colors">
              Official Board
            </h1>
-           <div className="flex items-center gap-6 mt-4 border-b border-slate-200 dark:border-slate-800 transition-colors">
+           <div className="flex items-center gap-3 mt-2 border-b border-slate-200 dark:border-slate-800 transition-colors">
               <TabButton type="PUBLIC" label={`Public (${publicCount})`} />
               <TabButton type="WEB" label={`Web Notice (${webCount})`} />
               {isStaff && <TabButton type="PRIVATE" label={`Private (${privateCount})`} />}
@@ -187,8 +206,8 @@ export const MyNotice = () => {
         )}
       </div>
 
-      <div className="flex flex-col sm:flex-row items-center gap-4 mb-10 bg-white/50 dark:bg-slate-900/50 p-2 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors">
-        <div className="relative flex-1 group w-full">
+      <div className="flex items-center gap-2 mb-5 bg-white/50 dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm transition-colors flex-wrap sm:flex-nowrap">
+        <div className="relative flex-1 group w-full min-w-[200px]">
            <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-600 group-focus-within:text-blue-500 transition-colors" />
            <input 
              type="text" 
@@ -200,7 +219,7 @@ export const MyNotice = () => {
         </div>
         <button 
           onClick={() => setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc')}
-          className="flex items-center gap-2 px-4 py-2 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all shadow-sm border border-slate-100 dark:border-slate-800"
+          className="flex items-center gap-2 px-4 py-2.5 text-[10px] font-black uppercase text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 rounded-xl transition-all shadow-sm border border-slate-100 dark:border-slate-800 w-full sm:w-auto"
         >
           <ListFilter size={14} /> Sort: {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
         </button>
@@ -211,25 +230,91 @@ export const MyNotice = () => {
            <LayoutGrid className="animate-pulse mb-4 text-slate-400 dark:text-slate-500" size={48} />
            <p className="font-black uppercase text-xs tracking-widest text-slate-400 dark:text-slate-500">Syncing Nodes...</p>
         </div>
+      ) : viewedNotice ? (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-100 dark:border-slate-700">
+                {viewedNotice.authorAvatar ? <img src={viewedNotice.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2.5 text-slate-300 dark:text-slate-600 w-full h-full" />}
+              </div>
+              <div>
+                <h2 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-1.5 ">
+                  {viewedNotice.authorName}
+                  {(() => {
+                    const author = users.find(u => u.id === viewedNotice.authorId);
+                    if (!author) return null;
+                    
+                    if (author.role === UserRole.SUPERADMIN) {
+                      return <ShieldCheck size={16} className="text-emerald-500" />;
+                    }
+
+                    const colorMap: Record<string, string> = {
+                      pink: 'text-stone-400',       // Silver
+                      red: 'text-amber-500',        // Gold
+                      green: 'text-cyan-500',       // Platinum
+                      blue: 'text-indigo-600'       // Diamond
+                    };
+                    return author.approvedBadge ? (
+                       <ShieldCheck size={16} className={colorMap[author.approvedBadge] || 'text-slate-400'} />
+                    ) : null;
+                  })()}
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(viewedNotice.timestamp).toLocaleDateString('en-GB')}</p>
+              </div>
+            </div>
+            <Button onClick={() => setViewedNotice(null)} className="rounded-xl px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-950 font-bold dark:bg-slate-800 dark:text-white">Close</Button>
+          </div>
+          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">{viewedNotice.subject}</h1>
+          <div dangerouslySetInnerHTML={{ __html: viewedNotice.details }} className="text-sm text-slate-700 dark:text-slate-200 prose prose-slate max-w-none mb-6" />
+        </div>
       ) : (
         <div className="space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredNotices.map(n => (
-              <NoteCard key={n.id} note={n} onEdit={startEdit} onDelete={(id) => setDeleteNoticeId(id)} isStaff={canPost} />
-            ))}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm text-left">
+              <thead className="text-xs text-slate-700 uppercase bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
+                <tr>
+                  <th scope="col" className="px-1 py-1.5 hidden sm:table-cell">Sl.</th>
+                  <th scope="col" className="px-1 py-1.5 w-full sm:w-3/4">Notice</th>
+                  <th scope="col" className="px-1 py-1.5 hidden md:table-cell text-nowrap">Publish Date</th>
+                  <th scope="col" className="px-1 py-1.5 text-nowrap">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredNotices.map((n, index) => (
+                  <tr key={n.id} className="bg-white border-b dark:bg-slate-900 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <td className="px-1 py-1.5 font-medium text-slate-900 dark:text-white hidden sm:table-cell">{index + 1}</td>
+                    <td className="px-1 py-1.5 text-slate-900 dark:text-white">
+                      <div className="font-semibold text-[15px]">{n.subject}</div>
+                      <div className="text-xs text-slate-500 md:hidden mt-1">{new Date(n.timestamp).toLocaleDateString('en-GB')}</div>
+                    </td>
+                    <td className="px-1 py-1.5 hidden md:table-cell text-nowrap">{new Date(n.timestamp).toLocaleDateString('en-GB')}</td>
+                    <td className="px-1 py-1.5 flex items-center gap-2">
+                       <button onClick={() => setViewedNotice(n)} className="text-blue-600 hover:underline font-bold text-xs">View</button>
+                      {isStaff && (
+                        <>
+                          <button onClick={() => startEdit(n)} className="text-slate-500 hover:text-blue-600"><Edit2 size={16}/></button>
+                          <button onClick={() => setDeleteNoticeId(n.id)} className="text-slate-500 hover:text-red-600"><Trash2 size={16}/></button>
+                        </>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
             {filteredNotices.length === 0 && (
-              <div className="col-span-full py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
+              <div className="py-24 text-center border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-sm bg-slate-50/50 dark:bg-slate-900/50 transition-colors">
                 <Newspaper size={48} className="mx-auto text-slate-200 dark:text-slate-800 mb-4" />
                 <p className="text-slate-400 dark:text-slate-600 font-bold italic text-sm">No notices found in this category.</p>
               </div>
             )}
-          </div>
         </div>
       )}
 
       {showCreate && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
-           <Card className="w-full max-w-3xl bg-white dark:bg-slate-900 border-0 shadow-2xl rounded-[1.5rem] overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors">
+           <Card className="w-full max-w-3xl max-h-[95vh] overflow-y-auto bg-white dark:bg-slate-900 border-0 shadow-2xl rounded-[1.5rem] overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors">
               <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-center relative transition-colors">
                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{editModeId ? 'Refine Note' : 'New Note'}</h2>
                  <button onClick={() => { setShowCreate(false); resetEditor(); }} className="absolute right-4 p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all text-slate-500"><X size={18}/></button>
@@ -293,10 +378,11 @@ export const MyNotice = () => {
                           <FontIcon size={14} className="text-slate-500 dark:text-slate-400 mr-2" />
                           <select 
                             onChange={(e) => applyStyle('fontSize', e.target.value)}
+                            defaultValue="3"
                             className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer py-1 text-slate-700 dark:text-slate-300"
                           >
                             <option value="1" className="dark:bg-slate-800">Small</option>
-                            <option value="3" selected className="dark:bg-slate-800">Normal</option>
+                            <option value="3" className="dark:bg-slate-800">Normal</option>
                             <option value="5" className="dark:bg-slate-800">Large</option>
                             <option value="7" className="dark:bg-slate-800">Huge</option>
                           </select>
@@ -337,7 +423,7 @@ interface NoteCardProps {
 
 const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, isStaff }) => (
   <Card className={clsx(
-    "p-6 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 rounded-2xl group flex flex-col justify-between border-t-2 relative",
+    "p-4 border-0 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-slate-900 rounded-2xl group flex flex-col justify-between border-t-2 relative",
     note.pinned ? "border-blue-600 shadow-blue-50 dark:shadow-none" : "border-transparent hover:border-blue-500 dark:border-slate-800"
   )}>
      {note.pinned && (
@@ -383,7 +469,26 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, isStaff }) 
           </Badge>
           {note.pinned && <Badge color="yellow" className="text-[8px] py-0.5 px-2 rounded-md ring-1 ring-current">PINNED</Badge>}
         </div>
-        <span className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest transition-colors">REF-{note.id.substring(0, 5)}</span>
+        <button onClick={() => {
+          const win = window.open("", "_blank", "width=800,height=600");
+          win?.document.write(`
+            <html>
+              <head>
+                <title>${note.subject}</title>
+                <style>
+                  body { font-family: sans-serif; padding: 20px; }
+                  .header { background-color: #003366; color: white; padding: 10px; font-weight: bold; margin-bottom: 20px; }
+                  .details { margin-bottom: 20px; }
+                </style>
+              </head>
+              <body>
+                <div class="header">${note.subject}</div>
+                <div class="details">${note.details}</div>
+                <button onclick="window.print()">Print</button>
+              </body>
+            </html>
+          `);
+        }} className="text-[9px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest transition-colors">VIEW</button>
      </div>
   </Card>
 );
@@ -391,6 +496,7 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, onEdit, onDelete, isStaff }) 
 const ToolbarButton = ({ icon: Icon, label, onClick, className, title }: any) => (
   <button 
     type="button" 
+    onMouseDown={(e) => e.preventDefault()}
     onClick={onClick}
     title={title}
     className={clsx(

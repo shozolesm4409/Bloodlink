@@ -21,6 +21,8 @@ import { MyDonations } from './pages/Users/MyDonations';
 import { SupportCenter } from './pages/Users/SupportCenter';
 import { DonationFeedbackPage, FeedbackApprovalPage, PublicFeedbackPage } from './pages/Users/Feedback';
 import { MyNotice } from './pages/Users/MyNotice';
+import { RequestedDonor } from './pages/Users/RequestedDonor';
+import { UserNotifications } from './pages/Users/Notifications';
 import { AdminIDCards } from './pages/Admin/AdminIDCards';
 import { VerifyMember } from './pages/Webpage/VerifyMember';
 import { AdminVerificationHistory } from './pages/Admin/AdminVerificationHistory';
@@ -31,6 +33,7 @@ import { PublicNotices } from './pages/Webpage/PublicNotices';
 import { NoticeDetail } from './pages/Webpage/NoticeDetail';
 import { PublicFaqs } from './pages/Webpage/PublicFaqs';
 import { AdminFaqs } from './pages/Admin/AdminFaqs';
+import { BadgeManage } from './pages/Admin/BadgeManage';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
 import { ThemeProvider } from './ThemeContext';
@@ -112,8 +115,10 @@ const App = () => {
           <Route path="/directory" element={<ProtectedRoute requiredPermission="donors"><DonorDirectory /></ProtectedRoute>} />
           
           <Route path="/support" element={<ProtectedRoute><SupportCenter /></ProtectedRoute>} />
+          <Route path="/requested-donor" element={<ProtectedRoute><RequestedDonor /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><DonationFeedbackPage /></ProtectedRoute>} />
           <Route path="/notices" element={<ProtectedRoute><MyNotice /></ProtectedRoute>} />
+          <Route path="/user-notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute>} />
 
           <Route path="/summary" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="summary"><AdminSummary /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="users"><AdminUserManagement /></ProtectedRoute>} />
@@ -123,6 +128,7 @@ const App = () => {
           <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="helpCenterManage"><AdminHelpCenter /></ProtectedRoute>} />
           <Route path="/moderate-faqs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPERADMIN]} requiredPermission="moderateFaqs"><AdminFaqs /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="notifications"><AdminPermissions /></ProtectedRoute>} />
+          <Route path="/badge-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="badgeManage"><BadgeManage /></ProtectedRoute>} />
           
           {/* Admin Integrated Verification Routes */}
           <Route path="/admin/verify/:idNumber?" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="adminVerify"><VerifyMember /></ProtectedRoute>} />
