@@ -48,7 +48,10 @@ import {
   NoticeType,
   RolePermissions,
   RevokedPermission,
-  BloodRequest
+  BloodRequest,
+  BadgeConfig,
+  UserNotification,
+  SocialMediaConfig
 } from "../types";
 
 export const ADMIN_EMAIL = "shozolesm4409@gmail.com";
@@ -68,13 +71,15 @@ const COLLECTIONS = {
   FAQS: 'faqs',
   BLOOD_REQUESTS: 'blood_requests',
   DELETED_USERS: 'deleted_users', // Changed from 'archived_users'
+  SOCIAL_MEDIA: 'social_media',
   DELETED_DONATIONS: 'deleted_donations',
   DELETED_LOGS: 'deleted_logs',
   DELETED_FEEDBACKS: 'deleted_feedbacks',
   DELETED_NOTICES: 'deleted_notices',
   DELETED_HELP_REQUESTS: 'deleted_help_requests',
   DELETED_VERIFICATION_LOGS: 'deleted_verification_logs',
-  REVOKED_PERMISSIONS: 'revoked_permissions'
+  REVOKED_PERMISSIONS: 'revoked_permissions',
+  USER_NOTIFICATIONS: 'user_notifications'
 };
 
 // --- Helpers ---
@@ -484,6 +489,11 @@ export const getAllFeedbacks = async (): Promise<DonationFeedback[]> => {
   return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as DonationFeedback));
 };
 
+export const getFeedbackById = async (id: string): Promise<DonationFeedback | null> => {
+  const snap = await getDoc(doc(db, COLLECTIONS.FEEDBACKS, id));
+  return snap.exists() ? { ...snap.data(), id: snap.id } as DonationFeedback : null;
+};
+
 export const getUserFeedbacks = async (userId: string): Promise<DonationFeedback[]> => {
   const q = query(collection(db, COLLECTIONS.FEEDBACKS), where('userId', '==', userId));
   const snap = await getDocs(q);
@@ -565,12 +575,48 @@ export const permanentlyDeleteArchivedFeedback = async (id: string, user: User) 
 export const getWebNotices = async (): Promise<Notice[]> => {
   const q = query(collection(db, COLLECTIONS.NOTICES), where('type', '==', NoticeType.WEB));
   const snap = await getDocs(q);
-  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notice));
+  const notices = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as Notice));
+  
+  // Join user data
+  try {
+    const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS));
+    const userMap = new Map();
+    usersSnap.docs.forEach(d => userMap.set(d.id, d.data()));
+    
+    return notices.map(n => {
+      const u = userMap.get(n.authorId);
+      if (u) {
+        return {
+          ...n,
+          authorApprovedBadge: u.approvedBadge || n.authorApprovedBadge,
+          authorRole: u.role || n.authorRole
+        };
+      }
+      return n;
+    });
+  } catch (e) {
+    console.error("Failed to map users to notices:", e);
+    return notices;
+  }
 };
 
 export const getNoticeById = async (id: string): Promise<Notice | null> => {
   const snap = await getDoc(doc(db, COLLECTIONS.NOTICES, id));
-  return snap.exists() ? { ...snap.data(), id: snap.id } as Notice : null;
+  if (!snap.exists()) return null;
+  const notice = { ...snap.data(), id: snap.id } as Notice;
+  
+  try {
+    const userSnap = await getDoc(doc(db, COLLECTIONS.USERS, notice.authorId));
+    if (userSnap.exists()) {
+      const u = userSnap.data();
+      notice.authorApprovedBadge = u.approvedBadge || notice.authorApprovedBadge;
+      notice.authorRole = u.role || notice.authorRole;
+    }
+  } catch (e) {
+    console.error("Failed to fetch author data for notice", e);
+  }
+  
+  return notice;
 };
 
 export const subscribeToNotices = (callback: (data: Notice[]) => void, onError?: (err: any) => void) => {
@@ -799,6 +845,23 @@ export const archiveVerificationLog = async (id: string) => {
   }
 };
 
+export const addUserNotification = async (notif: Omit<UserNotification, 'id' | 'timestamp' | 'read'>) => {
+  await addDoc(collection(db, COLLECTIONS.USER_NOTIFICATIONS), {
+    ...notif,
+    timestamp: new Date().toISOString(),
+    read: false
+  });
+};
+
+export const subscribeToUserNotifications = (userId: string, callback: (data: UserNotification[]) => void, onError?: (err: any) => void) => {
+  const q = query(collection(db, COLLECTIONS.USER_NOTIFICATIONS), where("userId", "==", userId));
+  return onSnapshot(q, (snap) => {
+    const data = snap.docs.map(d => ({ ...d.data(), id: d.id } as UserNotification));
+    data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    callback(data);
+  }, onError);
+};
+
 export const getDeletedVerificationLogs = async () => {
   const q = query(collection(db, COLLECTIONS.DELETED_VERIFICATION_LOGS), orderBy('deletedAt', 'desc'));
   const snap = await getDocs(q);
@@ -873,6 +936,29 @@ export const getLandingConfig = async (): Promise<LandingPageConfig | null> => {
 export const updateLandingConfig = async (config: LandingPageConfig, user: User) => {
   await setDoc(doc(db, COLLECTIONS.SETTINGS, 'landing'), config);
   await createLog('CONFIG_UPDATE', user.id, user.name, 'Updated landing page configuration');
+};
+
+export const getBadgeConfig = async (): Promise<BadgeConfig | null> => {
+  const snap = await getDoc(doc(db, COLLECTIONS.SETTINGS, 'badges'));
+  if (snap.exists()) {
+    return snap.data() as BadgeConfig;
+  }
+  return null;
+};
+
+export const updateBadgeConfig = async (config: BadgeConfig, user: User) => {
+  await setDoc(doc(db, COLLECTIONS.SETTINGS, 'badges'), config);
+  await createLog('BADGE_CONFIG_UPDATE', user.id, user.name, 'Updated badge configuration metrics');
+};
+
+export const getSocialMediaConfig = async (): Promise<SocialMediaConfig | null> => {
+   const snap = await getDoc(doc(db, COLLECTIONS.SETTINGS, 'social_media'));
+   return snap.exists() ? snap.data() as SocialMediaConfig : { links: [] };
+};
+
+export const updateSocialMediaConfig = async (config: SocialMediaConfig, user: User) => {
+   await setDoc(doc(db, COLLECTIONS.SETTINGS, 'social_media'), config);
+   await createLog('SOCIAL_MEDIA_UPDATE', user.id, user.name, 'Updated social media configuration');
 };
 
 export const purgeAllArchivedUsers = async (admin: User) => {
@@ -1046,4 +1132,23 @@ export const deleteBloodRequest = async (requestId: string, user: User) => {
 
   await deleteDoc(reqRef);
   await createLog('DELETE_BLOOD_REQUEST', user.id, user.name, `Deleted blood request ${requestId}`);
+};
+
+export const closeBloodRequest = async (requestId: string, user: User, confirmedUserId?: string) => {
+  console.log("closeBloodRequest called with:", { requestId, userId: user.id, confirmedUserId });
+  const reqRef = doc(db, COLLECTIONS.BLOOD_REQUESTS, requestId);
+  const reqSnap = await getDoc(reqRef);
+  if (!reqSnap.exists()) throw new Error("Request not found");
+  
+  const reqData = reqSnap.data() as BloodRequest;
+  if (reqData.requesterId !== user.id && user.role !== 'SUPERADMIN' && user.role !== 'ADMIN') {
+     throw new Error("Permission denied");
+  }
+
+  await updateDoc(reqRef, { 
+    status: 'CLOSED',
+    confirmedUserId: confirmedUserId || null
+  });
+  console.log("Request closed successfully in Firestore");
+  await createLog('CLOSE_BLOOD_REQUEST', user.id, user.name, `Closed blood request ${requestId}${confirmedUserId ? ` (Confirmed donor: ${confirmedUserId})` : ''}`);
 };

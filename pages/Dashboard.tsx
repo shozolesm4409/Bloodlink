@@ -1,18 +1,41 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
+import { useSettings } from '../SettingsContext';
 import { UserRole, DonationRecord, DonationStatus, User, BloodGroup } from '../types';
-import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, handleRequestedDonorAccess, updateDonationStatus, ADMIN_EMAIL } from '../services/api';
+import { getDonations, getUserDonations, getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, handleRequestedDonorAccess, updateDonationStatus, ADMIN_EMAIL, subscribeToBloodRequests } from '../services/api';
 import { Card, Badge, Button, Toast, useToast } from '../components/UI';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
-import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint } from 'lucide-react';
+import { Droplet, Users, TrendingUp, Trophy, ArrowRight, CheckCircle, BellRing, Clock, ShieldCheck, Check, X, HeartPulse, History, Activity, Heart, Calendar, Award, Shield, Edit, User as UserIcon, UserCheck, ShieldCheck as ShieldIcon, IdCard, LayoutList, Fingerprint, MapPin, BadgeCheck } from 'lucide-react';
 import { useTheme } from '../ThemeContext';
 import * as ReactRouterDOM from 'react-router-dom';
 import clsx from 'clsx';
+import { getRankBadge } from './Users/Profile';
 
 const { Link } = ReactRouterDOM;
+
+const UserBadge = ({ user, size = 14 }: { user: any, size?: number }) => {
+  const { badgeConfig } = useSettings();
+  
+  if (!user.approvedBadge) return null;
+
+  const badgeColor = user.approvedBadge === 'pink' ? badgeConfig.silver?.color || 'text-slate-400' :
+                     user.approvedBadge === 'red' ? badgeConfig.gold?.color || 'text-amber-500' :
+                     user.approvedBadge === 'green' ? badgeConfig.platinum?.color || 'text-emerald-500' :
+                     user.approvedBadge === 'blue' ? badgeConfig.diamond?.color || 'text-cyan-500' :
+                     badgeConfig.verificationBadgeColor || 'text-blue-500';
+
+  return (
+      <BadgeCheck 
+        size={size} 
+        className={clsx(badgeColor)} 
+      />
+  );
+};
+
 export const Dashboard = () => {
   const { user } = useAuth();
+  const { badgeConfig } = useSettings();
   const { isDarkMode } = useTheme();
   const { toastState, showToast, hideToast } = useToast();
   const [userDonations, setUserDonations] = useState<DonationRecord[]>([]);
@@ -20,6 +43,7 @@ export const Dashboard = () => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [pendingItems, setPendingItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [matchingRequests, setMatchingRequests] = useState<any[]>([]);
 
   const isSuperAdmin = user?.role === UserRole.SUPERADMIN || (user?.email || '').trim().toLowerCase() === ADMIN_EMAIL;
   const isManagement = isSuperAdmin || user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR;
@@ -42,9 +66,17 @@ export const Dashboard = () => {
         const feedbackReqs = u.filter(usr => usr.feedbackAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'Feedback' }));
         const idCardReqs = u.filter(usr => usr.idCardAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'IDCard' }));
         const requestedDonorReqs = u.filter(usr => usr.requestedDonorAccessRequested).map(usr => ({ ...usr, type: 'ACCESS', accessType: 'Requested_Donor' }));
-        const donationReqs = globalDons.filter(don => don.status === DonationStatus.PENDING).map(don => ({ ...don, type: 'DONATION', accessType: 'Donation' }));
         
-        setPendingItems([...directoryReqs, ...supportReqs, ...feedbackReqs, ...idCardReqs, ...requestedDonorReqs, ...donationReqs].sort((a,b) => b.id.localeCompare(a.id)));
+        const donationReqs = globalDons.filter(don => don.status === DonationStatus.PENDING).map(don => {
+          const donor = u.find(usr => usr.id === don.userId);
+          // Ensure we pass essential user info for the badge
+          return { ...don, type: 'DONATION', accessType: 'Donation', approvedBadge: donor?.approvedBadge, role: donor?.role };
+        });
+        
+        // Combine all items and ensure they have necessary user info for badges where available
+        const allPending = [...directoryReqs, ...supportReqs, ...feedbackReqs, ...idCardReqs, ...requestedDonorReqs, ...donationReqs];
+        
+        setPendingItems(allPending.sort((a,b) => b.id.localeCompare(a.id)));
       }
     } catch (err) {
       console.error(err);
@@ -53,7 +85,18 @@ export const Dashboard = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, [user]);
+  useEffect(() => { 
+    fetchData(); 
+    
+    const unsubscribe = subscribeToBloodRequests((reqs) => {
+      if (user && !isManagement) {
+        const matching = reqs.filter(r => r.bloodGroup === user.bloodGroup && r.requesterId !== user.id && (r.status === 'OPEN' || !r.status)).slice(0, 3);
+        setMatchingRequests(matching);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleAction = async (itemId: string, type: string, accessType: string, approve: boolean) => {
     if (!user || !isManagement) return;
@@ -92,6 +135,7 @@ export const Dashboard = () => {
   })[0];
 
   const topHeroCount = allDonations.filter(d => d.userId === topHero?.id && d.status === DonationStatus.COMPLETED).length;
+  const topRank = getRankBadge(topHero, badgeConfig, topHeroCount);
 
   const roleData = [
     { name: 'Admin', value: allUsers.filter(u => u.role === UserRole.ADMIN).length, color: '#ef4444' },
@@ -106,65 +150,70 @@ export const Dashboard = () => {
   }));
 
   return (
-    <div className="space-y-10 animate-in fade-in duration-700">
+    <div className="space-y-6 animate-in fade-in duration-700">
       <Toast {...toastState} onClose={hideToast} />
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">Dashboard</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Monitoring system analytics and community activity.</p>
+          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">Dashboard</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-sm">Monitoring system analytics and community activity.</p>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Volume" value={`${globalCompleted.reduce((a,b)=>a+b.units,0)}ml`} icon={Droplet} color="text-red-600" bg="bg-red-50" />
-        <StatCard title="Total Donors" value={allUsers.length} icon={Users} color="text-blue-600" bg="bg-blue-50" />
-        <StatCard title="System Success" value={globalCompleted.length} icon={CheckCircle} color="text-green-600" bg="bg-green-50" />
-        <StatCard title="Queue Size" value={pendingItems.length} icon={LayoutList} color="text-orange-600" bg="bg-orange-50" />
-      </div>
-
-      {isSuperAdmin && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-green-50 dark:bg-green-950/20 text-green-600 dark:text-green-400 rounded-lg flex items-center justify-center"><UserIcon size={28} /></div>
-             <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Users</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.USER).length}</p>
-             </div>
-          </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-lg flex items-center justify-center"><ShieldIcon size={28} /></div>
-             <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Admin</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.ADMIN).length}</p>
-             </div>
-          </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-lg flex items-center justify-center"><Edit size={28} /></div>
-             <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Editor</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.EDITOR).length}</p>
-             </div>
-          </Card>
-          <Card className="p-4 lg:p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl flex flex-col lg:flex-row items-center gap-3 lg:gap-5 text-center lg:text-left">
-             <div className="w-12 h-12 lg:w-14 lg:h-14 bg-purple-50 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-lg flex items-center justify-center"><Fingerprint size={28} /></div>
-             <div>
-                <p className="text-[9px] lg:text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Total Super Admin</p>
-                <p className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-slate-100">{allUsers.filter(u => u.role === UserRole.SUPERADMIN).length}</p>
-             </div>
-          </Card>
+      {!isManagement && matchingRequests.length > 0 && (
+        <div className="animate-in slide-in-from-top-4 duration-500">
+           <Card className="p-4 lg:p-5 border-0 shadow-xl bg-red-600 text-white rounded-2xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl pointer-events-none"></div>
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="space-y-1 text-center md:text-left">
+                  <div className="inline-flex items-center gap-2 bg-white/20 px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest">Urgent Needs</div>
+                  <h3 className="text-xl font-black tracking-tighter">Matching Blood Requests</h3>
+                  <p className="text-red-100 font-medium text-xs">Someone near you needs <span className="font-black text-white">{user?.bloodGroup}</span> blood right now.</p>
+                </div>
+                <div className="flex flex-wrap justify-center gap-2 w-full md:w-auto">
+                   {matchingRequests.map(req => (
+                     <div key={req.id} className="bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/20 min-w-[180px]">
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-[10px] font-black uppercase text-red-200">{req.requesterName}</p>
+                          <Badge className="bg-white text-red-600 border-0 font-black text-[9px] py-0 px-1">{req.bloodGroup}</Badge>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[11px] font-bold mb-2">
+                          <MapPin size={12} className="text-white" /> {req.location}
+                        </div>
+                        <Link to="/requested-donor" className="block text-center py-1.5 bg-white text-red-600 rounded-lg font-black text-[9px] uppercase tracking-widest hover:bg-red-50 transition-colors shadow-md">View Request</Link>
+                     </div>
+                   ))}
+                </div>
+              </div>
+           </Card>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+        <StatCard title="Total Volume" value={`${globalCompleted.reduce((a,b)=>a+b.units,0)}ml`} icon={Droplet} color="text-red-600" />
+        <StatCard title="Total Donors" value={allUsers.length} icon={Users} color="text-blue-600" />
+        <StatCard title="Success Donation" value={globalCompleted.length} icon={CheckCircle} color="text-green-600" />
+        <StatCard title="Success Donors" value={new Set(globalCompleted.map(d => d.userId)).size} icon={LayoutList} color="text-orange-600" />
+      </div>
+
+      {isSuperAdmin && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+          <StatCard title="Total Users" value={allUsers.filter(u => u.role === UserRole.USER).length} icon={UserIcon} color="text-green-600" />
+          <StatCard title="Total Admin" value={allUsers.filter(u => u.role === UserRole.ADMIN).length} icon={ShieldIcon} color="text-red-600" />
+          <StatCard title="Total Editor" value={allUsers.filter(u => u.role === UserRole.EDITOR).length} icon={Edit} color="text-blue-600" />
+          <StatCard title="Total Super Admin" value={allUsers.filter(u => u.role === UserRole.SUPERADMIN).length} icon={Fingerprint} color="text-purple-600" />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           {isSuperAdmin && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="p-8 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3 uppercase tracking-widest"><Activity size={24} className="text-red-600 dark:text-red-400" /> Role Distribution</h3>
-                <div className="h-[250px]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-3 lg:p-4 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
+                <h3 className="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-widest"><Activity size={20} className="text-red-600 dark:text-red-400" /> Role Distribution</h3>
+                <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={roleData} innerRadius={60} outerRadius={80} paddingAngle={8} dataKey="value" stroke="none">
+                      <Pie data={roleData} innerRadius={50} outerRadius={70} paddingAngle={8} dataKey="value" stroke="none">
                         {roleData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                       </Pie>
                       <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: isDarkMode ? '#0f172a' : '#fff', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.15)', fontWeight: '900', color: isDarkMode ? '#f1f5f9' : '#0f172a' }} />
@@ -173,9 +222,9 @@ export const Dashboard = () => {
                 </div>
               </Card>
  
-              <Card className="p-8 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
-                <h3 className="text-lg font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3 uppercase tracking-widest"><Droplet size={24} className="text-blue-600 dark:text-blue-400" /> Blood Spread</h3>
-                <div className="h-[250px]">
+              <Card className="p-3 lg:p-4 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-xl">
+                <h3 className="text-base font-black text-slate-900 dark:text-white mb-4 flex items-center gap-2 uppercase tracking-widest"><Droplet size={20} className="text-blue-600 dark:text-blue-400" /> Blood Spread</h3>
+                <div className="h-[200px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={groupData}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDarkMode ? '#1e293b' : '#f1f5f9'} />
@@ -190,62 +239,62 @@ export const Dashboard = () => {
             </div>
           )}
 
-          <Card className="p-10 border-0 shadow-2xl bg-white dark:bg-slate-900 relative overflow-hidden rounded-xl">
+          <Card className="p-4 lg:p-5 border-0 shadow-2xl bg-white dark:bg-slate-900 relative overflow-hidden rounded-xl">
             <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-10">
-                <div className="p-2.5 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-lg">
-                  <ShieldCheck size={20} />
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-blue-50 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-lg">
+                  <ShieldCheck size={18} />
                 </div>
-                <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-widest">Health & Eligibility</h3>
+                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-widest">Health & Eligibility</h3>
               </div>
  
-              <div className="flex flex-col lg:flex-row gap-12">
-                <div className="flex-1 space-y-8">
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1 space-y-4">
                   <div className={clsx(
-                    "p-8 rounded-xl border-2 transition-all duration-500",
+                    "p-4 rounded-xl border-2 transition-all duration-500",
                     isEligible 
                       ? "bg-green-50 dark:bg-green-950/10 border-green-100 dark:border-green-900/30 ring-4 ring-green-50/50 dark:ring-green-900/20" 
                       : "bg-blue-50 dark:bg-blue-950/10 border-blue-100 dark:border-blue-900/30 ring-4 ring-blue-50/50 dark:ring-blue-900/20"
                   )}>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-2">Current Status</p>
-                    <p className={clsx("text-3xl font-black tracking-tighter mb-1", isEligible ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400")}>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-1">Current Status</p>
+                    <p className={clsx("text-2xl font-black tracking-tighter mb-1", isEligible ? "text-green-600 dark:text-green-400" : "text-blue-600 dark:text-blue-400")}>
                       {isEligible ? "ELIGIBLE TO DONATE" : "RESTING PERIOD"}
                     </p>
                     {!isEligible && (
-                      <p className="text-sm font-bold text-slate-500/80 dark:text-slate-400">
+                      <p className="text-xs font-bold text-slate-500/80 dark:text-slate-400">
                         Next blood donation possible in <span className="text-blue-600 dark:text-blue-400 font-black">{diffDays} days</span>.
                       </p>
                     )}
                   </div>
  
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-100 dark:border-slate-800">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Last Donated</p>
-                      <p className="text-lg font-black text-slate-900 dark:text-slate-100">{user?.lastDonationDate ? new Date(user.lastDonationDate).toLocaleDateString() : 'No Records'}</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-center lg:text-left">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">Last Donated</p>
+                      <p className="text-base font-black text-slate-900 dark:text-slate-100">{user?.lastDonationDate ? new Date(user.lastDonationDate).toLocaleDateString() : 'No Records'}</p>
                     </div>
-                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-6 rounded-lg border border-slate-100 dark:border-slate-800">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">Contribution</p>
-                      <p className="text-lg font-black text-slate-900 dark:text-slate-100">{completedCount} Times</p>
+                    <div className="bg-slate-50/50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-100 dark:border-slate-800 text-center lg:text-left">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">Contribution</p>
+                      <p className="text-base font-black text-slate-900 dark:text-slate-100">{completedCount} Times</p>
                     </div>
                   </div>
                 </div>
  
-                <div className="lg:w-48 flex flex-col items-center justify-center text-center space-y-6">
-                   <div className="relative w-32 h-32 flex items-center justify-center">
+                <div className="lg:w-40 flex flex-col items-center justify-center text-center space-y-4">
+                   <div className="relative w-24 h-24 flex items-center justify-center">
                       <Heart className={clsx("w-full h-full stroke-[1.5] transition-colors duration-500", isEligible ? "text-green-100 dark:text-green-950/30" : "text-blue-100 dark:text-blue-950/30")} />
-                      <Activity className={clsx("absolute text-red-600 animate-pulse", isEligible ? "opacity-100" : "opacity-30")} size={32} />
-                      <div className="absolute -bottom-2 right-0 bg-white dark:bg-slate-800 shadow-xl border border-slate-50 dark:border-slate-700 px-3 py-1 rounded-full flex items-center gap-1">
-                        <span className="text-xl font-black text-slate-900 dark:text-slate-100">{Math.round(progressPercent)}%</span>
+                      <Activity className={clsx("absolute text-red-600 animate-pulse", isEligible ? "opacity-100" : "opacity-30")} size={24} />
+                      <div className="absolute -bottom-1 right-0 bg-white dark:bg-slate-800 shadow-lg border border-slate-50 dark:border-slate-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        <span className="text-base font-black text-slate-900 dark:text-slate-100">{Math.round(progressPercent)}%</span>
                       </div>
                    </div>
-                   <div className="space-y-2">
-                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Recovery Progress</p>
-                     <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                   <div className="space-y-1.5 w-full">
+                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Recovery Progress</p>
+                     <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                        <div className={clsx("h-full transition-all duration-1000", isEligible ? "bg-green-500" : "bg-blue-500")} style={{ width: `${progressPercent}%` }} />
                      </div>
                    </div>
-                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed max-w-[150px]">
-                      মেডিকেল গাইডলাইন অনুযায়ী একবার রক্ত দেওয়ার পর শরীর স্বাভাবিক অবস্থায় ফিরতে ৩ মাস বা ৯০ দিন সময় লাগে।
+                   <p className="text-[9px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed max-w-[130px]">
+                      মেডিকেল গাইডলাইন অনুযায়ী ৩ মাস বা ৯০ দিন পর পুনরায় রক্ত দেওয়া যায়।
                    </p>
                 </div>
               </div>
@@ -253,76 +302,84 @@ export const Dashboard = () => {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-8">
+        <div className="lg:col-span-1 space-y-6">
           {isManagement && (
-            <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-xl">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="font-black text-slate-900 dark:text-white text-xs uppercase tracking-widest flex items-center gap-3"><BellRing className="text-red-600 dark:text-red-400" size={20} /> Recent Updates</h3>
-                {pendingItems.length > 0 && <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-l shadow-sm animate-pulse">{pendingItems.length}</span>}
+            <Card className="p-3 lg:p-4 border-0 shadow-xl bg-white dark:bg-slate-900 overflow-hidden rounded-xl">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-black text-slate-900 dark:text-white text-[10px] uppercase tracking-widest flex items-center gap-2"><BellRing className="text-red-600 dark:text-red-400" size={18} /> Queue Updates</h3>
+                {pendingItems.length > 0 && <span className="bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded shadow-sm animate-pulse">{pendingItems.length}</span>}
               </div>
-              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-[350px] overflow-y-auto pr-1 custom-scrollbar">
                 {pendingItems.slice(0, 10).map((item, idx) => (
-                  <div key={idx} className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-900/50 transition-colors">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 overflow-hidden flex items-center justify-center">
-                        {item.userAvatar || item.avatar ? <img src={item.userAvatar || item.avatar} className="w-full h-full object-cover" /> : <Droplet className="text-red-600 dark:text-red-400" size={20} />}
+                  <div key={idx} className="p-2 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-100 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-900/50 transition-colors">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 border border-slate-100 dark:border-slate-600 overflow-hidden flex items-center justify-center">
+                        {item.userAvatar || item.avatar ? <img src={item.userAvatar || item.avatar} className="w-full h-full object-cover" /> : <Droplet className="text-red-600 dark:text-red-400" size={16} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">{item.userName || item.name}</p>
-                        <Badge color={item.type === 'DONATION' || item.accessType === 'Requested_Donor' ? 'red' : 'blue'} className="text-[8px] py-0 px-1.5">{item.accessType === 'IDCard' ? 'ID Card' : item.accessType.replace('_', ' ')} Request</Badge>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[10px] font-bold text-slate-900 dark:text-slate-100 truncate">{item.userName || item.name}</p>
+                          <UserBadge user={item} size={10} />
+                        </div>
+                        <Badge color={item.type === 'DONATION' || item.accessType === 'Requested_Donor' ? 'red' : 'blue'} className="text-[8px] py-0 px-1">{item.accessType === 'IDCard' ? 'ID Card' : (item.accessType || '').replace('_', ' ')}</Badge>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleAction(item.id, item.type, item.accessType, true)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-2 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-600 dark:hover:bg-green-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><Check size={16} /></button>
-                      <button onClick={() => handleAction(item.id, item.type, item.accessType, false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-2 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-600 dark:hover:bg-red-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><X size={16} /></button>
+                    <div className="flex gap-1.5">
+                      <button onClick={() => handleAction(item.id, item.type, item.accessType, true)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1 rounded-lg text-green-600 dark:text-green-400 hover:bg-green-600 dark:hover:bg-green-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><Check size={14} /></button>
+                      <button onClick={() => handleAction(item.id, item.type, item.accessType, false)} className="flex-1 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-1 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-600 dark:hover:bg-red-500 hover:text-white transition-all flex justify-center shadow-sm active:scale-90"><X size={14} /></button>
                     </div>
                   </div>
                 ))}
-                {pendingItems.length === 0 && <div className="text-center py-12 opacity-30 font-black uppercase text-[10px] dark:text-slate-500 transition-colors">Nothing pending</div>}
+                {pendingItems.length === 0 && <div className="text-center py-8 opacity-30 font-black uppercase text-[9px] dark:text-slate-500 transition-colors">Queue empty</div>}
               </div>
             </Card>
           )}
           
-          <Card className="p-10 bg-[#0F172A] dark:bg-slate-900 text-white border-0 shadow-2xl relative overflow-hidden rounded-xl group transition-colors">
-            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.2),transparent_70%)] pointer-events-none"></div>
+          <Card className="p-4 lg:p-5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-0 shadow-2xl relative overflow-hidden rounded-xl group transition-colors">
+            <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.05),transparent_70%)] pointer-events-none"></div>
             <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 rounded-full mb-10">
-                <Trophy size={16} className="text-yellow-500 fill-current" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500">Top Contributor</span>
+              <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-3 py-0.5 rounded-full mb-4">
+                <Trophy size={14} className="text-yellow-500 fill-current" />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-600 dark:text-yellow-500">Top Contributor</span>
               </div>
 
-              <div className="relative mb-6">
-                <div className="absolute -inset-4 bg-gradient-to-tr from-yellow-500 to-red-500 rounded-xl opacity-20 blur-xl group-hover:opacity-40 transition-opacity"></div>
-                <div className="w-32 h-32 bg-slate-800 rounded-xl flex items-center justify-center text-4xl font-black border-4 border-slate-800 shadow-2xl overflow-hidden relative z-10">
+              <div className="relative mb-3">
+                <div className="absolute -inset-3 bg-gradient-to-tr from-yellow-500 to-red-500 rounded-xl opacity-10 dark:opacity-20 blur-lg group-hover:opacity-30 transition-opacity"></div>
+                <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-xl flex items-center justify-center text-3xl font-black border-4 border-white dark:border-slate-800 shadow-2xl overflow-hidden relative z-10 transition-colors">
                   {topHero?.avatar ? (
                     <img src={topHero.avatar} className="w-full h-full object-cover" alt={topHero.name} />
                   ) : (
-                    <span className="text-slate-500">{topHero?.name?.charAt(0) || '?'}</span>
+                    <span className="text-slate-300 dark:text-slate-500 text-xl">{topHero?.name?.charAt(0) || '?'}</span>
                   )}
                 </div>
-                <div className="absolute -top-3 -right-3 bg-yellow-500 text-slate-900 w-10 h-10 rounded-lg flex items-center justify-center shadow-xl z-20 ring-4 ring-[#0F172A]">
-                  <Award size={20} />
-                </div>
+                {topRank && (
+                  <div className={clsx("absolute -top-2 -right-2 w-7 h-7 rounded-lg flex items-center justify-center shadow-xl z-20 ring-4 ring-white dark:ring-slate-900 transition-all", topRank.bg, topRank.color)}>
+                    <topRank.icon size={14} />
+                  </div>
+                )}
               </div>
 
-              <div className="space-y-1 mb-8">
-                <h4 className="text-2xl font-black tracking-tight group-hover:text-yellow-500 transition-colors">{topHero?.name || 'Loading...'}</h4>
+              <div className="space-y-0.5 mb-4">
+                <div className="flex items-center justify-center gap-1">
+                  <h4 className="text-lg font-black tracking-tight text-slate-900 dark:text-white group-hover:text-red-600 dark:group-hover:text-yellow-500 transition-colors">{topHero?.name || 'Loading...'}</h4>
+                  <UserBadge user={topHero} size={14} />
+                </div>
                 <div className="flex items-center justify-center gap-2">
-                   <Badge color="red" className="bg-red-500/20 text-red-400 border border-red-500/30 font-black">{topHero?.bloodGroup || 'N/A'}</Badge>
-                   <span className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{topHero?.location || 'Unknown'}</span>
+                   <Badge color="red" className="bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/20 font-black text-[9px] py-0 px-1.5 transition-colors">{topHero?.bloodGroup || 'N/A'}</Badge>
+                   <span className="text-slate-400 dark:text-slate-500 text-[9px] font-black uppercase tracking-widest transition-colors">{topHero?.location || 'Unknown'}</span>
                 </div>
-              </div>
+               </div>
 
-              <div className="w-full grid grid-cols-2 gap-4">
-                <div className="bg-slate-800/50 backdrop-blur-md p-4 rounded-lg border border-white/5">
-                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Total</p>
-                   <p className="text-xl font-black text-white">{topHeroCount}</p>
-                   <p className="text-[8px] font-bold text-slate-500">Donations</p>
+              <div className="w-full grid grid-cols-2 gap-2">
+                <div className="bg-slate-50 dark:bg-slate-800/50 backdrop-blur-md p-2 rounded-lg border border-slate-100 dark:border-white/5 transition-colors">
+                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Total</p>
+                   <p className="text-base font-black text-slate-900 dark:text-white transition-colors">{topHeroCount}</p>
+                   <p className="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase">Donations</p>
                 </div>
-                <div className="bg-slate-800/50 backdrop-blur-md p-4 rounded-lg border border-white/5">
-                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">Status</p>
-                   <p className="text-xl font-black text-yellow-500">HERO</p>
-                   <p className="text-[8px] font-bold text-slate-500">Rank #1</p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 backdrop-blur-md p-2 rounded-lg border border-slate-100 dark:border-white/5 transition-colors">
+                   <p className="text-[8px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-0.5">Status</p>
+                   <p className={clsx("text-base font-black transition-colors uppercase", topRank?.color || "text-yellow-600 dark:text-yellow-500")}>{topRank?.name || 'HERO'}</p>
+                   <p className="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase">Rank #1</p>
                 </div>
               </div>
             </div>
@@ -333,14 +390,20 @@ export const Dashboard = () => {
   );
 };
 
-const StatCard = ({ title, value, icon: Icon, color, bg }: any) => (
-  <Card className="p-3 lg:p-3 border-0 shadow-sm flex flex-col lg:flex-row items-center justify-center lg:justify-start gap-3 lg:gap-5 hover:shadow-md transition-all group rounded-xl text-center lg:text-left bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
-    <div className={clsx("p-3 lg:p-4 rounded-lg transition-transform group-hover:scale-110 shadow-inner", bg, "dark:bg-slate-800")}>
-      <Icon className={clsx("w-5 h-5 lg:w-6 lg:h-6", color, "fill-current dark:opacity-80")} />
+const StatCard = ({ title, value, icon: Icon, color }: any) => (
+  <Card className="p-2 sm:p-3 border-0 shadow-lg flex items-center gap-2 sm:gap-3 hover:shadow-2xl transition-all group rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 w-full">
+    <div className="w-9 h-9 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 shadow-inner transition-transform group-hover:scale-105">
+      <Icon className={clsx("w-4.5 h-4.5 sm:w-6 sm:h-6", color, "fill-current")} />
     </div>
-    <div>
-      <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.1em] lg:tracking-[0.2em] mb-1 leading-none transition-colors">{title}</p>
-      <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-slate-100 tracking-tighter transition-colors">{value}</p>
+    <div className="flex flex-col min-w-0">
+      <p className="text-[8px] sm:text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 sm:mb-1 leading-none truncate transition-colors">
+        {title}
+      </p>
+      <div className="flex items-baseline">
+        <p className="text-[17px] sm:text-2xl font-black text-slate-900 dark:text-white tracking-tighter truncate leading-none transition-colors">
+          {value}
+        </p>
+      </div>
     </div>
   </Card>
 );

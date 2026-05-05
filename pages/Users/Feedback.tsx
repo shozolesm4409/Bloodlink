@@ -1,6 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
+import { useSettings } from '../../SettingsContext';
 import { submitFeedback, getUserFeedbacks, getAllFeedbacks, updateFeedbackStatus, deleteFeedback, subscribeToApprovedFeedbacks, updateFeedbackMessage, toggleFeedbackVisibility, requestFeedbackAccess, getUsers } from '../../services/api';
 import { Card, Button, Input, Toast, useToast, Badge, ConfirmModal } from '../../components/UI';
 import { DonationFeedback, FeedbackStatus, UserRole, User } from '../../types';
@@ -142,6 +144,7 @@ export const DonationFeedbackPage = () => {
 
 export const FeedbackApprovalPage = () => {
   const { user } = useAuth();
+  const { badgeConfig } = useSettings();
   const { toastState, showToast, hideToast } = useToast();
   const [feedbacks, setFeedbacks] = useState<DonationFeedback[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,12 +308,13 @@ export const FeedbackApprovalPage = () => {
                          <div>
                             <p className="font-black text-slate-900 dark:text-white transition-colors leading-tight flex items-center gap-1">
                                {f.userName}
-                               {f.userApprovedBadge && <BadgeCheck size={14} className={
-                                 f.userApprovedBadge === 'pink' ? 'text-pink-500' :
-                                 f.userApprovedBadge === 'red' ? 'text-red-500' :
-                                 f.userApprovedBadge === 'green' ? 'text-green-500' :
-                                 'text-blue-500'
-                               } />}
+                               {f.userApprovedBadge && <BadgeCheck size={14} className={clsx(
+                                 f.userApprovedBadge === 'pink' ? badgeConfig.silver?.color || 'text-slate-400' :
+                                 f.userApprovedBadge === 'red' ? badgeConfig.gold?.color || 'text-amber-500' :
+                                 f.userApprovedBadge === 'green' ? badgeConfig.platinum?.color || 'text-emerald-500' :
+                                 f.userApprovedBadge === 'blue' ? badgeConfig.diamond?.color || 'text-cyan-500' :
+                                 badgeConfig.verificationBadgeColor || 'text-blue-500'
+                               )} />}
                             </p>
                             <p className="text-[8px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-widest mt-0.5">{new Date(f.timestamp).toLocaleDateString()}</p>
                          </div>
@@ -375,12 +379,13 @@ export const FeedbackApprovalPage = () => {
                    <div>
                       <h3 className="font-black text-slate-900 dark:text-white leading-tight text-xs flex items-center gap-1">
                          {f.userName}
-                         {f.userApprovedBadge && <BadgeCheck size={12} className={
-                           f.userApprovedBadge === 'pink' ? 'text-pink-500' :
-                           f.userApprovedBadge === 'red' ? 'text-red-500' :
-                           f.userApprovedBadge === 'green' ? 'text-green-500' :
-                           'text-blue-500'
-                         } />}
+                         {f.userApprovedBadge && <BadgeCheck size={12} className={clsx(
+                                 f.userApprovedBadge === 'pink' ? badgeConfig.silver?.color || 'text-slate-400' :
+                                 f.userApprovedBadge === 'red' ? badgeConfig.gold?.color || 'text-amber-500' :
+                                 f.userApprovedBadge === 'green' ? badgeConfig.platinum?.color || 'text-emerald-500' :
+                                 f.userApprovedBadge === 'blue' ? badgeConfig.diamond?.color || 'text-cyan-500' :
+                                 badgeConfig.verificationBadgeColor || 'text-blue-500'
+                               )} />}
                       </h3>
                       <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-0.5">{new Date(f.timestamp).toLocaleDateString()}</p>
                    </div>
@@ -443,6 +448,7 @@ export const FeedbackApprovalPage = () => {
 };
 
 export const PublicFeedbackPage = () => {
+  const { badgeConfig } = useSettings();
   const [feedbacks, setFeedbacks] = useState<DonationFeedback[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -467,36 +473,42 @@ export const PublicFeedbackPage = () => {
 
   return (
     <PublicLayout>
-      <div className="py-20 px-6 lg:px-10 bg-[#f8f9fa] dark:bg-slate-950 min-h-screen transition-colors">
+      <div className="py-4 px-3 lg:px-5 bg-[#f8f9fa] dark:bg-slate-950 min-h-screen transition-colors">
          <div className="max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
             <div className="text-center">
                <div className="w-20 h-20 bg-red-600 text-white rounded-sm flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-red-200 dark:shadow-red-900/30">
                   <MessageSquareQuote size={40} />
                </div>
-               <h1 className="text-4xl lg:text-6xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 transition-colors">Donor Voices</h1>
-               <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-2xl mx-auto transition-colors">Real stories from real heroes who are making a difference in the community.</p>
+               <h1 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 transition-colors">Donor Voices</h1>
+
             </div>
 
             {loading ? <div className="text-center py-20 opacity-30 font-black uppercase text-slate-400 dark:text-slate-600">Loading Stories...</div> : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                  {feedbacks.map(f => (
-                   <div key={f.id} className="bg-white dark:bg-slate-900 p-10 rounded-sm shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-50 dark:border-slate-800 flex flex-col hover:transform hover:-translate-y-2 transition-all duration-300">
-                      <Quote size={48} className="text-red-100 dark:text-red-900/20 fill-current mb-6" />
-                      <p className="text-slate-700 dark:text-slate-200 font-bold text-lg leading-relaxed mb-10 flex-1 transition-colors">"{f.message}"</p>
+                   <div key={f.id} className="bg-white dark:bg-slate-900 p-3 rounded-sm shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] border border-slate-50 dark:border-slate-800 flex flex-col hover:transform hover:-translate-y-2 transition-all duration-300">
+                      <Quote size={32} className="text-red-100 dark:text-red-900/20 fill-current mb-4" />
+                      <p className="text-slate-700 dark:text-slate-200 font-bold text-lg leading-relaxed mb-6 flex-1 transition-colors">
+                        "{f.message.length > 200 ? `${f.message.substring(0, 200)}...` : f.message}"
+                      </p>
+                      {f.message.length > 200 && (
+                        <Link to={`/public-feedbacks/${f.id}`} state={{ from: 'feedbacks' }} className="text-red-600 dark:text-red-400 font-bold hover:underline mb-6">View More</Link>
+                      )}
                       
-                      <div className="flex items-center gap-4 pt-8 border-t border-slate-50 dark:border-slate-800">
+                      <div className="flex items-center gap-4 pt-4 border-t border-slate-50 dark:border-slate-800">
                          <div className="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border-2 border-white dark:border-slate-800 shadow-md">
                             {f.userAvatar ? <img src={f.userAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-3 text-slate-300 dark:text-slate-600 w-full h-full" />}
                          </div>
                          <div>
                             <p className="font-black text-slate-900 dark:text-white text-lg leading-tight transition-colors flex items-center gap-2">
                                {f.userName}
-                               {f.userApprovedBadge && <BadgeCheck size={18} className={
-                                 f.userApprovedBadge === 'pink' ? 'text-pink-500' :
-                                 f.userApprovedBadge === 'red' ? 'text-red-500' :
-                                 f.userApprovedBadge === 'green' ? 'text-green-500' :
-                                 'text-blue-500'
-                               } />}
+                               {f.userApprovedBadge && <BadgeCheck size={18} className={clsx(
+                                 f.userApprovedBadge === 'pink' ? badgeConfig.silver?.color || 'text-slate-400' :
+                                 f.userApprovedBadge === 'red' ? badgeConfig.gold?.color || 'text-amber-500' :
+                                 f.userApprovedBadge === 'green' ? badgeConfig.platinum?.color || 'text-emerald-500' :
+                                 f.userApprovedBadge === 'blue' ? badgeConfig.diamond?.color || 'text-cyan-500' :
+                                 badgeConfig.verificationBadgeColor || 'text-blue-500'
+                               )} />}
                             </p>
                             <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 transition-colors">{new Date(f.timestamp).toLocaleDateString()}</p>
                          </div>

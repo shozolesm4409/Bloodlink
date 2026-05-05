@@ -18,7 +18,7 @@ const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [
   'canEditProfile', 'canViewDonorDirectory', 'canRequestDonation', 
   'canPerformAction', 'canLogDonation', 'canLogDonationForOthers', 
-  'canUseMessenger', 'canUseSystemSupport', 'canPostNotice'
+  'canUseMessenger', 'canUseSystemSupport', 'canPostNotice', 'canAssignVerificationBadge'
 ];
 
 export const AdminRolePermissions = () => {

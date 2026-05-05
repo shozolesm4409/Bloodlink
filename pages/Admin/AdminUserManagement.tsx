@@ -21,7 +21,7 @@ import {
 import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select, RoleBadge } from '../../components/UI';
 import { User, UserRole, BloodGroup, DonationStatus } from '../../types';
 import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter, LogIn, Mail, BadgeCheck, Droplet } from 'lucide-react';
-import { getBadgeData } from '../Users/Profile';
+import { getVerificationBadge, getRankBadge } from '../Users/Profile';
 import clsx from 'clsx';
 
 
@@ -140,9 +140,10 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
                <div className="flex items-center gap-2 mb-0.5">
                   <h3 className="text-lg font-black text-white truncate tracking-tight uppercase leading-none">{u.name}</h3>
                   {(() => {
-                    const badgeClr = getBadgeData(u)?.color;
+                    const badgeClr = getVerificationBadge(u)?.color;
                     return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={16} />;
                   })()}
+                  <RoleBadge role={u.role} />
                </div>
                <div className="flex items-center gap-2">
                   <Mail size={12} className="text-slate-500" />
@@ -511,6 +512,8 @@ export const AdminUserManagement = () => {
                       <th className="p-1">Profile</th>
                       <th className="p-1">BL ID</th>
                       <th className="p-1">Email</th>
+                      <th className="p-1 text-center">Group</th>
+                      <th className="p-1 text-center">Donation</th>
                       <th className="p-1 text-center">Role</th>
                       <th className="p-1 text-right">Actions</th>
                     </tr>
@@ -518,7 +521,7 @@ export const AdminUserManagement = () => {
               <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
                 {filteredUsers.map(u => {
                   const count = userRankMap[u.id] || 0;
-                  const rank = getBadgeData(u);
+                  const rank = getRankBadge(u, undefined, count);
                   
                   return (
                     <tr key={u.id} className={clsx("transition-colors", u.isSuspended ? "bg-red-50/50 dark:bg-red-950/20" : "hover:bg-slate-50 dark:hover:bg-slate-800")}>
@@ -535,7 +538,7 @@ export const AdminUserManagement = () => {
                             <div className="flex items-center gap-1">
                                <p className="font-black text-slate-900 dark:text-white transition-colors truncate text-xs">{u.name}</p>
                                {(() => {
-                                 const badgeClr = getBadgeData(u)?.color;
+                                 const badgeClr = getVerificationBadge(u)?.color;
                                  return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={14} />;
                                })()}
                                {rank && <div className={clsx("w-2 h-2 rounded-full", rank.color.replace('text-', 'bg-'))} title={rank.name} />}
@@ -548,6 +551,12 @@ export const AdminUserManagement = () => {
                         {u.idNumber || 'N/A'}
                       </td>
                       <td className="p-1 text-slate-400 dark:text-slate-500 font-bold text-xs truncate max-w-[150px]"> {u.email} </td>
+                      <td className="p-1 text-center">
+                        <Badge color="red" className="text-[10px] font-bold">{u.bloodGroup}</Badge>
+                      </td>
+                      <td className="p-1 text-center font-bold text-xs text-slate-600 dark:text-slate-300">
+                        {count}
+                      </td>
                       <td className="p-1 text-center">
                         <select 
                           value={u.role} 
@@ -610,7 +619,7 @@ export const AdminUserManagement = () => {
         <div className="lg:hidden space-y-4 pb-20">
            {filteredUsers.map((u) => {
               const count = userRankMap[u.id] || 0;
-              const rank = getBadgeData(u);
+              const rank = getRankBadge(u, undefined, count);
               return (
                 <Card key={u.id} className="p-3 sm:p-4 rounded-[2rem] border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 transition-colors">
                    <div className="flex items-start gap-4 border-b border-slate-100 dark:border-slate-800 pb-3">
@@ -624,7 +633,7 @@ export const AdminUserManagement = () => {
                          <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="font-black text-slate-900 dark:text-white text-base truncate transition-colors">{u.name}</p>
                             {(() => {
-                              const badgeClr = getBadgeData(u)?.color;
+                              const badgeClr = getVerificationBadge(u)?.color;
                               return badgeClr && <BadgeCheck className={clsx(badgeClr, "flex-shrink-0")} size={16} />;
                             })()}
                          </div>
@@ -639,7 +648,7 @@ export const AdminUserManagement = () => {
                       </div>
                    </div>
 
-                   <div className="grid grid-cols-2 gap-2 mt-3 p-2 bg-[#1a2335] rounded-xl border border-slate-800 shadow-inner">
+                   <div className="grid grid-cols-3 gap-2 mt-3 p-2 bg-[#1a2335] rounded-xl border border-slate-800 shadow-inner">
                       <div className="flex items-center gap-2">
                          <ShieldCheck size={14} className="text-red-500" />
                          <span className="text-[11px] font-bold text-slate-100 truncate">{u.bloodGroup || 'N/A'}</span>
@@ -647,6 +656,10 @@ export const AdminUserManagement = () => {
                       <div className="flex items-center gap-2">
                          <MapPin size={14} className="text-blue-500" />
                          <span className="text-[11px] font-bold text-slate-100 truncate">{u.location}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                         <Droplet size={14} className="text-red-500" />
+                         <span className="text-[11px] font-bold text-slate-100 truncate">{count} Times</span>
                       </div>
                    </div>
 

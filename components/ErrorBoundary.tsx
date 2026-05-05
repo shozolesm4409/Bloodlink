@@ -1,7 +1,9 @@
 
 import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Terminal } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ChevronDown, ChevronUp, Terminal, Bot, Settings, HelpCircle, Home } from 'lucide-react';
 import clsx from 'clsx';
+import { getLandingConfig } from '../services/api';
+import { LandingPageConfig } from '../types';
 
 interface Props {
   children?: ReactNode;
@@ -12,6 +14,7 @@ interface State {
   error: Error | null;
   errorInfo: ErrorInfo | null;
   showDetails: boolean;
+  config: LandingPageConfig | null;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -19,11 +22,27 @@ export class ErrorBoundary extends Component<Props, State> {
     hasError: false,
     error: null,
     errorInfo: null,
-    showDetails: false
+    showDetails: false,
+    config: null
   };
 
+  public componentDidMount() {
+    this.fetchConfig();
+  }
+
+  private async fetchConfig() {
+    try {
+      const config = await getLandingConfig();
+      if (config) {
+        this.setState({ config });
+      }
+    } catch (e) {
+      console.error("Failed to fetch landing config in ErrorBoundary", e);
+    }
+  }
+
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error, errorInfo: null, showDetails: false };
+    return { hasError: true, error, errorInfo: null, showDetails: false, config: null as any };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -32,43 +51,94 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public render() {
+    const { config } = this.state;
     if (this.state.hasError) {
+      const title = config?.errorTitle || 'কিছু ভুল হয়েছে';
+      const subtitle = config?.errorSubtitle || 'ওহ না! আপনার অনুরোধটি সম্পন্ন করতে একটি সমস্যা হয়েছে।';
+      const message = config?.errorMessage || 'দয়া করে কয়েক মুহূর্ত অপেক্ষা করুন এবং আবার চেষ্টা করুন।';
+      const tryAgainLabel = config?.errorTryAgainLabel || 'আবার চেষ্টা করুন';
+      const homeLabel = config?.errorHomeLabel || 'হোম পেজে ফিরে যান';
+      const footerText = config?.errorFooterText || 'আপনি এই পেজে ফিরে আসতে পারেন বা সার্চ চেষ্টা করতে পারেন।';
+
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6 selection:bg-red-100 selection:text-red-900 transition-colors">
-          <div className="max-w-2xl w-full">
-            {/* Visual Header */}
-            <div className="mb-12 text-center">
-              <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mb-6 animate-pulse">
-                <AlertTriangle size={48} strokeWidth={1.5} />
+        <div className="min-h-screen flex items-center justify-center bg-[#E6F3FF] dark:bg-slate-950 p-4 transition-colors overflow-x-hidden">
+          <div className="max-w-xl w-full flex flex-col items-center">
+            
+            {/* Title */}
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-6 text-center drop-shadow-sm">
+              {title}
+            </h1>
+
+            {/* Illustration Area */}
+            <div className="relative w-full aspect-[16/10] max-w-sm mb-6 flex items-center justify-center">
+              {/* Backglow/Background Element */}
+              <div className="absolute inset-0 bg-white/40 dark:bg-slate-900/40 rounded-[1.5rem] transform -rotate-1 skew-x-1"></div>
+              
+              {/* Complex Robot Illustration with Lucide Icons */}
+              <div className="relative z-10 flex flex-col items-center">
+                <div className="relative mb-4">
+                  <div className="relative z-20 w-28 h-28 bg-white dark:bg-slate-800 rounded-full flex items-center justify-center shadow-xl border-4 border-[#B8E2FF] dark:border-slate-700 overflow-hidden">
+                    <Bot size={70} className="text-slate-400 dark:text-slate-500 animate-bounce-slow" />
+                  </div>
+                  {/* Floating Gear Icons */}
+                  <Settings size={24} className="absolute -top-2 -left-6 text-slate-400 dark:text-slate-600 animate-spin-slow opacity-60" />
+                  <Settings size={18} className="absolute bottom-4 -right-8 text-slate-400 dark:text-slate-600 animate-spin-slow-reverse opacity-40" />
+                  
+                  {/* 404 Text - Enhanced visibility */}
+                  <div className="absolute top-1/2 -right-12 -translate-y-1/2 text-6xl font-black text-[#5CC48C]/40 dark:text-emerald-500/25 select-none tracking-tighter">
+                    404
+                  </div>
+                  
+                  {/* Question Bubble */}
+                  <div className="absolute -top-4 -right-4 bg-white dark:bg-slate-700 w-9 h-9 rounded-full flex items-center justify-center shadow-lg border-2 border-emerald-500/20">
+                     <HelpCircle size={22} className="text-[#5CC48C] dark:text-emerald-400" />
+                  </div>
+                </div>
+                
+                {/* Wiring lines abstraction */}
+                <div className="flex gap-4 mt-2">
+                   <div className="h-1 w-6 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                   <div className="h-1 w-10 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                   <div className="h-1 w-5 bg-slate-300 dark:bg-slate-700 rounded-full"></div>
+                </div>
               </div>
-              <h1 className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-4">
-                SOMETHING<br />WENT WRONG
-              </h1>
-              <p className="text-slate-500 dark:text-slate-400 font-medium text-lg max-w-md mx-auto">
-                The application encountered an unexpected state. Our team has been notified.
+            </div>
+
+            {/* Error Messages */}
+            <div className="text-center space-y-2 mb-8 w-full px-4">
+              <h2 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                {subtitle}
+              </h2>
+              <p className="text-slate-600 dark:text-slate-400 font-bold text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+                {message}
               </p>
             </div>
 
-            {/* Error Container */}
-            <div className="bg-white dark:bg-slate-900 border-2 border-slate-900 dark:border-white shadow-[8px_8px_0px_0px_rgba(15,23,42,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,0.1)] rounded-3xl overflow-hidden transition-all">
-              <div className="p-8">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="flex-1 inline-flex items-center justify-center gap-3 bg-red-600 text-white py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-red-700 active:scale-95 transition-all shadow-lg"
-                  >
-                    <RefreshCw size={18} className="animate-spin-slow" />
-                    Reload Application
-                  </button>
-                  <button
-                    onClick={() => window.location.href = '/'}
-                    className="flex-1 inline-flex items-center justify-center gap-3 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 active:scale-95 transition-all"
-                  >
-                    Return Home
-                  </button>
-                </div>
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-[#1B9E5A] hover:bg-[#16894d] text-white py-2.5 px-5 rounded-xl font-bold text-sm whitespace-nowrap transition-all shadow-lg active:scale-95"
+              >
+                <RefreshCw size={18} />
+                {tryAgainLabel}
+              </button>
+              <button
+                onClick={() => window.location.href = '/'}
+                className="flex-1 inline-flex items-center justify-center gap-2 bg-slate-600 hover:bg-slate-700 text-white py-2.5 px-5 rounded-xl font-bold text-sm whitespace-nowrap transition-all shadow-lg active:scale-95"
+              >
+                <Home size={18} />
+                {homeLabel}
+              </button>
+            </div>
 
-                <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+            {/* Footer Text */}
+            <p className="mt-6 text-[10px] sm:text-xs font-bold text-slate-500 dark:text-slate-500 text-center px-6">
+              {footerText}
+            </p>
+
+            {/* Diagnostics Toggle */}
+            <div className="mt-12 w-full pt-8 border-t border-slate-200 dark:border-slate-800">
                   <button 
                     onClick={() => this.setState(s => ({ showDetails: !s.showDetails }))}
                     className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 hover:text-slate-900 dark:text-slate-600 dark:hover:text-slate-300 transition-colors"
@@ -103,8 +173,6 @@ export class ErrorBoundary extends Component<Props, State> {
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
 
             <div className="mt-12 text-center">
               <p className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase tracking-widest">

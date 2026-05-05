@@ -111,20 +111,20 @@ export const HelpCenter = () => {
   );
 
   const content = (
-    <div className={clsx("flex flex-col items-center transition-colors", isAuthenticated ? "py-4" : "py-12 px-6 lg:py-20 bg-white dark:bg-slate-950 min-h-screen")}>
+    <div className={clsx("flex flex-col items-center transition-colors", isAuthenticated ? "py-2" : "py-2 px-2 lg:py-4 bg-white dark:bg-slate-950 min-h-screen")}>
       <Toast {...toastState} onClose={hideToast} />
       
       {isAuthenticated && (
-        <div className="w-full max-w-2xl mb-6 flex justify-between items-center">
+        <div className="w-full max-w-2xl mb-2 flex justify-between items-center">
             <button onClick={() => navigate('/support')} className="flex items-center gap-2 text-slate-500 dark:text-slate-400 font-bold hover:text-red-600 dark:hover:text-red-400 transition-colors text-sm">
                 <ArrowLeft size={18} /> Back to Support
             </button>
         </div>
       )}
 
-      <Card className="max-w-2xl w-full p-8 lg:p-12 border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] relative overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors">
-        <div className="text-center mb-10 relative z-10">
-          <div className="w-16 h-16 bg-red-600 dark:bg-red-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-200 dark:shadow-red-900/20 transition-colors">
+      <Card className="max-w-2xl w-full p-3 lg:p-5 border-0 shadow-2xl bg-white dark:bg-slate-900 rounded-[2.5rem] relative overflow-hidden border border-slate-100 dark:border-slate-800 transition-colors">
+        <div className="text-center mb-5 relative z-10">
+          <div className="w-16 h-16 bg-red-600 dark:bg-red-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-red-200 dark:shadow-red-900/20 transition-colors">
             <HelpCircle size={32} />
           </div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight transition-colors">Help Center</h1>

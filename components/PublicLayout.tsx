@@ -23,7 +23,7 @@ const NavIcon = ({ to, icon: Icon, label, currentPath }: NavIconProps) => {
   const isActive = currentPath === to;
   return (
     <Link to={to} className={clsx("flex flex-col items-center gap-1 p-2 transition-all", isActive ? "text-red-600 dark:text-red-500" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300")}>
-      <Icon size={20} className={isActive ? "fill-current" : ""} />
+      <Icon size={20} />
       <span className="text-[9px] font-black uppercase tracking-tight">{label}</span>
     </Link>
   );
@@ -50,7 +50,7 @@ const DesktopNavLink: React.FC<DesktopNavLinkProps> = ({ to, icon: Icon, label, 
         size={18} 
         className={clsx(
           "transition-colors", 
-          isActive ? "text-red-600 dark:text-red-500 fill-current" : "text-slate-400 dark:text-slate-600 group-hover:text-red-600 dark:group-hover:text-red-500"
+          isActive ? "text-red-600 dark:text-red-500" : "text-slate-400 dark:text-slate-600 group-hover:text-red-600 dark:group-hover:text-red-500"
         )} 
       />
       <span>{label}</span>
@@ -77,7 +77,8 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     navbarLinks: [{ label: 'Feedback', path: '/public-feedbacks' }],
     footerLinks: [{ label: 'Privacy Policy', path: '/privacy' }],
     footerCopyright: '© ২০২৬ BLOODLINK MANAGER',
-    footerTagline: 'প্রতিটি ফোঁটা একটি জীবনের আশা।'
+    footerTagline: 'প্রতিটি ফোঁটা একটি জীবনের আশা।',
+    softwareVersion: ''
   });
 
   useEffect(() => {
@@ -88,7 +89,8 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         navbarLinks: data.navbarLinks || prev.navbarLinks,
         footerLinks: data.footerLinks || prev.footerLinks,
         footerCopyright: data.footerCopyright || prev.footerCopyright,
-        footerTagline: data.footerTagline || prev.footerTagline
+        footerTagline: data.footerTagline || prev.footerTagline,
+        softwareVersion: data.softwareVersion || prev.softwareVersion
       }));
     });
   }, []);
@@ -98,9 +100,16 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
       <header className="fixed top-0 w-full z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border-b border-slate-100 dark:border-slate-800 px-[5%] py-4 flex justify-between items-center h-16 lg:h-20 transition-all">
         <Link to="/" className="flex items-center gap-2 group">
           <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-lg shadow-red-200 dark:shadow-red-900/20 group-hover:scale-105 transition-transform">
-            <Droplet className="text-white fill-current" size={24} />
+            <Droplet className="text-white" size={24} />
           </div>
-          <span className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tighter">BloodLink</span>
+          <div className="flex flex-col min-w-0">
+            <span className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white tracking-tighter shrink-0 leading-tight">BloodLink</span>
+            {config.softwareVersion && (
+              <span className="text-[10px] lg:text-xs font-bold text-slate-500 dark:text-slate-400 tracking-tight leading-none uppercase">
+                {config.softwareVersion}
+              </span>
+            )}
+          </div>
         </Link>
         <div className="flex items-center gap-4 lg:gap-8">
           <div className="hidden lg:flex items-center gap-6">
@@ -153,16 +162,23 @@ export const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <main className="pt-24 lg:pt-28 min-h-[60vh]">
+      <main className="pt-24 min-h-[60vh]">
         {children}
       </main>
 
       <footer className="bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 py-6 px-[5%] flex flex-col items-center transition-colors">
         <Link to="/" className="flex items-center gap-2 mb-4 group transition-all hover:brightness-110 active:scale-95">
           <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center shadow-md shadow-red-200 dark:shadow-red-900/20 group-hover:rotate-12 transition-transform">
-            <Droplet className="text-white fill-current" size={18} />
+            <Droplet className="text-white" size={18} />
           </div>
-          <span className="text-lg font-black text-slate-900 dark:text-white tracking-tighter">BloodLink</span>
+          <div className="flex flex-col items-start shrink-0">
+            <span className="text-lg font-black text-slate-900 dark:text-white tracking-tighter leading-tight">BloodLink</span>
+            {config.softwareVersion && (
+              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 tracking-tight leading-none uppercase">
+                {config.softwareVersion}
+              </span>
+            )}
+          </div>
         </Link>
         
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mb-4">

@@ -62,10 +62,10 @@ export const PublicFaqs = () => {
       `}</style>
 
       <div className="bg-gradient-to-br from-gray-50 via-indigo-50/30 to-gray-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 min-h-screen font-sans antialiased transition-colors">
-        <div className="max-w-4xl mx-auto px-5 py-20 md:py-28">
+        <div className="max-w-4xl mx-auto px-5 py-12 md:py-16">
 
           {/* Search & Header */}
-          <div className="mb-12 text-center space-y-6">
+          <div className="mb-6 text-center space-y-4">
              <h1 className="text-3xl md:text-5xl font-bold text-gray-900 dark:text-white transition-colors">Frequently Asked Questions</h1>
              <div className="relative max-w-lg mx-auto group">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -97,21 +97,21 @@ export const PublicFaqs = () => {
                   )}
                 >
                   <button 
-                    className="w-full flex items-center px-7 py-6 text-left focus:outline-none group" 
+                    className="w-full flex items-center px-5 py-4 text-left focus:outline-none group" 
                     onClick={() => toggle(faq.id)}
                   >
-                    <div className="flex items-center gap-5 w-full">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-bold shadow-md">
+                    <div className="flex items-center gap-4 w-full">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-bold shadow-md">
                         {index + 1}
                       </div>
-                      <span className="text-xl md:text-2xl font-semibold text-gray-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      <span className="text-lg md:text-xl font-semibold text-gray-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                         {faq.question}
                       </span>
                     </div>
-                    <ChevronDown className="accordion-icon w-8 h-8 text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-4 transition-transform" />
+                    <ChevronDown className="accordion-icon w-6 h-6 text-indigo-600 dark:text-indigo-400 flex-shrink-0 ml-4 transition-transform" />
                   </button>
-                  <div className="accordion-content px-7 text-gray-600 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/10 transition-colors">
-                    <p className="leading-relaxed whitespace-pre-wrap text-lg font-medium text-slate-600 dark:text-slate-400">
+                  <div className="accordion-content px-5 text-gray-600 dark:text-slate-400 border-t border-gray-100 dark:border-slate-800 bg-gray-50/30 dark:bg-slate-800/10 transition-colors">
+                    <p className="leading-relaxed whitespace-pre-wrap text-base font-medium text-slate-600 dark:text-slate-400">
                       {faq.answer}
                     </p>
                   </div>

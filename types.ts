@@ -63,6 +63,7 @@ export interface BloodRequest {
   timestamp: number;
   status: BloodRequestStatus;
   acceptedBy: BloodRequestAcceptor[];
+  confirmedUserId?: string;
 }
 
 export interface NavLink {
@@ -85,6 +86,8 @@ export interface Notice {
   authorId: string;
   authorName: string;
   authorAvatar?: string;
+  authorApprovedBadge?: string;
+  authorRole?: string;
   timestamp: string;
   type: NoticeType;
   pinned?: boolean;
@@ -99,6 +102,19 @@ export interface HelpRequest {
   status: HelpStatus;
   remark?: string;
   timestamp: string;
+}
+
+export interface SocialMediaLink {
+  id: string;
+  name: string;
+  url: string;
+  icon: string; // lucide-react icon name
+  status: 'active' | 'inactive';
+  type?: 'Group' | 'Page' | 'Channel';
+}
+
+export interface SocialMediaConfig {
+  links: SocialMediaLink[];
 }
 
 export interface LandingPageConfig {
@@ -144,6 +160,8 @@ export interface LandingPageConfig {
   sentGoToLoginLabel?: string;
   sentTryAgainLabel?: string;
 
+  softwareVersion?: string;
+
   // Privacy Policy Customization
   privacyTitle?: string;
   privacyEffectiveDate?: string;
@@ -168,6 +186,49 @@ export interface LandingPageConfig {
 
   loginStyles?: any;
   signupStyles?: any;
+
+  // Something Went Wrong Page Customization
+  errorTitle?: string;
+  errorSubtitle?: string;
+  errorMessage?: string;
+  errorTryAgainLabel?: string;
+  errorHomeLabel?: string;
+  errorFooterText?: string;
+
+  // Badge Settings
+  badgeDiamondName?: string;
+  badgeDiamondColor?: string;
+  badgePlatinumName?: string;
+  badgePlatinumColor?: string;
+  badgeGoldName?: string;
+  badgeGoldColor?: string;
+  badgeSilverName?: string;
+  badgeSilverColor?: string;
+}
+
+export interface CustomRankBadge {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive';
+  icon: string; // name of icon
+  pointsRequired: number;
+  color: string; // e.g. 'text-amber-500'
+}
+
+export interface BadgeConfig {
+  diamond: { name: string; color: string };
+  platinum: { name: string; color: string };
+  gold: { name: string; color: string };
+  silver: { name: string; color: string };
+  
+  // Advanced Badge Settings
+  customRanks?: CustomRankBadge[];
+  verificationBadgeColor?: string; // default to text-cyan-500
+  roleBadgeColors?: {
+    superadmin?: string;
+    admin?: string;
+    editor?: string;
+  };
 }
 
 export interface User {
@@ -196,6 +257,7 @@ export interface User {
   isSuspended?: boolean;
   permissions?: RolePermissions;
   approvedBadge?: 'pink' | 'red' | 'green' | 'blue';
+  socialLinks?: { [key: string]: string };
 }
 
 export interface DonationRecord {
@@ -221,6 +283,16 @@ export interface DonationFeedback {
   status: FeedbackStatus;
   isVisible: boolean;
   timestamp: string;
+}
+
+export interface UserNotification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  type: 'BADGE_APPROVED' | 'RANK_UPDATED' | 'GENERAL';
 }
 
 export interface ChatMessage {
@@ -283,6 +355,7 @@ export interface RolePermissions {
     canUseMessenger?: boolean;
     canUseSystemSupport?: boolean;
     canPostNotice?: boolean;
+    canAssignVerificationBadge?: boolean;
   };
 }
 

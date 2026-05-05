@@ -2,6 +2,14 @@ import { BloodGroup } from "./types";
 
 export const BLOOD_GROUPS = Object.values(BloodGroup);
 
+export const BADGE_COLOR_MAP: Record<string, string> = {
+  blue: "text-[#04b9dc]",
+  green: "text-[#04bd7f]",
+  red: "text-[#fea111]",
+  pink: "text-[#9babc0]",
+  none: "text-slate-400",
+};
+
 export const MOCK_DELAY = 600; // ms to simulate API latency
 
 // Seed data for fresh install

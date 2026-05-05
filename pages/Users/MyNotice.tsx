@@ -7,6 +7,7 @@ import { Card, Button, Input, Badge, Toast, useToast, ConfirmModal } from '../..
 import { Megaphone, Plus, Trash2, Edit2, Clock, User as UserIcon, Type, Palette, UserPlus, X, Send, Search, Highlighter, AlignLeft, AlignCenter, AlignRight, AlignJustify, ShieldCheck, Newspaper, Bell, Sparkles, MoreVertical, Pin, ListFilter, LayoutGrid, Type as FontIcon, Baseline, ChevronDown, Globe } from 'lucide-react';
 import { Notice, User, UserRole, AppPermissions, NoticeType } from '../../types';
 import clsx from 'clsx';
+import { BADGE_COLOR_MAP } from '../../constants';
 
 
 
@@ -122,6 +123,8 @@ export const MyNotice = () => {
           authorId: user.id, 
           authorName: user.name, 
           authorAvatar: user.avatar || '', 
+          authorApprovedBadge: user.approvedBadge || '',
+          authorRole: user.role,
           timestamp: new Date().toISOString(), 
           type: noticeType,
           pinned: isPinned
@@ -231,8 +234,8 @@ export const MyNotice = () => {
            <p className="font-black uppercase text-xs tracking-widest text-slate-400 dark:text-slate-500">Syncing Nodes...</p>
         </div>
       ) : viewedNotice ? (
-        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-100 dark:border-slate-700">
                 {viewedNotice.authorAvatar ? <img src={viewedNotice.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2.5 text-slate-300 dark:text-slate-600 w-full h-full" />}
@@ -245,29 +248,33 @@ export const MyNotice = () => {
                     if (!author) return null;
                     
                     if (author.role === UserRole.SUPERADMIN) {
-                      return <ShieldCheck size={16} className="text-emerald-500" />;
+                      return <ShieldCheck size={16} className={BADGE_COLOR_MAP['blue']} />;
+                    } else if (author.role === UserRole.ADMIN) {
+                      return <ShieldCheck size={16} className={BADGE_COLOR_MAP['green']} />;
+                    } else if (author.role === UserRole.EDITOR) {
+                      return <ShieldCheck size={16} className={BADGE_COLOR_MAP['red']} />;
                     }
 
-                    const colorMap: Record<string, string> = {
-                      pink: 'text-stone-400',       // Silver
-                      red: 'text-amber-500',        // Gold
-                      green: 'text-cyan-500',       // Platinum
-                      blue: 'text-indigo-600'       // Diamond
-                    };
                     return author.approvedBadge ? (
-                       <ShieldCheck size={16} className={colorMap[author.approvedBadge] || 'text-slate-400'} />
+                       <ShieldCheck size={16} className={BADGE_COLOR_MAP[author.approvedBadge] || 'text-slate-400'} />
                     ) : null;
                   })()}
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">{new Date(viewedNotice.timestamp).toLocaleDateString('en-GB')}</p>
               </div>
             </div>
-            <Button onClick={() => setViewedNotice(null)} className="rounded-xl px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-950 font-bold dark:bg-slate-800 dark:text-white">Close</Button>
-          </div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-6 tracking-tight">{viewedNotice.subject}</h1>
-          <div dangerouslySetInnerHTML={{ __html: viewedNotice.details }} className="text-sm text-slate-700 dark:text-slate-200 prose prose-slate max-w-none mb-6" />
-        </div>
-      ) : (
+             <Button 
+               variant="outline"
+               onClick={() => setViewedNotice(null)} 
+               className="rounded-xl px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-900 border-0 font-bold dark:bg-slate-800 dark:text-white transition-colors"
+             >
+               Close
+             </Button>
+           </div>
+           <h1 className="text-xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">{viewedNotice.subject}</h1>
+           <div dangerouslySetInnerHTML={{ __html: viewedNotice.details }} className="text-sm text-slate-700 dark:text-slate-200 prose prose-slate dark:prose-invert max-w-none mb-4 detail-view-content" />
+         </div>
+       ) : (
         <div className="space-y-12">
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
@@ -315,20 +322,20 @@ export const MyNotice = () => {
       {showCreate && (
         <div className="fixed inset-0 bg-slate-900/40 dark:bg-slate-950/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
            <Card className="w-full max-w-3xl max-h-[95vh] overflow-y-auto bg-white dark:bg-slate-900 border-0 shadow-2xl rounded-[1.5rem] overflow-hidden border border-slate-200 dark:border-slate-800 transition-colors">
-              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-center relative transition-colors">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-center relative transition-colors">
                  <h2 className="text-sm font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">{editModeId ? 'Refine Note' : 'New Note'}</h2>
                  <button onClick={() => { setShowCreate(false); resetEditor(); }} className="absolute right-4 p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl transition-all text-slate-500"><X size={18}/></button>
               </div>
-              <form onSubmit={handlePostNotice} className="p-6 space-y-6">
+              <form onSubmit={handlePostNotice} className="p-4 space-y-4">
                  {/* Mobile Layout: Title in one row, Controls in another. Web Layout: Flex row side-by-side */}
-                 <div className="flex flex-col lg:flex-row items-start gap-4">
+                 <div className="flex flex-col lg:flex-row items-start gap-3">
                     <textarea 
                       placeholder="Title of announcement..." 
                       value={subject} 
                       onChange={e => setSubject(e.target.value)} 
                       required 
-                      rows={2}
-                      className="w-full lg:flex-1 bg-transparent border-0 border-b-2 border-slate-100 dark:border-slate-800 rounded-none px-0 shadow-none text-lg font-bold text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 focus:border-blue-500 dark:focus:border-blue-700 outline-none resize-none custom-scrollbar py-2 transition-colors" 
+                      rows={1}
+                      className="w-full lg:flex-1 bg-transparent border-0 border-b-2 border-slate-200 dark:border-slate-800 rounded-none px-0 shadow-none text-base font-bold text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700 focus:border-blue-500 dark:focus:border-blue-700 outline-none resize-none custom-scrollbar py-1 transition-colors" 
                     />
                     <div className="flex items-center gap-3 w-full lg:w-auto">
                       <select 
@@ -349,7 +356,7 @@ export const MyNotice = () => {
                  </div>
 
                  <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-1 p-2 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
+                    <div className="flex flex-wrap items-center gap-1 p-1 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-x-auto no-scrollbar transition-colors">
                         <ToolbarButton label="B" onClick={() => applyStyle('bold')} className="font-bold text-slate-700 dark:text-slate-300" />
                         <ToolbarButton label="I" onClick={() => applyStyle('italic')} className="italic text-slate-700 dark:text-slate-300" />
                         <ToolbarButton label="U" onClick={() => applyStyle('underline')} className="underline text-slate-700 dark:text-slate-300" />
@@ -367,15 +374,32 @@ export const MyNotice = () => {
 
                         <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1"></div>
 
-                        <ToolbarButton icon={AlignLeft} onClick={() => applyStyle('justifyLeft')} className="text-slate-700 dark:text-slate-300" />
-                        <ToolbarButton icon={AlignCenter} onClick={() => applyStyle('justifyCenter')} className="text-slate-700 dark:text-slate-300" />
-                        <ToolbarButton icon={AlignRight} onClick={() => applyStyle('justifyRight')} className="text-slate-700 dark:text-slate-300" />
-                        <ToolbarButton icon={AlignJustify} onClick={() => applyStyle('justifyFull')} className="text-slate-700 dark:text-slate-300" />
+                        <ToolbarButton icon={AlignLeft} onClick={() => applyStyle('justifyLeft')} title="Align Left" className="text-slate-700 dark:text-slate-300" />
+                        <ToolbarButton icon={AlignCenter} onClick={() => applyStyle('justifyCenter')} title="Align Center" className="text-slate-700 dark:text-slate-300" />
+                        <ToolbarButton icon={AlignRight} onClick={() => applyStyle('justifyRight')} title="Align Right" className="text-slate-700 dark:text-slate-300" />
+                        <ToolbarButton icon={AlignJustify} onClick={() => applyStyle('justifyFull')} title="Justify" className="text-slate-700 dark:text-slate-300" />
 
                         <div className="h-4 w-[1px] bg-slate-300 dark:bg-slate-600 mx-1"></div>
 
                         <div className="relative group flex items-center px-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
                           <FontIcon size={14} className="text-slate-500 dark:text-slate-400 mr-2" />
+                          <select 
+                            onChange={(e) => applyStyle('fontName', e.target.value)}
+                            defaultValue='"Inter", "Hind Siliguri", sans-serif'
+                            className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer py-1 text-slate-700 dark:text-slate-300 w-24"
+                          >
+                            <option value='"Inter", "Hind Siliguri", sans-serif' className="dark:bg-slate-800">Default</option>
+                            <option value='"Tiro Bangla", serif' className="dark:bg-slate-800">Tiro Bangla</option>
+                            <option value='"Noto Sans Bengali", sans-serif' className="dark:bg-slate-800">Noto Sans</option>
+                            <option value='"Galada", cursive' className="dark:bg-slate-800">Galada</option>
+                            <option value='"Alice", serif' className="dark:bg-slate-800">Alice</option>
+                            <option value='"Cormorant Upright", serif' className="dark:bg-slate-800">Cormorant</option>
+                            <option value='"Roboto", sans-serif' className="dark:bg-slate-800">Roboto</option>
+                          </select>
+                        </div>
+
+                        <div className="relative group flex items-center px-2 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-600">
+                          <Baseline size={14} className="text-slate-500 dark:text-slate-400 mr-2" />
                           <select 
                             onChange={(e) => applyStyle('fontSize', e.target.value)}
                             defaultValue="3"
@@ -391,12 +415,13 @@ export const MyNotice = () => {
                     <div 
                       ref={editorRef} 
                       contentEditable 
-                      className="min-h-[300px] max-h-[300px] p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 custom-scrollbar overflow-y-auto text-sm leading-relaxed text-slate-800 dark:text-slate-200"
+                      data-placeholder="Write your notice here..."
+                      className="min-h-[250px] max-h-[300px] p-2 bg-white dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-900/30 custom-scrollbar overflow-y-auto text-sm leading-relaxed text-slate-800 dark:text-slate-200 before:content-[attr(data-placeholder)] before:text-slate-300 dark:before:text-slate-700 before:pointer-events-none empty:before:block before:hidden"
                     />
                  </div>
 
-                 <div className="flex justify-end pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <Button type="submit" isLoading={isPosting} className="rounded-xl px-10 py-3.5 bg-blue-600 hover:bg-blue-700 shadow-xl dark:shadow-none text-sm w-full sm:w-auto">
+                 <div className="flex justify-end pt-3 border-t border-slate-100 dark:border-slate-800">
+                    <Button type="submit" isLoading={isPosting} className="rounded-xl px-8 py-2.5 bg-blue-600 hover:bg-blue-700 shadow-xl dark:shadow-none text-sm w-full sm:w-auto">
                        {editModeId ? 'Update Notice' : 'Post Notice'}
                     </Button>
                  </div>
@@ -406,9 +431,64 @@ export const MyNotice = () => {
       )}
 
       <style dangerouslySetInnerHTML={{ __html: `
-        .note-preview-content * { margin: 0 !important; font-size: inherit !important; line-height: inherit !important; }
-        .note-preview-content { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        .note-preview-content * { margin: 0 !important; font-size: inherit !important; line-height: inherit !important; font-family: inherit !important; }
+        .note-preview-content { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; font-family: "Inter", "Hind Siliguri", sans-serif; }
         .dark .note-preview-content { color: #94a3b8; }
+        .dark .note-preview-content * { color: #94a3b8 !important; background-color: transparent !important; }
+        
+        [contenteditable] { min-height: 100%; font-family: "Inter", "Hind Siliguri", sans-serif; }
+        [contenteditable] b, [contenteditable] strong { font-weight: 800; }
+        
+        /* Ensure justification is respected */
+        .detail-view-content [style*="text-align: justify"],
+        .detail-view-content [align="justify"],
+        [contenteditable] [style*="text-align: justify"],
+        [contenteditable] [align="justify"] {
+          text-align: justify !important;
+          text-justify: inter-word !important;
+          display: block;
+        }
+        
+        .dark [contenteditable] { color: #e2e8f0; }
+        /* Fix editor text color in dark mode for explicitly set black text or inherited colors */
+        .dark [contenteditable] span[style*="color: rgb(0, 0, 0)"],
+        .dark [contenteditable] span[style*="color:#000000"],
+        .dark [contenteditable] span[style*="color:black"],
+        .dark [contenteditable] font[color="#000000"],
+        .dark [contenteditable] font[color="black"],
+        .dark [contenteditable] p[style*="color: rgb(0, 0, 0)"],
+        .dark [contenteditable] div[style*="color: rgb(0, 0, 0)"] {
+          color: #e2e8f0 !important;
+        }
+        /* Also handle potential background colors that might conflict */
+        .dark [contenteditable] [style*="background-color: white"],
+        .dark [contenteditable] [style*="background-color: #ffffff"],
+        .dark [contenteditable] [style*="background-color: rgb(255, 255, 255)"] {
+          background-color: transparent !important;
+        }
+
+        .detail-view-content { font-family: "Inter", "Hind Siliguri", sans-serif; }
+        .detail-view-content * { max-width: 100%; height: auto; }
+        /* Allow explicit font-family in content */
+        .detail-view-content [style*="font-family"] { font-family: inherit; }
+        
+        .dark .detail-view-content { color: #e2e8f0; }
+        .dark .detail-view-content * { 
+          border-color: #334155 !important;
+        }
+        /* Force inherit color for elements with inline colors in dark mode to ensure readability */
+        .dark .detail-view-content span[style*="color"],
+        .dark .detail-view-content font[color],
+        .dark .detail-view-content p[style*="color"],
+        .dark .detail-view-content div[style*="color"] {
+          color: inherit !important;
+        }
+        /* Handle explicitly dark text saved in HTML */
+        .dark .detail-view-content [style*="color: rgb(0, 0, 0)"],
+        .dark .detail-view-content [style*="color:#000000"],
+        .dark .detail-view-content [style*="color:black"] {
+          color: #e2e8f0 !important;
+        }
       `}} />
     </div>
   );

@@ -31,12 +31,14 @@ import { HelpCenter } from './pages/Webpage/HelpCenter';
 import { AdminHelpCenter } from './pages/Admin/AdminHelpCenter';
 import { PublicNotices } from './pages/Webpage/PublicNotices';
 import { NoticeDetail } from './pages/Webpage/NoticeDetail';
+import { FeedbackDetail } from './pages/Webpage/FeedbackDetail';
 import { PublicFaqs } from './pages/Webpage/PublicFaqs';
 import { AdminFaqs } from './pages/Admin/AdminFaqs';
 import { BadgeManage } from './pages/Admin/BadgeManage';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
 import { ThemeProvider } from './ThemeContext';
+import { SettingsProvider } from './SettingsContext';
 
 const ProtectedRoute = ({ 
   children, 
@@ -84,8 +86,9 @@ const App = () => {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <HashRouter>
-          <Routes>
+        <SettingsProvider>
+          <HashRouter>
+            <Routes>
           <Route path="/" element={<RootRoute />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -95,6 +98,7 @@ const App = () => {
           <Route path="/reset-password/:token" element={<ResetPassword />} />
           
           <Route path="/public-feedbacks" element={<PublicFeedbackPage />} />
+          <Route path="/public-feedbacks/:id" element={<FeedbackDetail />} />
           <Route path="/public-notices" element={<PublicNotices />} />
           <Route path="/public-notices/:id" element={<NoticeDetail />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -142,8 +146,9 @@ const App = () => {
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </HashRouter>
-    </AuthProvider>
+          </HashRouter>
+        </SettingsProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 };

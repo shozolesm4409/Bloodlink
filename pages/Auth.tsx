@@ -15,14 +15,14 @@ import clsx from 'clsx';
 
 const { useNavigate, Link, useLocation } = ReactRouterDOM;
 
-const AuthLayout = ({ children, title, subtitle, headline, description, styles }: any) => {
+const AuthLayout = ({ children, title, subtitle, headline, description, styles, mobileSignInButton, hideWelcomeOnMobile }: any) => {
   return (
-    <div className="min-h-[80vh] flex flex-col items-center justify-center p-2 lg:p-6 font-sans selection:bg-red-100 dark:selection:bg-red-900 transition-colors">
+    <div className="min-h-[80vh] flex flex-col items-center justify-center p-2 lg:p-3 font-sans selection:bg-red-100 dark:selection:bg-red-900 transition-colors">
       <div 
         className="w-full max-w-5xl bg-white dark:bg-slate-900 rounded-xl shadow-[0_20px_70px_-15px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_70px_-15px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col lg:flex-row h-auto relative border border-slate-100 dark:border-slate-800 transition-colors"
         style={{ marginTop: styles?.margin ?? 20, marginBottom: styles?.margin ?? 20 }}
       >
-        <div className="lg:w-[38%] bg-gradient-to-br from-[#c1121f] to-[#780116] relative overflow-hidden flex flex-col justify-center p-8 lg:p-10 text-white order-2 lg:order-1">
+        <div className={clsx("lg:w-[38%] bg-gradient-to-br from-[#c1121f] to-[#780116] relative overflow-hidden flex-col justify-center p-8 lg:p-10 text-white order-2 lg:order-1", hideWelcomeOnMobile ? "hidden lg:flex" : "flex")}>
           <div className="absolute top-[-5%] left-[-5%] w-[250px] h-[250px] bg-red-400 rounded-full mix-blend-screen filter blur-[80px] opacity-20 animate-pulse"></div>
           
           <div className="relative z-10 space-y-4">
@@ -44,6 +44,8 @@ const AuthLayout = ({ children, title, subtitle, headline, description, styles }
             <p className="text-red-50 text-xs lg:text-sm leading-relaxed max-w-sm font-medium opacity-80 whitespace-pre-wrap">
               {description || "রক্তের প্রতিটি ফোঁটা একটি জীবনের সম্ভাবনা। আজই আমাদের কমিউনিটিতে যোগ দিন এবং জীবন বাঁচানোর মহান উদ্যোগে অংশ নিন।"}
             </p>
+            
+            {mobileSignInButton && <div className="lg:hidden pt-4 w-full flex justify-center">{mobileSignInButton}</div>}
           </div>
         </div>
 
@@ -100,12 +102,23 @@ export const Login = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [config, setConfig] = useState<LandingPageConfig | null>(null);
+  const [showForm, setShowForm] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const handleResize = () => {
+        if (window.innerWidth >= 1024) {
+            setShowForm(true);
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     getLandingConfig().then(setConfig);
@@ -157,58 +170,62 @@ export const Login = () => {
         headline={config?.loginHeadline || "WELCOME"}
         description={config?.loginDescription}
         styles={config?.loginStyles}
+        hideWelcomeOnMobile={showForm}
+        mobileSignInButton={!showForm ? <Button onClick={() => setShowForm(true)} className="group mx-auto w-14 h-14 bg-white text-red-600 rounded-full font-black uppercase shadow-lg flex items-center justify-center border-2 border-red-600 hover:bg-red-600 transition-all"><ArrowLeft className="rotate-180 text-red-600 group-hover:text-white transition-colors" size={24} /></Button> : null}
       >
-        <form onSubmit={handleSubmit}>
-          <CustomInput 
-            icon={UserIcon} 
-            type="email" 
-            name="email" 
-            placeholder="User Name / Email" 
-            value={email} 
-            onChange={(e: any) => setEmail(e.target.value)} 
-          />
-          <CustomInput 
-            icon={Lock} 
-            type={showPassword ? 'text' : 'password'} 
-            name="password" 
-            placeholder="Password" 
-            value={password}
-            onChange={(e: any) => setPassword(e.target.value)}
-            showPasswordToggle 
-            onToggleShow={() => setShowPassword(!showPassword)} 
-          />
-          <div className="flex items-center justify-between mb-6 lg:mb-8 px-2">
-            <label className="flex items-center gap-2.5 cursor-pointer group">
-              <div className="relative flex items-center">
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="peer w-4.5 h-4.5 opacity-0 absolute cursor-pointer" 
-                />
-                <div className={clsx(
-                  "w-5 h-5 border-2 rounded transition-all shadow-sm flex items-center justify-center",
-                  rememberMe ? "bg-red-600 border-red-600" : "border-slate-200 bg-white"
-                )}>
-                  {rememberMe && <CheckCircle size={14} className="text-white" />}
+        {showForm && (
+          <form onSubmit={handleSubmit}>
+            <CustomInput 
+              icon={UserIcon} 
+              type="email" 
+              name="email" 
+              placeholder="User Name / Email" 
+              value={email} 
+              onChange={(e: any) => setEmail(e.target.value)} 
+            />
+            <CustomInput 
+              icon={Lock} 
+              type={showPassword ? 'text' : 'password'} 
+              name="password" 
+              placeholder="Password" 
+              value={password}
+              onChange={(e: any) => setPassword(e.target.value)}
+              showPasswordToggle 
+              onToggleShow={() => setShowPassword(!showPassword)} 
+            />
+            <div className="flex items-center justify-between mb-6 lg:mb-8 px-2">
+              <label className="flex items-center gap-2.5 cursor-pointer group">
+                <div className="relative flex items-center">
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="peer w-4.5 h-4.5 opacity-0 absolute cursor-pointer" 
+                  />
+                  <div className={clsx(
+                    "w-5 h-5 border-2 rounded transition-all shadow-sm flex items-center justify-center",
+                    rememberMe ? "bg-red-600 border-red-600" : "border-slate-200 bg-white"
+                  )}>
+                    {rememberMe && <CheckCircle size={14} className="text-white" />}
+                  </div>
                 </div>
-              </div>
-              <span className="text-xs lg:text-sm font-bold text-slate-500 group-hover:text-slate-700">Remember me</span>
-            </label>
-            <button type="button" onClick={() => navigate('/reset')} className="text-sm lg:text-base font-black text-red-600 dark:text-red-500 hover:underline transition-colors">Forgot Password?</button>
-          </div>
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest rounded-lg border border-red-100 dark:border-red-900/50 flex items-center gap-2 transition-colors">
-              <AlertCircle size={14} /> {error}
+                <span className="text-xs lg:text-sm font-bold text-slate-500 group-hover:text-slate-700">Remember me</span>
+              </label>
+              <button type="button" onClick={() => navigate('/reset')} className="text-sm lg:text-base font-black text-red-600 dark:text-red-500 hover:underline transition-colors">Forgot Password?</button>
             </div>
-          )}
-          <button type="submit" disabled={loading} className="w-full bg-[#c1121f] text-white py-2 lg:py-3.5 rounded-lg font-black uppercase tracking-[0.25em] text-base lg:text-lg shadow-xl shadow-red-900/20 hover:bg-[#a0101a] transition-all disabled:opacity-50">
-            {loading ? "Signing In..." : (config?.loginButtonLabel || "SIGN IN")}
-          </button>
-          <p className="text-center text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 mt-6 lg:mt-8 transition-colors">
-            Don't have an account? <Link to="/register" className="text-red-600 dark:text-red-500 font-black hover:underline ml-1 text-base lg:text-lg">Sign Up</Link>
-          </p>
-        </form>
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest rounded-lg border border-red-100 dark:border-red-900/50 flex items-center gap-2 transition-colors">
+                <AlertCircle size={14} /> {error}
+              </div>
+            )}
+            <button type="submit" disabled={loading} className="w-full bg-[#c1121f] text-white py-2 lg:py-3.5 rounded-lg font-black uppercase tracking-[0.25em] text-base lg:text-lg shadow-xl shadow-red-900/20 hover:bg-[#a0101a] transition-all disabled:opacity-50">
+              {loading ? "Signing In..." : (config?.loginButtonLabel || "SIGN IN")}
+            </button>
+            <p className="text-center text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 mt-6 lg:mt-8 transition-colors">
+              Don't have an account? <Link to="/register" className="text-red-600 dark:text-red-500 font-black hover:underline ml-1 text-base lg:text-lg">Sign Up</Link>
+            </p>
+          </form>
+        )}
       </AuthLayout>
     </PublicLayout>
   );
@@ -227,12 +244,23 @@ export const Register = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [config, setConfig] = useState<LandingPageConfig | null>(null);
+  const [showForm, setShowForm] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : true);
 
   useEffect(() => {
     if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  useEffect(() => {
+    const handleResize = () => {
+        if (window.innerWidth >= 1024) {
+            setShowForm(true);
+        }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const [avatar, setAvatar] = useState<string>('');
   const [tempImage, setTempImage] = useState<string | null>(null);
@@ -317,74 +345,78 @@ export const Register = () => {
         headline={config?.registerHeadline || "JOIN US"}
         description={config?.registerDescription}
         styles={config?.signupStyles}
+        hideWelcomeOnMobile={showForm}
+        mobileSignInButton={!showForm ? <Button onClick={() => setShowForm(true)} className="group mx-auto w-14 h-14 bg-white text-red-600 rounded-full font-black uppercase shadow-lg flex items-center justify-center border-2 border-red-600 hover:bg-red-600 transition-all"><ArrowLeft className="rotate-180 text-red-600 group-hover:text-white transition-colors" size={24} /></Button> : null}
       >
-        <form onSubmit={handleSubmit} className="space-y-0">
-          <div className="flex gap-2 sm:gap-2 mb-0.5 items-stretch">
-            <div className="flex-1">
-              <CustomInput icon={UserIcon} name="name" placeholder="আপনার পূর্ণ নাম" />
-              <CustomInput icon={Mail} type="email" name="email" placeholder="ইমেইল এড্রেস" />
-            </div>
-            <div className="w-20 sm:w-28 flex-shrink-0 flex flex-col mb-2 lg:mb-3">
-              <div 
-                onClick={() => fileInputRef.current?.click()}
-                className={`flex-1 relative rounded-sm border-2 ${avatar ? 'border-green-500 shadow-green-500/10' : 'border-slate-100 dark:border-slate-800'} bg-[#f8fafc] dark:bg-slate-800 flex flex-col items-center justify-center cursor-pointer overflow-hidden group transition-all hover:border-red-600/30 shadow-sm`}
-              >
-                {avatar ? (
-                  <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="flex flex-col items-center text-slate-300 group-hover:text-red-500 transition-colors">
-                    <UserIcon size={32} className="opacity-30 mb-1" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">Upload</span>
+        {showForm && (
+          <form onSubmit={handleSubmit} className="space-y-0">
+            <div className="flex gap-2 sm:gap-2 mb-0.5 items-stretch">
+              <div className="flex-1">
+                <CustomInput icon={UserIcon} name="name" placeholder="আপনার পূর্ণ নাম" />
+                <CustomInput icon={Mail} type="email" name="email" placeholder="ইমেইল এড্রেস" />
+              </div>
+              <div className="w-20 sm:w-28 flex-shrink-0 flex flex-col mb-2 lg:mb-3">
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`flex-1 relative rounded-sm border-2 ${avatar ? 'border-green-500 shadow-green-500/10' : 'border-slate-100 dark:border-slate-800'} bg-[#f8fafc] dark:bg-slate-800 flex flex-col items-center justify-center cursor-pointer overflow-hidden group transition-all hover:border-red-600/30 shadow-sm`}
+                >
+                  {avatar ? (
+                    <img src={avatar} alt="Avatar Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center text-slate-300 group-hover:text-red-500 transition-colors">
+                      <UserIcon size={32} className="opacity-30 mb-1" />
+                      <span className="text-[8px] font-black uppercase tracking-widest">Upload</span>
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-white text-[10px] font-bold uppercase tracking-widest">Edit</span>
                   </div>
-                )}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                   <span className="text-white text-[10px] font-bold uppercase tracking-widest">Edit</span>
+                </div>
+                <input 
+                  type="file" 
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-2 lg:mb-3">
+              <div className="relative group">
+                <select name="bloodGroup" required className="peer w-full pl-9 sm:pl-11 pr-3 py-1.5 lg:py-2.5 bg-[#f8fafc] dark:bg-slate-800 border-2 border-transparent rounded-lg text-slate-900 dark:text-white font-bold text-sm focus:bg-white dark:focus:bg-slate-950 focus:border-red-600/30 outline-none appearance-none cursor-pointer shadow-sm transition-all">
+                  <option value="">রক্তের গ্রুপ</option>
+                  {BLOOD_GROUPS.map(bg => <option key={bg} value={bg} className="dark:bg-slate-900">{bg}</option>)}
+                </select>
+                <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-0.5 text-slate-300 peer-focus:text-red-600 peer-valid:text-green-500 transition-colors pointer-events-none">
+                  <Droplet size={18} />
                 </div>
               </div>
-              <input 
-                type="file" 
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                className="hidden"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-2 lg:mb-3">
-            <div className="relative group">
-              <select name="bloodGroup" required className="peer w-full pl-9 sm:pl-11 pr-3 py-1.5 lg:py-2.5 bg-[#f8fafc] dark:bg-slate-800 border-2 border-transparent rounded-lg text-slate-900 dark:text-white font-bold text-sm focus:bg-white dark:focus:bg-slate-950 focus:border-red-600/30 outline-none appearance-none cursor-pointer shadow-sm transition-all">
-                <option value="">রক্তের গ্রুপ</option>
-                {BLOOD_GROUPS.map(bg => <option key={bg} value={bg} className="dark:bg-slate-900">{bg}</option>)}
-              </select>
-              <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-0.5 text-slate-300 peer-focus:text-red-600 peer-valid:text-green-500 transition-colors pointer-events-none">
-                <Droplet size={18} />
+              <div className="relative group">
+                <input name="phone" placeholder="ফোন নম্বর" required className="peer w-full pl-9 sm:pl-11 pr-3 py-1.5 lg:py-2.5 bg-[#f8fafc] dark:bg-slate-800 border-2 border-transparent rounded-lg text-slate-900 dark:text-white font-bold text-sm focus:ring-2 focus:ring-red-500 focus:bg-white dark:focus:bg-slate-950 outline-none shadow-sm transition-all placeholder:text-slate-300" />
+                <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-0.5 text-slate-300 peer-focus:text-red-600 peer-valid:text-green-500 transition-colors pointer-events-none">
+                  <Phone size={18} />
+                </div>
               </div>
             </div>
-            <div className="relative group">
-              <input name="phone" placeholder="ফোন নম্বর" required className="peer w-full pl-9 sm:pl-11 pr-3 py-1.5 lg:py-2.5 bg-[#f8fafc] dark:bg-slate-800 border-2 border-transparent rounded-lg text-slate-900 dark:text-white font-bold text-sm focus:ring-2 focus:ring-red-500 focus:bg-white dark:focus:bg-slate-950 outline-none shadow-sm transition-all placeholder:text-slate-300" />
-              <div className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 p-0.5 text-slate-300 peer-focus:text-red-600 peer-valid:text-green-500 transition-colors pointer-events-none">
-                <Phone size={18} />
+            <CustomInput icon={MapPin} name="location" placeholder="বর্তমান এলাকা/শহর" />
+            <div className="grid grid-cols-2 gap-2">
+              <CustomInput icon={Lock} type={showPassword ? 'text' : 'password'} name="password" placeholder="পাসওয়ার্ড" showPasswordToggle onToggleShow={() => setShowPassword(!showPassword)} />
+              <CustomInput icon={Lock} type={showPassword ? 'text' : 'password'} name="confirmPassword" placeholder="নিশ্চিত করুন" />
+            </div>
+            {error && (
+              <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest rounded-lg border border-red-100 dark:border-red-900/50 flex items-center gap-2 transition-colors">
+                <AlertCircle size={14} /> {error}
               </div>
-            </div>
-          </div>
-          <CustomInput icon={MapPin} name="location" placeholder="বর্তমান এলাকা/শহর" />
-          <div className="grid grid-cols-2 gap-2">
-            <CustomInput icon={Lock} type={showPassword ? 'text' : 'password'} name="password" placeholder="পাসওয়ার্ড" showPasswordToggle onToggleShow={() => setShowPassword(!showPassword)} />
-            <CustomInput icon={Lock} type={showPassword ? 'text' : 'password'} name="confirmPassword" placeholder="নিশ্চিত করুন" />
-          </div>
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-black uppercase tracking-widest rounded-lg border border-red-100 dark:border-red-900/50 flex items-center gap-2 transition-colors">
-              <AlertCircle size={14} /> {error}
-            </div>
-          )}
-          <button type="submit" disabled={loading} className="w-full bg-[#c1121f] text-white py-2 lg:py-3.5 rounded-lg font-black uppercase tracking-[0.25em] text-sm lg:text-base shadow-xl shadow-red-900/20 hover:bg-[#a0101a] transition-all disabled:opacity-50 mt-4">
-            {loading ? "Creating Account..." : (config?.registerButtonLabel || "CREATE ACCOUNT")}
-          </button>
-          <p className="text-center text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 pt-6 lg:pt-8 transition-colors">
-            Already have an account? <Link to="/login" className="text-red-600 dark:text-red-500 font-black hover:underline text-base lg:text-lg ml-1">Sign In</Link>
-          </p>
-        </form>
+            )}
+            <button type="submit" disabled={loading} className="w-full bg-[#c1121f] text-white py-2 lg:py-3.5 rounded-lg font-black uppercase tracking-[0.25em] text-sm lg:text-base shadow-xl shadow-red-900/20 hover:bg-[#a0101a] transition-all disabled:opacity-50 mt-4">
+              {loading ? "Creating Account..." : (config?.registerButtonLabel || "CREATE ACCOUNT")}
+            </button>
+            <p className="text-center text-sm lg:text-base font-bold text-slate-400 dark:text-slate-500 pt-6 lg:pt-8 transition-colors">
+              Already have an account? <Link to="/login" className="text-red-600 dark:text-red-500 font-black hover:underline text-base lg:text-lg ml-1">Sign In</Link>
+            </p>
+          </form>
+        )}
 
         {/* Crop Modal */}
         {showCropModal && tempImage && (

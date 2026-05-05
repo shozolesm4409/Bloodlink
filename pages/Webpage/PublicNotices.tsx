@@ -4,11 +4,14 @@ import { getWebNotices } from '../../services/api';
 import { PublicLayout } from '../../components/PublicLayout';
 import { Card, Badge, Button } from '../../components/UI';
 import { Notice } from '../../types';
-import { Megaphone, Calendar, User as UserIcon, Pin, ArrowRight } from 'lucide-react';
+import { Megaphone, Calendar, User as UserIcon, Pin, ArrowRight, BadgeCheck, ShieldCheck } from 'lucide-react';
 import clsx from 'clsx';
+import { useSettings } from '../../SettingsContext';
+import { BADGE_COLOR_MAP } from '../../constants';
 
 export const PublicNotices = () => {
   const navigate = useNavigate();
+  const { badgeConfig } = useSettings();
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,16 +36,13 @@ export const PublicNotices = () => {
 
   return (
     <PublicLayout>
-      <div className="py-12 px-6 lg:py-20 bg-[#f8f9fa] dark:bg-slate-950 min-h-screen transition-colors">
-        <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
+      <div className="py-4 px-3 bg-[#f8f9fa] dark:bg-slate-950 min-h-screen transition-colors">
+        <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-700">
           <div className="text-center">
             <div className="w-16 h-16 bg-red-600 dark:bg-red-700 text-white rounded-sm flex items-center justify-center mx-auto mb-6 shadow-xl shadow-red-200 dark:shadow-red-900/20 transition-colors">
               <Megaphone size={32} />
             </div>
             <h1 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white tracking-tighter mb-4 transition-colors">Official Notices</h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-xl mx-auto transition-colors">
-              Stay updated with the latest announcements, events, and important information from the BloodLink administration.
-            </p>
           </div>
 
           {loading ? (
@@ -54,16 +54,22 @@ export const PublicNotices = () => {
             <div className="space-y-6">
               {notices.map((note) => (
                 <Card key={note.id} className={clsx(
-                  "p-6 lg:p-8 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-sm relative overflow-hidden transition-all hover:shadow-2xl group border border-slate-100 dark:border-slate-800",
+                  "p-3 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-sm relative overflow-hidden transition-all hover:shadow-2xl group border border-slate-100 dark:border-slate-800",
                   note.pinned && "ring-4 ring-yellow-50 dark:ring-yellow-900/20"
                 )}>
-                  <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-50 dark:border-slate-800 transition-colors">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-slate-50 dark:border-slate-800 transition-colors">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden flex-shrink-0 border border-slate-100 dark:border-slate-700 transition-colors">
                         {note.authorAvatar ? <img src={note.authorAvatar} className="w-full h-full object-cover" /> : <UserIcon className="p-2 text-slate-300 dark:text-slate-600 w-full h-full" />}
                       </div>
                       <div>
-                        <p className="text-xs font-black text-slate-900 dark:text-white leading-none transition-colors">{note.authorName}</p>
+                        <p className="text-xs font-black text-slate-900 dark:text-white leading-none transition-colors flex items-center gap-1">
+                          {note.authorName}
+                          {note.authorApprovedBadge ? <ShieldCheck size={12} className={BADGE_COLOR_MAP[note.authorApprovedBadge]} /> :
+                           note.authorRole === 'SUPERADMIN' ? <ShieldCheck size={12} className={BADGE_COLOR_MAP['blue']} /> :
+                           note.authorRole === 'ADMIN' ? <ShieldCheck size={12} className={BADGE_COLOR_MAP['green']} /> :
+                           note.authorRole === 'EDITOR' ? <ShieldCheck size={12} className={BADGE_COLOR_MAP['red']} /> : null}
+                        </p>
                         <div className="flex items-center gap-2 mt-1.5 text-slate-400 dark:text-slate-500 transition-colors">
                           <Calendar size={12} />
                           <p className="text-[10px] font-bold uppercase tracking-widest">
@@ -79,7 +85,7 @@ export const PublicNotices = () => {
                     )}
                   </div>
 
-                  <div className="flex flex-col lg:flex-row lg:items-center gap-4 lg:gap-8">
+                  <div className="flex flex-col lg:flex-row lg:items-center gap-2 lg:gap-4">
                     <h3 className="text-xl font-black text-slate-900 dark:text-white leading-tight lg:w-1/4 flex-shrink-0 transition-colors">
                       {note.subject}
                     </h3>

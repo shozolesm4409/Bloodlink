@@ -1,27 +1,33 @@
-
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../AuthContext';
-import { UserRole, AppPermissions, RolePermissions, DonationStatus, HelpStatus } from '../types';
-import { 
-  getAppPermissions, 
-  getUsers, 
-  getDonations, 
-  subscribeToAllIncomingMessages, 
+import React, { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../AuthContext";
+import { useSettings } from "../SettingsContext";
+import {
+  UserRole,
+  AppPermissions,
+  RolePermissions,
+  DonationStatus,
+  HelpStatus,
+} from "../types";
+import {
+  getAppPermissions,
+  getUsers,
+  getDonations,
+  subscribeToAllIncomingMessages,
   getAllFeedbacks,
   getHelpRequests,
   subscribeToNotices,
   subscribeToBloodRequests,
-  ADMIN_EMAIL
-} from '../services/api';
-import { 
-  LayoutDashboard, 
-  UserCircle, 
-  Droplet, 
-  Search, 
-  FileText, 
-  LogOut, 
-  Menu, 
+  ADMIN_EMAIL,
+} from "../services/api";
+import {
+  LayoutDashboard,
+  UserCircle,
+  Droplet,
+  Search,
+  FileText,
+  LogOut,
+  Menu,
   History,
   Users,
   Trash2,
@@ -30,6 +36,9 @@ import {
   MessageSquareQuote,
   CheckCircle2,
   Monitor,
+  Check,
+  AlertTriangle,
+  BadgeCheck,
   Megaphone,
   Database,
   UsersRound,
@@ -45,31 +54,29 @@ import {
   FileQuestion,
   Sun,
   Moon,
-  BadgeCheck
-} from 'lucide-react';
-import { useTheme } from '../ThemeContext';
-import clsx from 'clsx';
-import { User } from '../types';
+} from "lucide-react";
+import { useTheme } from "../ThemeContext";
+import clsx from "clsx";
+import { User } from "../types";
 
-import { RoleBadge } from './UI';
-import { getBadgeData } from '../pages/Users/Profile';
-
-
+import { RoleBadge } from "./UI";
+import { getVerificationBadge } from "../pages/Users/Profile";
 
 interface BadgeConfig {
   count: number;
-  color: 'red' | 'blue' | 'green' | 'pink';
+  color: "red" | "blue" | "green" | "pink";
 }
 
 export const Layout = ({ children }: { children?: React.ReactNode }) => {
   const { user, logout, impersonatingAdmin, stopImpersonation } = useAuth();
+  const { badgeConfig, softwareVersion } = useSettings();
   const { isDarkMode, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [perms, setPerms] = useState<AppPermissions | null>(null);
   const sidebarRef = React.useRef<HTMLDivElement>(null);
-  
+
   const [counts, setCounts] = useState({
     donations: 0,
     access: 0,
@@ -80,11 +87,11 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     badges: 0,
     unreadNotices: 0,
     bloodRequestsCount: 0,
-    unreadBloodRequestsUser: 0
+    unreadBloodRequestsUser: 0,
   });
 
   useEffect(() => {
-    const savedScrollPos = sessionStorage.getItem('sidebar-scroll-pos');
+    const savedScrollPos = sessionStorage.getItem("sidebar-scroll-pos");
     if (savedScrollPos && sidebarRef.current) {
       sidebarRef.current.scrollTop = parseInt(savedScrollPos, 10);
     }
@@ -92,52 +99,72 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   useEffect(() => {
     getAppPermissions().then(setPerms);
-    
-    // Check if user has admin/editor access to fetch counts, 
+
+    // Check if user has admin/editor access to fetch counts,
     // even if they are currently impersonating a normal user (use originalAdmin to check roles)
     const currentUser = impersonatingAdmin || user;
-    if (currentUser?.role === UserRole.ADMIN || currentUser?.role === UserRole.EDITOR || currentUser?.role === UserRole.SUPERADMIN) {
+    if (
+      currentUser?.role === UserRole.ADMIN ||
+      currentUser?.role === UserRole.EDITOR ||
+      currentUser?.role === UserRole.SUPERADMIN
+    ) {
       const fetchCounts = async () => {
         try {
           const [users, donations, feedbacks, helpReqs] = await Promise.all([
-            getUsers(), 
-            getDonations(), 
+            getUsers(),
+            getDonations(),
             getAllFeedbacks(),
-            getHelpRequests()
+            getHelpRequests(),
           ]);
 
-          const userDonationCounts = users.reduce((acc: any, u) => ({ ...acc, [u.id]: 0 }), {});
-          donations.filter(d => d.status === DonationStatus.COMPLETED).forEach(d => {
+          const userDonationCounts = users.reduce(
+            (acc: any, u) => ({ ...acc, [u.id]: 0 }),
+            {},
+          );
+          donations
+            .filter((d) => d.status === DonationStatus.COMPLETED)
+            .forEach((d) => {
               if (userDonationCounts[d.userId] !== undefined) {
-                  userDonationCounts[d.userId]++;
+                userDonationCounts[d.userId]++;
               }
-          });
+            });
 
           const getEligible = (c: number) => {
-              if (c > 10) return 'blue';
-              if (c > 7) return 'green';
-              if (c > 5) return 'red';
-              if (c > 3) return 'pink';
-              return null;
+            if (c > 10) return "blue";
+            if (c > 7) return "green";
+            if (c > 5) return "red";
+            if (c > 3) return "pink";
+            return null;
           };
 
           let pendingBadges = 0;
-          users.forEach(u => {
-              if (u.role === UserRole.SUPERADMIN) return;
-              const count = userDonationCounts[u.id] || 0;
-              const eligible = getEligible(count);
-              if (eligible && eligible !== u.approvedBadge) {
-                  pendingBadges++;
-              }
+          users.forEach((u) => {
+            if (u.role === UserRole.SUPERADMIN) return;
+            const count = userDonationCounts[u.id] || 0;
+            const eligible = getEligible(count);
+            if (eligible && eligible !== u.approvedBadge) {
+              pendingBadges++;
+            }
           });
 
-          setCounts(prev => ({
+          setCounts((prev) => ({
             ...prev,
-            access: users.filter(u => u.directoryAccessRequested || u.supportAccessRequested || u.feedbackAccessRequested || u.idCardAccessRequested || u.requestedDonorAccessRequested).length,
-            donations: donations.filter(d => d.status === DonationStatus.PENDING).length,
-            feedbacks: feedbacks.filter(f => f.status === 'PENDING').length,
-            helpRequests: helpReqs.filter(h => h.status === HelpStatus.PENDING).length,
-            badges: pendingBadges
+            access: users.filter(
+              (u) =>
+                u.directoryAccessRequested ||
+                u.supportAccessRequested ||
+                u.feedbackAccessRequested ||
+                u.idCardAccessRequested ||
+                u.requestedDonorAccessRequested,
+            ).length,
+            donations: donations.filter(
+              (d) => d.status === DonationStatus.PENDING,
+            ).length,
+            feedbacks: feedbacks.filter((f) => f.status === "PENDING").length,
+            helpRequests: helpReqs.filter(
+              (h) => h.status === HelpStatus.PENDING,
+            ).length,
+            badges: pendingBadges,
           }));
         } catch (e) {
           console.error("Failed to fetch notification counts", e);
@@ -147,70 +174,124 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     }
 
     if (user) {
-      const unsubscribeMessages = subscribeToAllIncomingMessages(user.id, (msgs) => {
-        const relevantMsgs = msgs.filter(m => m.receiverId === user.id || (user.role !== UserRole.USER && m.roomId.startsWith('SUPPORT_')));
-        const messengerCount = relevantMsgs.filter(m => !m.roomId.startsWith('SUPPORT_')).length;
-        const supportCount = relevantMsgs.filter(m => m.roomId.startsWith('SUPPORT_')).length;
-        setCounts(prev => ({ ...prev, messenger: messengerCount, support: supportCount }));
-      }, (err) => {
-        console.debug("Layout message subscription restricted");
-      });
+      const unsubscribeMessages = subscribeToAllIncomingMessages(
+        user.id,
+        (msgs) => {
+          const relevantMsgs = msgs.filter(
+            (m) =>
+              m.receiverId === user.id ||
+              (user.role !== UserRole.USER && m.roomId.startsWith("SUPPORT_")),
+          );
+          const messengerCount = relevantMsgs.filter(
+            (m) => !m.roomId.startsWith("SUPPORT_"),
+          ).length;
+          const supportCount = relevantMsgs.filter((m) =>
+            m.roomId.startsWith("SUPPORT_"),
+          ).length;
+          setCounts((prev) => ({
+            ...prev,
+            messenger: messengerCount,
+            support: supportCount,
+          }));
+        },
+        (err) => {
+          console.debug("Layout message subscription restricted");
+        },
+      );
 
-      const unsubscribeNotices = subscribeToNotices((data: any[]) => {
-        const isStaff = user?.role === UserRole.ADMIN || user?.role === UserRole.EDITOR || user?.role === UserRole.SUPERADMIN || (user?.email || '').trim().toLowerCase() === ADMIN_EMAIL;
-        const relevantNotices = data.filter(n => {
-          if (n.type === 'WEB') return true;
-          if (n.type === 'PUBLIC') return true;
-          if (n.type === 'PRIVATE') return isStaff;
-          return false;
-        }).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      const unsubscribeNotices = subscribeToNotices(
+        (data: any[]) => {
+          const isStaff =
+            user?.role === UserRole.ADMIN ||
+            user?.role === UserRole.EDITOR ||
+            user?.role === UserRole.SUPERADMIN ||
+            (user?.email || "").trim().toLowerCase() === ADMIN_EMAIL;
+          const relevantNotices = data
+            .filter((n) => {
+              if (n.type === "WEB") return true;
+              if (n.type === "PUBLIC") return true;
+              if (n.type === "PRIVATE") return isStaff;
+              return false;
+            })
+            .sort(
+              (a, b) =>
+                new Date(b.timestamp).getTime() -
+                new Date(a.timestamp).getTime(),
+            );
 
-        if (relevantNotices.length > 0) {
-          try {
-            const readNoticesStr = localStorage.getItem('readNotices');
-            const readNotices = readNoticesStr ? JSON.parse(readNoticesStr) : [];
-            const unreadCount = relevantNotices.filter(n => !readNotices.includes(n.id)).length;
-            setCounts(prev => ({ ...prev, unreadNotices: unreadCount }));
-          } catch (e) {
-            setCounts(prev => ({ ...prev, unreadNotices: 1 }));
-          }
-        }
-      }, () => {});
-
-      const unsubscribeBloodRequests = subscribeToBloodRequests((data: any[]) => {
-        const isPrivileged = user?.role === UserRole.ADMIN || user?.role === UserRole.SUPERADMIN || user?.role === UserRole.EDITOR;
-        
-        let privCount = 0;
-        if (isPrivileged) {
-          privCount = data.filter(br => br.requesterId !== user?.id && !(br.acceptedBy || []).some((a: any) => a.userId === user?.id)).length;
-        }
-
-        let userUnreadCount = 0;
-        try {
-          const readNoticesStr = localStorage.getItem('readNotices');
-          const readNotices = readNoticesStr ? JSON.parse(readNoticesStr) : [];
-          
-          userUnreadCount = data.filter(br => {
-            if (readNotices.includes(br.id)) return false;
-            if (br.requesterId === user?.id) return false;
-            
-            const hasAccepted = (br.acceptedBy || []).some((a: any) => a.userId === user?.id);
-            if (hasAccepted) return false;
-            
-            if (br.bloodGroup !== user?.bloodGroup) return false;
-            
-            const brLoc = (br.location || '').toLowerCase();
-            const uLoc = (user?.location || '').toLowerCase();
-            if (!brLoc.includes(uLoc) && !uLoc.includes(brLoc) && brLoc !== uLoc) {
-               return false;
+          if (relevantNotices.length > 0) {
+            try {
+              const readNoticesStr = localStorage.getItem("readNotices");
+              const readNotices = readNoticesStr
+                ? JSON.parse(readNoticesStr)
+                : [];
+              const unreadCount = relevantNotices.filter(
+                (n) => !readNotices.includes(n.id),
+              ).length;
+              setCounts((prev) => ({ ...prev, unreadNotices: unreadCount }));
+            } catch (e) {
+              setCounts((prev) => ({ ...prev, unreadNotices: 1 }));
             }
-            
-            return true;
-          }).length;
-        } catch(e) {}
+          }
+        },
+        () => {},
+      );
 
-        setCounts(prev => ({ ...prev, bloodRequestsCount: privCount, unreadBloodRequestsUser: userUnreadCount }));
-      });
+      const unsubscribeBloodRequests = subscribeToBloodRequests(
+        (data: any[]) => {
+          const isPrivileged =
+            user?.role === UserRole.ADMIN ||
+            user?.role === UserRole.SUPERADMIN ||
+            user?.role === UserRole.EDITOR;
+
+          let privCount = 0;
+          if (isPrivileged) {
+            privCount = data.filter(
+              (br) =>
+                br.requesterId !== user?.id &&
+                !(br.acceptedBy || []).some((a: any) => a.userId === user?.id),
+            ).length;
+          }
+
+          let userUnreadCount = 0;
+          try {
+            const readNoticesStr = localStorage.getItem("readNotices");
+            const readNotices = readNoticesStr
+              ? JSON.parse(readNoticesStr)
+              : [];
+
+            userUnreadCount = data.filter((br) => {
+              if (readNotices.includes(br.id)) return false;
+              if (br.requesterId === user?.id) return false;
+
+              const hasAccepted = (br.acceptedBy || []).some(
+                (a: any) => a.userId === user?.id,
+              );
+              if (hasAccepted) return false;
+
+              if (br.bloodGroup !== user?.bloodGroup) return false;
+
+              const brLoc = (br.location || "").toLowerCase();
+              const uLoc = (user?.location || "").toLowerCase();
+              if (
+                !brLoc.includes(uLoc) &&
+                !uLoc.includes(brLoc) &&
+                brLoc !== uLoc
+              ) {
+                return false;
+              }
+
+              return true;
+            }).length;
+          } catch (e) {}
+
+          setCounts((prev) => ({
+            ...prev,
+            bloodRequestsCount: privCount,
+            unreadBloodRequestsUser: userUnreadCount,
+          }));
+        },
+      );
 
       return () => {
         unsubscribeMessages();
@@ -218,14 +299,26 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         if (unsubscribeBloodRequests) unsubscribeBloodRequests();
       };
     }
-  }, [user, location.pathname]); 
+  }, [user, location.pathname]);
 
   const handleLogout = async () => {
     await logout();
-    navigate('/login');
+    navigate("/login");
   };
 
-  const NavItem = ({ to, icon: Icon, label, badges, locked }: { to: string, icon: any, label: string, badges?: BadgeConfig[], locked?: boolean }) => {
+  const NavItem = ({
+    to,
+    icon: Icon,
+    label,
+    badges,
+    locked,
+  }: {
+    to: string;
+    icon: any;
+    label: string;
+    badges?: BadgeConfig[];
+    locked?: boolean;
+  }) => {
     const isActive = location.pathname.startsWith(to);
     return (
       <Link
@@ -239,30 +332,45 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         }}
         className={clsx(
           "flex items-center justify-between px-2 py-1.5 rounded-lg transition-all duration-200 group relative",
-          isActive 
-            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold shadow-sm" 
-            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100"
+          isActive
+            ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 font-bold shadow-sm"
+            : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-slate-100",
         )}
       >
         <div className="flex items-center gap-3">
-          <Icon size={18} className={clsx(isActive ? "text-red-600 dark:text-red-400" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300")} />
+          <Icon
+            size={18}
+            className={clsx(
+              isActive
+                ? "text-red-600 dark:text-red-400"
+                : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300",
+            )}
+          />
           <span className="text-[13px] tracking-tight">{label}</span>
           {locked && <Lock size={12} className="text-amber-500" />}
         </div>
-        
+
         <div className="flex items-center gap-1">
-          {badges?.filter(b => b.count > 0).map((b, i) => (
-            <span 
-              key={i}
-              className={clsx(
-                "text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm animate-in zoom-in-50",
-                b.color === 'red' ? "bg-red-600" : b.color === 'blue' ? "bg-blue-600" : b.color === 'pink' ? "bg-pink-500" : "bg-green-600"
-              )}
-            >
-              {b.count}
-            </span>
-          ))}
-          {(!badges || badges.every(b => b.count === 0)) && isActive && (
+          {badges
+            ?.filter((b) => b.count > 0)
+            .map((b, i) => (
+              <span
+                key={i}
+                className={clsx(
+                  "text-white text-[9px] font-black px-1.5 py-0.5 rounded-md shadow-sm animate-in zoom-in-50",
+                  b.color === "red"
+                    ? "bg-red-600"
+                    : b.color === "blue"
+                      ? "bg-blue-600"
+                      : b.color === "pink"
+                        ? "bg-pink-500"
+                        : "bg-green-600",
+                )}
+              >
+                {b.count}
+              </span>
+            ))}
+          {(!badges || badges.every((b) => b.count === 0)) && isActive && (
             <ChevronRight size={14} className="text-red-300" />
           )}
         </div>
@@ -270,45 +378,95 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     );
   };
 
-  const SidebarSection = ({ title, children }: { title: string, children?: React.ReactNode }) => {
-    const hasVisibleChildren = React.Children.toArray(children).some(child => !!child);
+  const SidebarSection = ({
+    title,
+    children,
+  }: {
+    title: string;
+    children?: React.ReactNode;
+  }) => {
+    const hasVisibleChildren = React.Children.toArray(children).some(
+      (child) => !!child,
+    );
     if (!hasVisibleChildren) return null;
 
     return (
       <div className="space-y-1 mb-6">
-        <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">{title}</h3>
+        <h3 className="px-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">
+          {title}
+        </h3>
         <div className="space-y-0.5">{children}</div>
       </div>
     );
   };
 
-  const isSuperAdmin = user?.role === UserRole.SUPERADMIN || user?.email.trim().toLowerCase() === ADMIN_EMAIL;
+  const isSuperAdmin =
+    user?.role === UserRole.SUPERADMIN ||
+    user?.email.trim().toLowerCase() === ADMIN_EMAIL;
   const isAdmin = user?.role === UserRole.ADMIN;
   const isEditor = user?.role === UserRole.EDITOR;
-  
-  const hasValidBadge = Boolean(isSuperAdmin || isAdmin || isEditor || (user?.approvedBadge && (user.approvedBadge as string) !== 'none'));
-  const requestedDonorCount = hasValidBadge ? (counts.bloodRequestsCount + counts.unreadBloodRequestsUser) : 0;
+
+  const hasValidBadge = Boolean(
+    isSuperAdmin ||
+    isAdmin ||
+    isEditor ||
+    (user?.approvedBadge && (user.approvedBadge as string) !== "none"),
+  );
+  const requestedDonorCount = hasValidBadge
+    ? counts.bloodRequestsCount + counts.unreadBloodRequestsUser
+    : 0;
 
   let basePerms: any = {
-    dashboard: true, profile: true, history: true, donors: true, feedback: true, myNotice: true, requestedDonor: true
+    dashboard: true,
+    profile: true,
+    history: true,
+    donors: true,
+    feedback: true,
+    myNotice: true,
+    requestedDonor: true,
   };
 
   if (perms) {
     if (isSuperAdmin) {
       basePerms = {
-        summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
-        logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
-        landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-        verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true, serverStatus: true, requestedDonor: true,
-        ...(perms.superadmin?.sidebar || {})
+        summary: true,
+        dashboard: true,
+        profile: true,
+        history: true,
+        donors: true,
+        users: true,
+        manageDonations: true,
+        logs: true,
+        rolePermissions: true,
+        supportCenter: true,
+        feedback: true,
+        approveFeedback: true,
+        landingSettings: true,
+        myNotice: true,
+        notifications: true,
+        adminVerify: true,
+        verificationHistory: true,
+        teamIdCards: true,
+        deletedUsers: true,
+        helpCenterManage: true,
+        moderateFaqs: true,
+        serverStatus: true,
+        requestedDonor: true,
+        ...(perms.superadmin?.sidebar || {}),
       };
-      if (perms.superadmin?.sidebar && perms.superadmin.sidebar.serverStatus === undefined) {
-          basePerms.serverStatus = true;
+      if (
+        perms.superadmin?.sidebar &&
+        perms.superadmin.sidebar.serverStatus === undefined
+      ) {
+        basePerms.serverStatus = true;
       }
     } else if (isAdmin) {
       basePerms = perms.admin?.sidebar || basePerms;
-      if (perms.admin?.sidebar && perms.admin.sidebar.serverStatus === undefined) {
-          basePerms.serverStatus = true;
+      if (
+        perms.admin?.sidebar &&
+        perms.admin.sidebar.serverStatus === undefined
+      ) {
+        basePerms.serverStatus = true;
       }
     } else if (isEditor) {
       basePerms = perms.editor?.sidebar || basePerms;
@@ -317,127 +475,325 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     }
   } else if (isSuperAdmin) {
     // If perms not loaded yet, default superadmin to all access to prevent flickering or lockout
-    basePerms = { 
-      summary: true, dashboard: true, profile: true, history: true, donors: true, users: true, manageDonations: true, 
-      logs: true, rolePermissions: true, supportCenter: true, feedback: true, approveFeedback: true, 
-      landingSettings: true, myNotice: true, notifications: true, adminVerify: true, 
-      verificationHistory: true, teamIdCards: true, deletedUsers: true, helpCenterManage: true, moderateFaqs: true, serverStatus: true, requestedDonor: true
+    basePerms = {
+      summary: true,
+      dashboard: true,
+      profile: true,
+      history: true,
+      donors: true,
+      users: true,
+      manageDonations: true,
+      logs: true,
+      rolePermissions: true,
+      supportCenter: true,
+      feedback: true,
+      approveFeedback: true,
+      landingSettings: true,
+      myNotice: true,
+      notifications: true,
+      adminVerify: true,
+      verificationHistory: true,
+      teamIdCards: true,
+      deletedUsers: true,
+      helpCenterManage: true,
+      moderateFaqs: true,
+      serverStatus: true,
+      requestedDonor: true,
     };
   }
 
   // Determine effective permissions by merging base permissions with user overrides
   // Ensure SuperAdmin always has critical access even if overrides exist (failsafe)
-  const s = user?.permissions?.sidebar 
-    ? { ...basePerms, ...user.permissions.sidebar } 
+  const s = user?.permissions?.sidebar
+    ? { ...basePerms, ...user.permissions.sidebar }
     : basePerms;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex transition-colors duration-300">
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-[60] lg:hidden" onClick={() => setIsMobileMenuOpen(false)} />
+        <div
+          className="fixed inset-0 bg-slate-900/60 dark:bg-black/80 backdrop-blur-md z-[60] lg:hidden"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
       )}
 
-      <aside className={clsx(
-        "fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none h-screen overflow-hidden",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      )}>
-        <Link to="/" className="h-20 flex-shrink-0 flex items-center px-6 gap-3 mb-2 hover:opacity-80 transition-opacity">
+      <aside
+        className={clsx(
+          "fixed lg:static inset-y-0 left-0 z-[70] w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-all duration-300 ease-in-out flex flex-col shadow-2xl lg:shadow-none h-screen overflow-hidden",
+          isMobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full lg:translate-x-0",
+        )}
+      >
+        <Link
+          to="/"
+          className="h-20 flex-shrink-0 flex items-center px-6 gap-3 mb-2 hover:opacity-80 transition-opacity"
+        >
           <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center shadow-xl shadow-red-100 dark:shadow-red-900/20 ring-4 ring-red-50 dark:ring-red-950/20">
-            <Droplet className="text-white fill-current" size={22} />
+            <Droplet className="text-white" size={22} />
           </div>
-          <div>
-            <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter block leading-none">BloodLink</span>
-            <span className="text-[9px] font-black text-red-600 uppercase tracking-widest">Management Hub</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter block leading-none mb-0.5">
+              BloodLink
+            </span>
+            <span className="text-[9px] font-black text-red-600 uppercase tracking-widest leading-tight">
+              Management Hub
+            </span>
           </div>
         </Link>
 
-        <div 
+        <div
           ref={sidebarRef}
-          onScroll={(e) => sessionStorage.setItem('sidebar-scroll-pos', e.currentTarget.scrollTop.toString())}
+          onScroll={(e) =>
+            sessionStorage.setItem(
+              "sidebar-scroll-pos",
+              e.currentTarget.scrollTop.toString(),
+            )
+          }
           className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4"
         >
           <SidebarSection title="User Hub">
-            {s.dashboard && <NavItem to="/dashboard" icon={LayoutDashboard} label="Dashboard" />}
-            {s.profile && <NavItem to="/profile" icon={UserCircle} label="Account Profile" />}
-            {s.history && <NavItem to="/my-donations" icon={History} label="My Donate" />}
+            {s.dashboard && (
+              <NavItem
+                to="/dashboard"
+                icon={LayoutDashboard}
+                label="Dashboard"
+              />
+            )}
+            {s.profile && (
+              <NavItem
+                to="/profile"
+                icon={UserCircle}
+                label="Account Profile"
+              />
+            )}
+            {s.history && (
+              <NavItem to="/my-donations" icon={History} label="My Donate" />
+            )}
           </SidebarSection>
 
           <SidebarSection title="Community">
-             {s.donors && <NavItem to="/directory" icon={Search} label="Donor Directory" locked={user?.role === UserRole.USER && !user?.hasDirectoryAccess} />}
-             {s.myNotice && <NavItem to="/notices" icon={Megaphone} label="Board Notices" />}
-             {s.requestedDonor && <NavItem to="/requested-donor" icon={Droplet} label="Requested Donor" locked={user?.role === UserRole.USER && !user?.hasRequestedDonorAccess} badges={[{ count: requestedDonorCount, color: 'red' }]} />}
-             {s.supportCenter && (
-               <NavItem 
-                 to="/support" 
-                 icon={LifeBuoy} 
-                 label="Support Center" 
-                 locked={user?.role === UserRole.USER && !user?.hasSupportAccess}
-                 badges={[
-                   { count: counts.messenger, color: 'blue' },
-                   { count: counts.support, color: 'green' }
-                 ]} 
-               />
-             )}
-             {/* Help Center removed from sidebar */}
-             {s.feedback && <NavItem to="/feedback" icon={MessageSquareQuote} label="Post Feedback" locked={user?.role === UserRole.USER && !user?.hasFeedbackAccess} />}
+            {s.donors && (
+              <NavItem
+                to="/directory"
+                icon={Search}
+                label="Donor Directory"
+                locked={
+                  user?.role === UserRole.USER && !user?.hasDirectoryAccess
+                }
+              />
+            )}
+            {s.myNotice && (
+              <NavItem to="/notices" icon={Megaphone} label="Board Notices" />
+            )}
+            {s.requestedDonor && (
+              <NavItem
+                to="/requested-donor"
+                icon={Droplet}
+                label="Requested Donor"
+                locked={
+                  user?.role === UserRole.USER && !user?.hasRequestedDonorAccess
+                }
+                badges={[{ count: requestedDonorCount, color: "red" }]}
+              />
+            )}
+            {s.supportCenter && (
+              <NavItem
+                to="/support"
+                icon={LifeBuoy}
+                label="Support Center"
+                locked={user?.role === UserRole.USER && !user?.hasSupportAccess}
+                badges={[
+                  { count: counts.messenger, color: "blue" },
+                  { count: counts.support, color: "green" },
+                ]}
+              />
+            )}
+            {/* Help Center removed from sidebar */}
+            {s.feedback && (
+              <NavItem
+                to="/feedback"
+                icon={MessageSquareQuote}
+                label="Post Feedback"
+                locked={
+                  user?.role === UserRole.USER && !user?.hasFeedbackAccess
+                }
+              />
+            )}
           </SidebarSection>
 
-          <SidebarSection title="Content Admin">
-            {s.landingSettings && <NavItem to="/landing-settings" icon={Monitor} label="Page Customizer" />}
-            {s.manageDonations && <NavItem to="/manage-donations" icon={Database} label="Donation Records" badges={[{ count: counts.donations, color: 'red' }]} />}
-            {s.approveFeedback && <NavItem to="/approve-feedback" icon={CheckCircle2} label="Moderate Feedback" badges={[{ count: counts.feedbacks, color: 'red' }]} />}
-            {s.helpCenterManage && <NavItem to="/help-center-manage" icon={HelpCircle} label="Help Center manage" badges={[{ count: counts.helpRequests, color: 'red' }]} />}
-            {s.moderateFaqs && <NavItem to="/moderate-faqs" icon={FileQuestion} label="Moderate FAQ's" />}
+          <SidebarSection title="System Customizer">
+            {s.landingSettings && (
+              <NavItem
+                to="/landing-settings"
+                icon={Monitor}
+                label="Global Customizer"
+              />
+            )}
+            {s.manageDonations && (
+              <NavItem
+                to="/manage-donations"
+                icon={Database}
+                label="Donation Records"
+                badges={[{ count: counts.donations, color: "red" }]}
+              />
+            )}
+            {s.approveFeedback && (
+              <NavItem
+                to="/approve-feedback"
+                icon={CheckCircle2}
+                label="Moderate Feedback"
+                badges={[{ count: counts.feedbacks, color: "red" }]}
+              />
+            )}
+            {s.helpCenterManage && (
+              <NavItem
+                to="/help-center-manage"
+                icon={HelpCircle}
+                label="Help Center manage"
+                badges={[{ count: counts.helpRequests, color: "red" }]}
+              />
+            )}
+            {s.moderateFaqs && (
+              <NavItem
+                to="/moderate-faqs"
+                icon={FileQuestion}
+                label="Moderate FAQ's"
+              />
+            )}
           </SidebarSection>
 
           <SidebarSection title="People Control">
-            {s.summary && <NavItem to="/summary" icon={PieChart} label="System Summary" />}
-            {s.users && <NavItem to="/users" icon={UsersRound} label="Manage Users" />}
-            {s.notifications && <NavItem to="/notifications" icon={Bell} label="Access Requests" badges={[{ count: counts.access, color: 'red' }]} />}
-            {(s.badgeManage || isSuperAdmin || isAdmin) && <NavItem to="/badge-manage" icon={Medal} label="Badge Manage" badges={[{ count: counts.badges, color: 'pink' }]} />}
-            {s.adminVerify && <NavItem to="/admin/verify" icon={ShieldCheck} label="Verify Identity" />}
-            {s.verificationHistory && <NavItem to="/verification-history" icon={ClipboardList} label="Verification History" />}
-            {s.teamIdCards && <NavItem to="/team-id-cards" icon={IdCard} label="Team ID Cards" />}
+            {s.summary && (
+              <NavItem to="/summary" icon={PieChart} label="System Summary" />
+            )}
+            {s.users && (
+              <NavItem to="/users" icon={UsersRound} label="Manage Users" />
+            )}
+            {s.notifications && (
+              <NavItem
+                to="/notifications"
+                icon={Bell}
+                label="Access Requests"
+                badges={[{ count: counts.access, color: "red" }]}
+              />
+            )}
+            {(s.badgeManage || isSuperAdmin || isAdmin) && (
+              <NavItem
+                to="/badge-manage"
+                icon={Medal}
+                label="Badge Manage"
+                badges={counts.badges > 0 ? [{ count: counts.badges, color: "pink" }] : []}
+              />
+            )}
+            {s.adminVerify && (
+              <NavItem
+                to="/admin/verify"
+                icon={ShieldCheck}
+                label="Verify Identity"
+              />
+            )}
+            {s.verificationHistory && (
+              <NavItem
+                to="/verification-history"
+                icon={ClipboardList}
+                label="Verification History"
+              />
+            )}
+            {s.teamIdCards && (
+              <NavItem
+                to="/team-id-cards"
+                icon={IdCard}
+                label="Team ID Cards"
+              />
+            )}
           </SidebarSection>
 
           <SidebarSection title="System Intel">
-            {s.serverStatus && <NavItem to="/server-status" icon={Monitor} label="Server Status" />}
-            {s.rolePermissions && isSuperAdmin && <NavItem to="/role-permissions" icon={Lock} label="Role Permissions" />}
-            {s.deletedUsers && <NavItem to="/deleted-users" icon={Trash2} label="System Archives" />}
-            {s.logs && <NavItem to="/logs" icon={FileText} label="Activity Logs" />}
+            {s.serverStatus && (
+              <NavItem
+                to="/server-status"
+                icon={Monitor}
+                label="Server Status"
+              />
+            )}
+            {s.rolePermissions && isSuperAdmin && (
+              <NavItem
+                to="/role-permissions"
+                icon={Lock}
+                label="Role Permissions"
+              />
+            )}
+            {s.deletedUsers && (
+              <NavItem
+                to="/deleted-users"
+                icon={Trash2}
+                label="System Archives"
+              />
+            )}
+            {s.logs && (
+              <NavItem to="/logs" icon={FileText} label="Activity Logs" />
+            )}
           </SidebarSection>
         </div>
 
         <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex-shrink-0">
           <div className="flex items-center gap-2 p-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm mb-2 relative transition-all group hover:border-red-200 dark:hover:border-red-900/50">
-            <button 
+            <button
               onClick={() => {
                 setIsMobileMenuOpen(false);
-                navigate('/profile');
+                navigate("/profile");
               }}
               className="flex items-center gap-3 flex-1 text-left min-w-0 hover:opacity-80 transition-opacity"
               title="Profile Management"
             >
               <div className="w-10 h-10 flex-shrink-0 rounded-lg bg-red-50 dark:bg-red-950/30 text-red-600 flex items-center justify-center font-black overflow-hidden border border-red-100 dark:border-red-900/50">
-                {user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : user?.name.charAt(0)}
+                {user?.avatar ? (
+                  <img
+                    src={user.avatar}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user?.name.charAt(0)
+                )}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1 mb-1">
-                  <p className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">{user?.name}</p>
-                  {getBadgeData(user)?.color && <BadgeCheck className={clsx(getBadgeData(user)?.color, "flex-shrink-0")} size={14} />}
+                  <p className="text-[11px] font-black text-slate-900 dark:text-slate-100 truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors uppercase">
+                    {user?.name}
+                  </p>
+                  {(() => {
+                    const vb = getVerificationBadge(user, undefined);
+                    if (!vb) return null;
+                    return (
+                      <BadgeCheck
+                        size={15}
+                        className={clsx(vb.color, "flex-shrink-0")}
+                      />
+                    );
+                  })()}
                 </div>
-                <RoleBadge role={user?.role || 'USER'} />
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <RoleBadge role={user?.role || "USER"} />
+                  {softwareVersion && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8px] font-black bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-slate-700 tracking-tighter uppercase transition-colors">
+                      {softwareVersion}
+                    </span>
+                  )}
+                </div>
               </div>
             </button>
-            <button 
+            <button
               onClick={toggleTheme}
               className="p-2 flex-shrink-0 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-all active:scale-90"
-              title={!isDarkMode ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+              title={
+                !isDarkMode ? "Switch to Dark Mode" : "Switch to Light Mode"
+              }
             >
               {!isDarkMode ? <Moon size={16} /> : <Sun size={16} />}
             </button>
           </div>
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center gap-2 py-2 text-[11px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition-colors bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-red-100 dark:hover:border-red-900/50 shadow-sm active:scale-95"
           >
@@ -451,64 +807,91 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
           <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 lg:hidden mr-4">
               <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center">
-                <Droplet className="text-white fill-current" size={18} />
+                <Droplet className="text-white" size={18} />
               </div>
-              <span className="font-black text-slate-900 dark:text-white tracking-tighter text-lg">BloodLink</span>
+              <span className="font-black text-slate-900 dark:text-white tracking-tighter text-lg">
+                BloodLink
+              </span>
             </Link>
             <div className="hidden lg:block">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Authenticated Session</span>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                Authenticated Session
+              </span>
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Link 
-              to="/user-notifications" 
+            <Link
+              to="/user-notifications"
               className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all relative"
             >
               <Bell size={20} />
-              {(counts.unreadNotices + counts.unreadBloodRequestsUser) > 0 && (
+              {counts.unreadNotices + counts.unreadBloodRequestsUser > 0 && (
                 <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold border-2 border-white dark:border-slate-900">
-                  {(counts.unreadNotices + counts.unreadBloodRequestsUser) > 99 ? '99+' : (counts.unreadNotices + counts.unreadBloodRequestsUser)}
+                  {counts.unreadNotices + counts.unreadBloodRequestsUser > 99
+                    ? "99+"
+                    : counts.unreadNotices + counts.unreadBloodRequestsUser}
                 </span>
               )}
             </Link>
 
             {impersonatingAdmin && (
-              <button 
+              <button
                 onClick={stopImpersonation}
                 className="flex items-center gap-3 p-1.5 pr-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900/50 rounded-xl hover:bg-red-600 group transition-all shadow-sm animate-in slide-in-from-right duration-500"
                 title="Return to SuperAdmin Dashboard"
               >
                 <div className="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center font-black text-xs shadow-md group-hover:bg-white group-hover:text-red-600 transition-colors">
-                  {impersonatingAdmin.avatar ? <img src={impersonatingAdmin.avatar} className="w-full h-full object-cover" /> : impersonatingAdmin.name.charAt(0)}
+                  {impersonatingAdmin.avatar ? (
+                    <img
+                      src={impersonatingAdmin.avatar}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    impersonatingAdmin.name.charAt(0)
+                  )}
                 </div>
                 <div className="text-left hidden sm:block">
-                  <p className="text-[10px] font-black text-slate-900 dark:text-white group-hover:text-white leading-none mb-1 transition-colors uppercase tracking-tight">{impersonatingAdmin.name}</p>
-                  <p className="text-[8px] font-black text-red-600 dark:text-red-400 group-hover:text-red-100 uppercase tracking-widest leading-none transition-colors">Switch to Admin</p>
+                  <p className="text-[10px] font-black text-slate-900 dark:text-white group-hover:text-white leading-none mb-1 transition-colors uppercase tracking-tight">
+                    {impersonatingAdmin.name}
+                  </p>
+                  <p className="text-[8px] font-black text-red-600 dark:text-red-400 group-hover:text-red-100 uppercase tracking-widest leading-none transition-colors">
+                    Switch to Admin
+                  </p>
                 </div>
               </button>
             )}
 
-            <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 lg:hidden">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="p-2 bg-slate-50/50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700 lg:hidden"
+            >
               <Menu size={20} className="text-slate-700 dark:text-slate-300" />
             </button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-2 lg:p-4 custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300">
+        <div className="flex-1 overflow-auto p-1 lg:p-3 custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300">
           {impersonatingAdmin && user?.role !== UserRole.SUPERADMIN && (
             <div className="mb-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-4 rounded-xl flex items-center justify-between shadow-sm">
-                <div>
-                  <p className="text-[11px] font-black text-amber-900 dark:text-amber-100 italic">Currently impersonating: {user?.name}</p>
-                  <p className="text-[9px] text-amber-700 dark:text-amber-300">Admin session is active.</p>
-                </div>
-                <button onClick={stopImpersonation} className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-md transition-colors">Return</button>
+              <div>
+                <p className="text-[11px] font-black text-amber-900 dark:text-amber-100 italic">
+                  Currently impersonating: {user?.name}
+                </p>
+                <p className="text-[9px] text-amber-700 dark:text-amber-300">
+                  Admin session is active.
+                </p>
+              </div>
+              <button
+                onClick={stopImpersonation}
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest shadow-md transition-colors"
+              >
+                Return
+              </button>
             </div>
           )}
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+          <div className="max-w-7xl mx-auto">{children}</div>
         </div>
       </main>
     </div>
   );
-}
+};
