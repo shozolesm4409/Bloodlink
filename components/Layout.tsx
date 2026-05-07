@@ -66,7 +66,6 @@ import { useTheme } from "../ThemeContext";
 import clsx from "clsx";
 import { User } from "../types";
 import { useToast, Toast } from "./UI";
-import { AdPopup } from "./AdPopup";
 
 import { RoleBadge } from "./UI";
 import { getVerificationBadge } from "../pages/Users/Profile";
@@ -495,7 +494,6 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         foundManage: true,
         foundExpenses: true,
         avatarManage: true,
-        addManagement: true,
         ...(perms.superadmin?.sidebar || {}),
       };
       if (
@@ -548,7 +546,6 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
       foundManage: true,
       foundExpenses: true,
       avatarManage: true,
-      addManagement: true,
     };
   }
 
@@ -588,7 +585,6 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex transition-colors duration-300">
-      <AdPopup />
       <Toast {...toastState} onClose={hideToast} />
       {isMobileMenuOpen && (
         <div
@@ -851,15 +847,6 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                     locked={l.approveFeedback}
                     menuKey="approveFeedback"
                     badges={[{ count: counts.feedbacks, color: "red" }]}
-                  />
-                )}
-                {s.addManagement && (
-                  <NavItem
-                    to="/add-management"
-                    icon={Megaphone}
-                    label="Add Management"
-                    locked={l.addManagement}
-                    menuKey="addManagement"
                   />
                 )}
                 {s.helpCenterManage && (

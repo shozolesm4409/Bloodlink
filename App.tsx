@@ -14,7 +14,6 @@ import { AdminServerStatus } from './pages/Admin/AdminServerStatus';
 import { AdminArchives } from './pages/Admin/AdminArchives';
 import { AdminPermissions } from './pages/Admin/AdminPermissions';
 import { AdminPageCustomizer } from './pages/Admin/AdminPageCustomizer';
-import { AddManagement } from './pages/Admin/AddManagement';
 import { AdminSummary } from './pages/Admin/AdminSummary';
 import { AdminRolePermissions } from './pages/Admin/AdminRolePermissions';
 import { DonorDirectory } from './pages/Users/DonorDirectory';
@@ -135,7 +134,6 @@ const App = () => {
 
           <Route path="/summary" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="summary"><AdminSummary /></ProtectedRoute>} />
           <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="users"><AdminUserManagement /></ProtectedRoute>} />
-          <Route path="/add-management" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="addManagement"><AddManagement /></ProtectedRoute>} />
           <Route path="/landing-settings" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="landingSettings"><AdminPageCustomizer /></ProtectedRoute>} />
           <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="manageDonations"><AdminDonations /></ProtectedRoute>} />
           <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="approveFeedback"><FeedbackApprovalPage /></ProtectedRoute>} />

@@ -1,47 +1,49 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { ChatMessage } from "../types";
+import { DonationRecord } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
-
-export const getSmartReplies = async (messages: ChatMessage[], currentUserName: string): Promise<string[]> => {
-  if (!process.env.GEMINI_API_KEY) return [];
+export const generateDonationInsight = async (donations: DonationRecord[]): Promise<string> => {
+  // Always use a named parameter for apiKey and obtain it exclusively from process.env.API_KEY
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  try {
-    // Last few messages for context
-    const context = messages.slice(-5).map(m => `${m.senderName}: ${m.text}`).join('\n');
-    
-    const prompt = `
-      You are an AI assistant for BloodLink, a blood donation platform.
-      The following is a short conversation between users. 
-      Generate 3 short, helpful, and natural "Smart Reply" suggestions (in Bengali, as the platform users are primarily Bengali speakers) that the user ${currentUserName} could send next.
-      Keep them under 5-6 words. 
-      Return ONLY a JSON array of strings.
-      
-      Conversation:
-      ${context}
-    `;
+  const totalVolume = donations.reduce((acc, curr) => acc + (Number(curr.units) || 0), 0);
+  const byGroup = donations.reduce((acc, curr) => {
+    acc[curr.userBloodGroup] = (acc[curr.userBloodGroup] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
+  const summary = `
+    Total Donations: ${donations.length}
+    Total Volume: ${totalVolume}ml
+    Donations by Group: ${JSON.stringify(byGroup)}
+    Analysis Date: ${new Date().toLocaleDateString()}
+  `;
+
+  try {
+    // Using gemini-3-pro-preview for complex reasoning tasks
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt
-    });
-    
-    const text = response.text || '';
-    
-    // Extract JSON array
-    const jsonMatch = text.match(/\[.*\]/s);
-    if (jsonMatch) {
-      try {
-        return JSON.parse(jsonMatch[0]);
-      } catch (e) {
-        return [];
+      model: 'gemini-3-pro-preview',
+      contents: `You are a professional medical data analyst for a blood bank management system. 
+      Analyze the following live donation statistics and provide:
+      1. A professional summary of current achievements.
+      2. Specific actionable insights about blood group availability.
+      3. A motivational sentence for the community.
+      
+      Keep the tone professional and use bullet points where necessary. Output in English.
+      
+      Data to analyze:
+      ${summary}`,
+      config: {
+        temperature: 0.7,
+        topK: 40,
+        topP: 0.95,
       }
-    }
-    
-    return [];
+    });
+
+    // Access the .text property directly
+    return response.text || "No actionable insights found at this moment.";
   } catch (error) {
-    console.error("Gemini Smart Reply Error:", error);
-    return [];
+    console.error("Gemini API Error:", error);
+    return "Unable to synchronize with AI nodes. Please verify system connection and try again.";
   }
 };
