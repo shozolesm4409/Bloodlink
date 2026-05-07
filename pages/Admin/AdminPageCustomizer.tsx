@@ -1,10 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../AuthContext';
-import { getLandingConfig, updateLandingConfig, getBadgeConfig, updateBadgeConfig, getSocialMediaConfig, updateSocialMediaConfig } from '../../services/api';
+import { getLandingConfig, updateLandingConfig, getBadgeConfig, updateBadgeConfig, getSocialMediaConfig, updateSocialMediaConfig, getFundingConfig, updateFundingConfig } from '../../services/api';
 import { Card, Button, Input, Toast, useToast } from '../../components/UI';
-import { LandingPageConfig, BadgeConfig, SocialMediaConfig, SocialMediaLink } from '../../types';
-import { Monitor, Save, Globe, LogIn, UserPlus, List, BarChart, MessageSquare, Layout, Megaphone, Key, MailCheck, ShieldCheck, Database, Lock, Eye, Share2, UserCheck, Mail, Send, History, Info, Type, AlertTriangle, X, Bot, Settings, HelpCircle, Home, RefreshCw, Award, Palette, Hash, Facebook, Twitter, Instagram, Linkedin, Youtube, Github, Plus, Trash2, ExternalLink, Globe2, MessageCircle, Phone } from 'lucide-react';
+import { LandingPageConfig, BadgeConfig, SocialMediaConfig, SocialMediaLink, FundingConfig } from '../../types';
+import { Monitor, Save, Globe, LogIn, UserPlus, List, BarChart, MessageSquare, Layout, Megaphone, Key, MailCheck, ShieldCheck, Database, Lock, Eye, Share2, UserCheck, Mail, Send, History, Info, Type, AlertTriangle, X, Bot, Settings, HelpCircle, Home, RefreshCw, Award, Palette, Hash, Facebook, Twitter, Instagram, Linkedin, Youtube, Github, Plus, Trash2, ExternalLink, Globe2, MessageCircle, Phone, HeartHandshake } from 'lucide-react';
 import { useSettings } from '../../SettingsContext';
 import clsx from 'clsx';
 
@@ -34,6 +34,7 @@ export const AdminPageCustomizer = () => {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showLockPreview, setShowLockPreview] = useState(false);
   // Define sections structure for navigation
   const SECTIONS = {
     landing: [
@@ -59,16 +60,20 @@ export const AdminPageCustomizer = () => {
       { id: 'rights', title: 'User Rights', icon: UserCheck, iconColor: 'text-pink-600' },
     ],
     system: [
+      { id: 'lock_modal', title: 'Lock Modal', icon: Lock, iconColor: 'text-amber-500' },
+      { id: 'funding', title: 'Donation Fund', icon: HeartHandshake, iconColor: 'text-red-500' },
       { id: 'social_media', title: 'Social Media', icon: Share2, iconColor: 'text-indigo-600' },
+      { id: 'dashboard_footer', title: 'Dashboard Footer', icon: Layout, iconColor: 'text-slate-600' },
       { id: 'error', title: 'Error Page', icon: AlertTriangle, iconColor: 'text-red-500' },
       { id: 'version', title: 'Software Version', icon: Hash, iconColor: 'text-slate-600' },
     ]
   };
 
-  const { refreshLandingConfig, refreshSocialMediaConfig } = useSettings();
+  const { refreshLandingConfig, refreshSocialMediaConfig, refreshFundingConfig } = useSettings();
   const [activeCategory, setActiveCategory] = useState<keyof typeof SECTIONS>('landing');
   const [activeSectionId, setActiveSectionId] = useState<string>(SECTIONS.landing[0].id);
   const [socialMediaConfig, setSocialMediaConfig] = useState<SocialMediaConfig>({ links: [] });
+  const [fundingConfig, setFundingConfig] = useState<FundingConfig | null>(null);
 
 
   // Read section from URL on mount
@@ -100,6 +105,10 @@ export const AdminPageCustomizer = () => {
           if (!updated.errorTryAgainLabel) updated.errorTryAgainLabel = 'আবার চেষ্টা করুন';
           if (!updated.errorHomeLabel) updated.errorHomeLabel = 'হোম পেজে ফিরে যান';
           if (!updated.errorFooterText) updated.errorFooterText = 'আপনি এই পেজে ফিরে আসতে পারেন বা সার্চ চেষ্টা করতে পারেন।';
+          if (!updated.lockSubtitle) updated.lockSubtitle = 'এই বিভাগটি দেখার জন্য আপনার বিশেষ অনুমতি প্রয়োজন। আপনি যদি অনুদান দিতে ইচ্ছুক হন বা এই বিষয় সম্পর্কিত তথ্য জানতে চান, তবে নিচের বাটনটি ক্লিক করে আবেদন করুন।';
+          if (!updated.lockButtonLabel) updated.lockButtonLabel = 'REQUEST FUND ACCESS';
+          if (!updated.lockFooterText) updated.lockFooterText = 'ADMIN WILL REVIEW YOUR REQUEST SHORTLY';
+          
           return updated;
         });
       }
@@ -108,6 +117,10 @@ export const AdminPageCustomizer = () => {
 
     getSocialMediaConfig().then(data => {
       if (data) setSocialMediaConfig(data);
+    });
+
+    getFundingConfig().then(data => {
+      if (data) setFundingConfig(data);
     });
   }, []);
 
@@ -123,9 +136,10 @@ export const AdminPageCustomizer = () => {
     try {
       await Promise.all([
         updateLandingConfig(config, user),
-        updateSocialMediaConfig(socialMediaConfig, user)
+        updateSocialMediaConfig(socialMediaConfig, user),
+        fundingConfig ? updateFundingConfig(fundingConfig, user) : Promise.resolve()
       ]);
-      await Promise.all([refreshLandingConfig(), refreshSocialMediaConfig()]);
+      await Promise.all([refreshLandingConfig(), refreshSocialMediaConfig(), refreshFundingConfig()]);
       showToast("All settings synchronized across system nodes.");
     } catch (e) { showToast("Update failed.", "error"); }
     finally { setSaving(false); }
@@ -160,7 +174,7 @@ export const AdminPageCustomizer = () => {
   if (loading) return <div className="p-10 text-center font-black text-slate-300 dark:text-slate-700 animate-pulse transition-colors">Synchronizing Visual Engine...</div>;
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 pb-10 max-w-7xl mx-auto transition-colors">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-2 max-w-7xl mx-auto transition-colors">
       <Toast {...toastState} onClose={hideToast} />
       
       <div className="flex flex-col lg:flex-row justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4 px-4 lg:px-0 transition-colors">
@@ -196,7 +210,7 @@ export const AdminPageCustomizer = () => {
              {Object.keys(SECTIONS).map((category) => (
                <div key={category} className="space-y-1">
                  <h4 className="text-[9px] font-black uppercase text-slate-400 dark:text-slate-500 ml-1 tracking-widest">{category}</h4>
-                 <div className="grid grid-cols-1 gap-2">
+                 <div className="grid grid-cols-1">
                    {SECTIONS[category as keyof typeof SECTIONS].map(sub => (
                      <button
                        key={sub.id}
@@ -225,10 +239,43 @@ export const AdminPageCustomizer = () => {
              addSocialLink={addSocialLink}
              updateSocialLink={updateSocialLink}
              deleteSocialLink={deleteSocialLink}
+             fundingConfig={fundingConfig}
+             setFundingConfig={setFundingConfig}
+             onLockPreview={() => setShowLockPreview(true)}
              onPreview={() => setShowErrorPreview(true)} 
            />
         </div>
       </div>
+
+      {/* Lock Modal Preview */}
+      {showLockPreview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 transition-all animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setShowLockPreview(false)} />
+          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 flex flex-col items-center text-center transition-colors border border-slate-200 dark:border-slate-800">
+            <div className="w-20 h-20 bg-red-50 dark:bg-red-950/20 rounded-2xl flex items-center justify-center mb-10 transition-colors">
+              <div className="w-12 h-12 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center shadow-lg border border-red-100 dark:border-red-900/40">
+                <HeartHandshake className="text-red-500" size={24} />
+              </div>
+            </div>
+            
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tight mb-4 transition-colors leading-tight">
+              MENU NAME ACCESS REQUIRED
+            </h2>
+            
+            <p className="text-slate-500 dark:text-slate-400 font-bold text-sm leading-relaxed mb-8 transition-colors">
+              {config.lockSubtitle || 'এই বিভাগটি দেখার জন্য আপনার বিশেষ অনুমতি প্রয়োজন। আপনি যদি অনুদান দিতে ইচ্ছুক হন বা এই বিষয় সম্পর্কিত তথ্য জানতে চান, তবে নিচের বাটনটি ক্লিক করে আবেদন করুন।'}
+            </p>
+            
+            <button className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-xl shadow-xl shadow-red-100 dark:shadow-none transition-all uppercase tracking-widest text-sm mb-8">
+              {config.lockButtonLabel || 'REQUEST FUND ACCESS'}
+            </button>
+            
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.2em] transition-colors">
+              {config.lockFooterText || 'ADMIN WILL REVIEW YOUR REQUEST SHORTLY'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Error Page Preview Modal */}
       {showErrorPreview && (
@@ -327,8 +374,67 @@ export const AdminPageCustomizer = () => {
   );
 };
 
-const SectionRenderer = ({ sectionId, config, updateField, socialMediaConfig, addSocialLink, updateSocialLink, deleteSocialLink, onPreview }: any) => {
+const SectionRenderer = ({ sectionId, config, updateField, socialMediaConfig, addSocialLink, updateSocialLink, deleteSocialLink, fundingConfig, setFundingConfig, onLockPreview, onPreview }: any) => {
   switch (sectionId) {
+    case 'lock_modal': return (
+      <SectionCard 
+        title="Menu Lock Modal Customizer" 
+        icon={Lock} 
+        iconColor="text-amber-500"
+        headerAction={
+          <Button onClick={onLockPreview} className="rounded-xl px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 border-0 shadow-lg group-hover:scale-105 transition-all font-black text-[10px] uppercase tracking-widest">
+            <Eye className="mr-2" size={14} /> Preview
+          </Button>
+        }
+      >
+        <TextArea label="Description Content" value={config.lockSubtitle} onChange={e => updateField('lockSubtitle', e.target.value)} placeholder="এই বিভাগটি দেখার জন্য আপনার বিশেষ অনুমতি প্রয়োজন..." />
+        <Input label="Action Button Label" value={config.lockButtonLabel} onChange={e => updateField('lockButtonLabel', e.target.value)} placeholder="REQUEST FUND ACCESS" />
+        <Input label="Footer Message" value={config.lockFooterText} onChange={e => updateField('lockFooterText', e.target.value)} placeholder="ADMIN WILL REVIEW YOUR REQUEST SHORTLY" />
+      </SectionCard>
+    );
+    case 'funding': return (
+      <SectionCard title="Donation Fund Settings" icon={HeartHandshake} iconColor="text-red-500">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input 
+            label="Goal Amount (BDT)" 
+            type="number" 
+            value={fundingConfig?.goalAmount || ''} 
+            onChange={(e: any) => setFundingConfig({ ...fundingConfig, goalAmount: parseInt(e.target.value) })} 
+          />
+          <Input 
+            label="Fund Title" 
+            value={fundingConfig?.title || ''} 
+            onChange={(e: any) => setFundingConfig({ ...fundingConfig, title: e.target.value })} 
+          />
+        </div>
+        <TextArea 
+          label="Fund Description" 
+          value={fundingConfig?.description || ''} 
+          onChange={(e: any) => setFundingConfig({ ...fundingConfig, description: e.target.value })} 
+        />
+        <TextArea 
+          label="Payment Information (Mobile Bank / Bank Details)" 
+          value={fundingConfig?.paymentInfo || ''} 
+          onChange={(e: any) => setFundingConfig({ ...fundingConfig, paymentInfo: e.target.value })} 
+        />
+        <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800">
+           <div>
+             <p className="text-[10px] font-black uppercase text-slate-800 dark:text-slate-200">System Visibility</p>
+             <p className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">Show or hide funding section to users</p>
+           </div>
+           <button 
+            type="button"
+            onClick={() => setFundingConfig({ ...fundingConfig, isEnabled: !fundingConfig.isEnabled })}
+            className={clsx(
+              "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+              fundingConfig?.isEnabled ? "bg-green-600 text-white" : "bg-slate-400 text-white"
+            )}
+           >
+             {fundingConfig?.isEnabled ? 'PUBLISHED' : 'HIDDEN'}
+           </button>
+        </div>
+      </SectionCard>
+    );
     case 'social_media': return (
       <div className="space-y-6">
         <SectionCard 
@@ -457,6 +563,17 @@ const SectionRenderer = ({ sectionId, config, updateField, socialMediaConfig, ad
       <SectionCard title="Software Version" icon={Hash} iconColor="text-slate-600">
         <Input label="Current Version (e.g. v2.4.1)" value={config.softwareVersion} onChange={(e: any) => updateField('softwareVersion', e.target.value)} />
         <p className="text-[10px] text-slate-500 font-bold ml-1">This version precisely identifies the current deployment build in the sidebar.</p>
+      </SectionCard>
+    );
+    case 'dashboard_footer': return (
+      <SectionCard title="Dashboard Body Footer" icon={Layout} iconColor="text-slate-600">
+        <TextArea 
+          label="Footer Content" 
+          value={config.dashboardFooterContent || ''} 
+          onChange={(e: any) => updateField('dashboardFooterContent', e.target.value)} 
+          placeholder="Enter footer text for dashboard pages..."
+        />
+        <p className="text-[10px] text-slate-500 font-bold ml-1">This content will appear at the bottom of every dashboard page.</p>
       </SectionCard>
     );
     case 'error': return (

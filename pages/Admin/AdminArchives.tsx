@@ -9,18 +9,23 @@ import {
   getDeletedHelpRequests, restoreDeletedHelpRequest, permanentlyDeleteArchivedHelpRequest,
   getDeletedLogs, restoreDeletedLog, permanentlyDeleteArchivedLog,
   getDeletedVerificationLogs, restoreDeletedVerificationLog, permanentlyDeleteArchivedVerificationLog,
+  getDeletedFundExpenses, restoreDeletedFundExpense, permanentlyDeleteArchivedFundExpense,
+  getDeletedFunding, restoreDeletedFunding, permanentlyDeleteArchivedFunding,
   purgeAllArchivedUsers, purgeAllArchivedDonations, purgeAllArchivedFeedbacks,
   purgeAllArchivedNotices, purgeAllArchivedHelpRequests, purgeAllArchivedLogs,
-  purgeAllArchivedVerificationLogs
+  purgeAllArchivedVerificationLogs, purgeAllArchivedFundExpenses, purgeAllArchivedFunding
 } from '../../services/api';
 import { Card, Button, Toast, useToast, ConfirmModal } from '../../components/UI';
-import { Trash2, RotateCcw, Clock, Archive, User as UserIcon, FileText, MessageSquare, AlertCircle, Database, Megaphone, Activity, ClipboardList } from 'lucide-react';
+import { 
+  Trash2, RotateCcw, Clock, Archive, User as UserIcon, FileText, MessageSquare, 
+  AlertCircle, Database, Megaphone, Activity, ClipboardList, Receipt, DollarSign, Droplet
+} from 'lucide-react';
 import clsx from 'clsx';
 
 export const AdminArchives = () => {
   const { user } = useAuth();
   const { toastState, showToast, hideToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'USERS' | 'DONATIONS' | 'FEEDBACKS' | 'NOTICES' | 'HELP' | 'LOGS' | 'VERIFICATION'>('USERS');
+  const [activeTab, setActiveTab] = useState<'USERS' | 'DONATIONS' | 'FUNDING' | 'FEEDBACKS' | 'NOTICES' | 'HELP' | 'LOGS' | 'VERIFICATION' | 'EXPENSES'>('USERS');
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -39,6 +44,8 @@ export const AdminArchives = () => {
         case 'HELP': data = await getDeletedHelpRequests(); break;
         case 'LOGS': data = await getDeletedLogs(); break;
         case 'VERIFICATION': data = await getDeletedVerificationLogs(); break;
+        case 'EXPENSES': data = await getDeletedFundExpenses(); break;
+        case 'FUNDING': data = await getDeletedFunding(); break;
       }
       setItems(data);
     } catch (e) {
@@ -61,6 +68,8 @@ export const AdminArchives = () => {
         case 'HELP': await restoreDeletedHelpRequest(id, user); break;
         case 'LOGS': await restoreDeletedLog(id, user); break;
         case 'VERIFICATION': await restoreDeletedVerificationLog(id, user); break;
+        case 'EXPENSES': await restoreDeletedFundExpense(id, user); break;
+        case 'FUNDING': await restoreDeletedFunding(id, user); break;
       }
       showToast("Item restored successfully");
       fetchItems();
@@ -80,6 +89,8 @@ export const AdminArchives = () => {
       else if (activeTab === 'HELP') await permanentlyDeleteArchivedHelpRequest(confirmId, user);
       else if (activeTab === 'LOGS') await permanentlyDeleteArchivedLog(confirmId, user);
       else if (activeTab === 'VERIFICATION') await permanentlyDeleteArchivedVerificationLog(confirmId, user);
+      else if (activeTab === 'EXPENSES') await permanentlyDeleteArchivedFundExpense(confirmId, user);
+      else if (activeTab === 'FUNDING') await permanentlyDeleteArchivedFunding(confirmId, user);
       
       showToast("Item permanently deleted");
       fetchItems();
@@ -103,6 +114,8 @@ export const AdminArchives = () => {
         case 'HELP': await purgeAllArchivedHelpRequests(user); break;
         case 'LOGS': await purgeAllArchivedLogs(user); break;
         case 'VERIFICATION': await purgeAllArchivedVerificationLogs(user); break;
+        case 'EXPENSES': await purgeAllArchivedFundExpenses(user); break;
+        case 'FUNDING': await purgeAllArchivedFunding(user); break;
       }
       showToast(`All archived ${activeTab.toLowerCase()} purged`);
       fetchItems();
@@ -146,12 +159,14 @@ export const AdminArchives = () => {
 
       <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar pb-2 lg:pb-1.5 transition-colors border border-slate-200 dark:border-slate-700">
          <TabButton tab="USERS" label="Users" icon={UserIcon} />
-         <TabButton tab="DONATIONS" label="Donations" icon={Database} />
+         <TabButton tab="DONATIONS" label="Blood Donation" icon={Droplet} />
+         <TabButton tab="FUNDING" label="Funding" icon={DollarSign} />
          <TabButton tab="FEEDBACKS" label="Feedback" icon={MessageSquare} />
          <TabButton tab="NOTICES" label="Notices" icon={Megaphone} />
          <TabButton tab="HELP" label="Help Desk" icon={AlertCircle} />
          <TabButton tab="LOGS" label="Audit Logs" icon={Activity} />
          <TabButton tab="VERIFICATION" label="Verification" icon={ClipboardList} />
+         <TabButton tab="EXPENSES" label="Found Expenses" icon={Receipt} />
       </div>
 
       {loading ? (
@@ -182,6 +197,8 @@ export const AdminArchives = () => {
                           {activeTab === 'HELP' && `Help: ${item.name} (${item.phone})`}
                           {activeTab === 'LOGS' && `Log: ${item.action}`}
                           {activeTab === 'VERIFICATION' && `Verification: ${item.memberName}`}
+                          {activeTab === 'EXPENSES' && `Expense: ${item.purpose} (৳${item.amount})`}
+                          {activeTab === 'FUNDING' && `Funding: ${item.userName} (৳${item.amount})`}
                         </div>
                         <div className="text-[10px] text-slate-400 dark:text-slate-600 font-mono mt-1 transition-colors">ID: {item.id}</div>
                       </td>
@@ -200,7 +217,7 @@ export const AdminArchives = () => {
                       </td>
                     </tr>
                   ))}
-                  {items.length === 0 && <tr><td colSpan={4} className="p-20 text-center text-slate-300 dark:text-slate-700 font-black uppercase tracking-[0.2em] italic">No {activeTab === 'USERS' ? 'User' : activeTab === 'DONATIONS' ? 'Donations' : activeTab === 'FEEDBACKS' ? 'Feedback' : activeTab === 'NOTICES' ? 'Notices' : activeTab === 'HELP' ? 'Help Desk' : 'Audit Logs'} archives found</td></tr>}
+                  {items.length === 0 && <tr><td colSpan={4} className="p-20 text-center text-slate-300 dark:text-slate-700 font-black uppercase tracking-[0.2em] italic">No {activeTab === 'USERS' ? 'User' : activeTab === 'DONATIONS' ? 'Blood Donation' : activeTab === 'FUNDING' ? 'Funding' : activeTab === 'FEEDBACKS' ? 'Feedback' : activeTab === 'NOTICES' ? 'Notices' : activeTab === 'HELP' ? 'Help Desk' : activeTab === 'LOGS' ? 'Audit Logs' : activeTab === 'VERIFICATION' ? 'Verification' : 'Found Expenses'} archives found</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -220,6 +237,8 @@ export const AdminArchives = () => {
                       {activeTab === 'HELP' && item.name}
                       {activeTab === 'LOGS' && item.action}
                       {activeTab === 'VERIFICATION' && `Verification: ${item.memberName}`}
+                      {activeTab === 'EXPENSES' && item.purpose}
+                      {activeTab === 'FUNDING' && item.userName}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 font-medium transition-colors">
                       {activeTab === 'USERS' && item.role}
@@ -229,16 +248,20 @@ export const AdminArchives = () => {
                       {activeTab === 'HELP' && item.phone}
                       {activeTab === 'LOGS' && item.details}
                       {activeTab === 'VERIFICATION' && `ID: ${item.memberId}`}
+                      {activeTab === 'EXPENSES' && `৳${item.amount} • ${item.addedBy?.name}`}
+                      {activeTab === 'FUNDING' && `৳${item.amount} • ${item.paymentMethod}`}
                     </div>
                   </div>
                   <div className="p-2 bg-slate-50 dark:bg-slate-800 rounded-xl transition-colors">
                     {activeTab === 'USERS' && <UserIcon size={20} className="text-slate-400 dark:text-slate-500" />}
-                    {activeTab === 'DONATIONS' && <Database size={20} className="text-slate-400 dark:text-slate-500" />}
+                    {activeTab === 'DONATIONS' && <Droplet size={20} className="text-slate-400 dark:text-slate-500" />}
+                    {activeTab === 'FUNDING' && <DollarSign size={20} className="text-slate-400 dark:text-slate-500" />}
                     {activeTab === 'FEEDBACKS' && <MessageSquare size={20} className="text-slate-400 dark:text-slate-500" />}
                     {activeTab === 'NOTICES' && <Megaphone size={20} className="text-slate-400 dark:text-slate-500" />}
                     {activeTab === 'HELP' && <AlertCircle size={20} className="text-slate-400 dark:text-slate-500" />}
                     {activeTab === 'LOGS' && <Activity size={20} className="text-slate-400 dark:text-slate-500" />}
                     {activeTab === 'VERIFICATION' && <ClipboardList size={20} className="text-slate-400 dark:text-slate-500" />}
+                    {activeTab === 'EXPENSES' && <Receipt size={20} className="text-slate-400 dark:text-slate-500" />}
                   </div>
                 </div>
 
@@ -273,7 +296,7 @@ export const AdminArchives = () => {
             {items.length === 0 && (
               <div className="p-6 text-center bg-white dark:bg-slate-900 rounded-sm border-2 border-dashed border-slate-200 dark:border-slate-800 transition-colors">
                 <Archive size={32} className="mx-auto text-slate-300 dark:text-slate-700 mb-3" />
-                <p className="text-slate-400 dark:text-slate-600 font-black uppercase tracking-widest text-xs">No {activeTab === 'USERS' ? 'User' : activeTab === 'DONATIONS' ? 'Donations' : activeTab === 'FEEDBACKS' ? 'Feedback' : activeTab === 'NOTICES' ? 'Notices' : activeTab === 'HELP' ? 'Help Desk' : 'Audit Logs'} archives found</p>
+                <p className="text-slate-400 dark:text-slate-600 font-black uppercase tracking-widest text-xs">No {activeTab === 'USERS' ? 'User' : activeTab === 'DONATIONS' ? 'Blood Donation' : activeTab === 'FUNDING' ? 'Funding' : activeTab === 'FEEDBACKS' ? 'Feedback' : activeTab === 'NOTICES' ? 'Notices' : activeTab === 'HELP' ? 'Help Desk' : activeTab === 'LOGS' ? 'Audit Logs' : activeTab === 'VERIFICATION' ? 'Verification' : 'Found Expenses'} archives found</p>
               </div>
             )}
           </div>

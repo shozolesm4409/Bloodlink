@@ -15,6 +15,7 @@ export const MyDonations = () => {
   const [loading, setLoading] = useState(false);
   const [reqDate, setReqDate] = useState(new Date().toISOString().split('T')[0]);
   
+  const [activeIdTab, setActiveIdTab] = useState<'ALL' | DonationStatus>('ALL');
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const fetchHistory = async () => {
@@ -27,6 +28,10 @@ export const MyDonations = () => {
   };
 
   useEffect(() => { fetchHistory(); }, [user]);
+
+  const filteredDonations = activeIdTab === 'ALL' 
+    ? donations 
+    : donations.filter(d => d.status === activeIdTab);
 
   const handleRequest = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -73,20 +78,30 @@ export const MyDonations = () => {
     }
   };
 
-  const completed = donations.filter(d => d.status === DonationStatus.COMPLETED).length;
-  const pending = donations.filter(d => d.status === DonationStatus.PENDING).length;
-  const rejected = donations.filter(d => d.status === DonationStatus.REJECTED).length;
-
   return (
     <div className="space-y-6 transition-colors">
       <Toast {...toastState} onClose={hideToast} />
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-2">
         <div>
           <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Donation History</h1>
-          <div className="flex flex-wrap gap-2 mt-2">
-            <Badge color="green" className="text-[9px] font-black uppercase tracking-wider ring-1 ring-green-100 dark:ring-green-900/50">Completed: {completed}</Badge>
-            <Badge color="yellow" className="text-[9px] font-black uppercase tracking-wider ring-1 ring-yellow-100 dark:ring-yellow-900/50">Pending: {pending}</Badge>
-            <Badge color="red" className="text-[9px] font-black uppercase tracking-wider ring-1 ring-red-100 dark:ring-red-900/50">Rejected: {rejected}</Badge>
+          <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mt-3 w-fit">
+            {['ALL', DonationStatus.PENDING, DonationStatus.COMPLETED, DonationStatus.REJECTED].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveIdTab(tab as any)}
+                className={clsx(
+                  "px-2 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                  activeIdTab === tab
+                    ? "bg-white dark:bg-slate-700 text-red-600 dark:text-red-400 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                )}
+              >
+                {tab === 'ALL' ? 'All' : tab}
+                <span className="ml-2 opacity-50">
+                  ({tab === 'ALL' ? donations.length : donations.filter(d => d.status === tab).length})
+                </span>
+              </button>
+            ))}
           </div>
         </div>
         <Button onClick={() => setShowForm(!showForm)} className="w-full sm:w-auto shadow-lg shadow-red-100 dark:shadow-red-900/20 rounded-2xl py-3 px-6"><Plus className="w-4 h-4 mr-2" /> Request Donation</Button>
@@ -132,7 +147,7 @@ export const MyDonations = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {donations.map(d => (
+                {filteredDonations.map(d => (
                   <tr key={d.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="p-1">
                       <div className="flex items-center gap-2">
@@ -164,7 +179,7 @@ export const MyDonations = () => {
 
       {/* Mobile Card View */}
       <div className="md:hidden space-y-1">
-        {donations.map(d => (
+        {filteredDonations.map(d => (
           <Card key={d.id} className="p-1 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm rounded-lg relative transition-all">
             <div className="flex justify-between items-start mb-1 px-1 pt-1">
               <div className="flex items-center gap-2">
@@ -207,12 +222,12 @@ export const MyDonations = () => {
         ))}
       </div>
 
-      {donations.length === 0 && (
+      {filteredDonations.length === 0 && (
         <div className="py-20 text-center">
           <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <HistoryIcon className="text-slate-300 dark:text-slate-600" size={32} />
           </div>
-          <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] transition-colors">No donation records found</p>
+          <p className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em] transition-colors">No donation records found for this category</p>
         </div>
       )}
 

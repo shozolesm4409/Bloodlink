@@ -245,7 +245,7 @@ const SummaryCard = ({ icon: Icon, title, value, color, subtitle, isActionable }
   <Card className={`p-2 md:p-3.5 border border-slate-100 dark:border-slate-800 shadow-sm flex items-center gap-3 md:gap-4 hover:shadow-md transition-all bg-white dark:bg-slate-900 rounded-xl group transition-colors overflow-hidden relative ${isActionable ? 'ring-1 ring-slate-100 dark:ring-slate-800' : ''}`}>
     {isActionable && <div className="absolute top-0 right-0 w-12 h-12 bg-slate-50 dark:bg-slate-800/50 rotate-45 translate-x-6 -translate-y-6 opacity-50 group-hover:opacity-100 transition-opacity" />}
     <div className={`p-2 md:p-3.5 rounded-xl ${color} transition-transform group-hover:scale-110 shadow-inner flex-shrink-0 z-10`}>
-      <Icon size={16} className="md:w-5 md:h-5" />
+      <Icon size={16} className="md:w-5 md:h-5" strokeWidth={2} />
     </div>
     <div className="min-w-0 flex-1 z-10">
       <p className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 mb-0.5 leading-none transition-colors truncate">{title}</p>

@@ -4,7 +4,8 @@ import { useAuth } from '../../AuthContext';
 import { getUsers, handleDirectoryAccess, handleSupportAccess, handleFeedbackAccess, handleIDCardAccess, handleRequestedDonorAccess, getAllFeedbacks, updateFeedbackStatus } from '../../services/api';
 import { Card, Button, Badge, Toast, useToast } from '../../components/UI';
 import { User, DonationFeedback, FeedbackStatus } from '../../types';
-import { ShieldAlert, Check, X, User as UserIcon, MessageSquareQuote, Users, Search, LifeBuoy, MessageSquare, IdCard, Droplet } from 'lucide-react';
+import { ShieldAlert, Check, X, User as UserIcon, MessageSquareQuote, Users, Search, LifeBuoy, MessageSquare, IdCard, Droplet, Lock } from 'lucide-react';
+import { handleMenuAccess } from '../../services/api';
 import clsx from 'clsx';
 
 export const AdminPermissions = () => {
@@ -18,7 +19,14 @@ export const AdminPermissions = () => {
     setLoading(true);
     try {
       const [allUsers, allFeedbacks] = await Promise.all([getUsers(), getAllFeedbacks()]);
-      setRequests(allUsers.filter(u => u.directoryAccessRequested || u.supportAccessRequested || u.feedbackAccessRequested || u.idCardAccessRequested || u.requestedDonorAccessRequested));
+      setRequests(allUsers.filter(u => 
+        u.directoryAccessRequested || 
+        u.supportAccessRequested || 
+        u.feedbackAccessRequested || 
+        u.idCardAccessRequested || 
+        u.requestedDonorAccessRequested ||
+        (u.menuAccessRequests && Object.keys(u.menuAccessRequests).length > 0)
+      ));
       setPendingFeedbacks(allFeedbacks.filter(f => f.status === FeedbackStatus.PENDING));
     } catch (e) {
       showToast("Data fetch failed.", "error");
@@ -29,7 +37,7 @@ export const AdminPermissions = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const handleAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor', approve: boolean) => {
+  const handleAction = async (uid: string, type: string, approve: boolean, extra?: any) => {
     if (!admin) return;
     try {
       if (type === 'directory') await handleDirectoryAccess(uid, approve, admin);
@@ -37,6 +45,7 @@ export const AdminPermissions = () => {
       else if (type === 'feedback') await handleFeedbackAccess(uid, approve, admin);
       else if (type === 'idcard') await handleIDCardAccess(uid, approve, admin);
       else if (type === 'requested_donor') await handleRequestedDonorAccess(uid, approve, admin);
+      else if (type === 'menu' && extra) await handleMenuAccess(uid, extra, approve, admin);
       showToast(`Access ${approve ? 'Granted' : 'Denied'}.`);
       fetchData();
     } catch (e) { showToast("Action failed.", "error"); }
@@ -92,6 +101,18 @@ export const AdminPermissions = () => {
                 {u.requestedDonorAccessRequested && (
                   <RequestItem title="Requested Donor" type="requested_donor" uid={u.id} onAction={handleAction} icon={Droplet} color="text-red-600 dark:text-red-400" bg="bg-red-50 dark:bg-red-950/20" />
                 )}
+                {u.menuAccessRequests && Object.keys(u.menuAccessRequests).map(menuKey => (
+                  <RequestItem 
+                    key={menuKey}
+                    title={`${menuKey.charAt(0).toUpperCase() + menuKey.slice(1).replace(/([A-Z])/g, ' $1')} Access`} 
+                    type="menu" 
+                    uid={u.id} 
+                    onAction={(uid: string, type: string, app: boolean) => handleAction(uid, type, app, menuKey)} 
+                    icon={Lock} 
+                    color="text-amber-600 dark:text-amber-400" 
+                    bg="bg-amber-50 dark:bg-amber-950/20" 
+                  />
+                ))}
               </div>
             </Card>
           ))}

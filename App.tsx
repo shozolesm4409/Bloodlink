@@ -26,6 +26,7 @@ import { UserNotifications } from './pages/Users/Notifications';
 import { AdminIDCards } from './pages/Admin/AdminIDCards';
 import { VerifyMember } from './pages/Webpage/VerifyMember';
 import { AdminVerificationHistory } from './pages/Admin/AdminVerificationHistory';
+import { AdminAvatarManage } from './pages/Admin/AdminAvatarManage';
 import { PrivacyPolicy } from './pages/Webpage/PrivacyPolicy';
 import { HelpCenter } from './pages/Webpage/HelpCenter';
 import { AdminHelpCenter } from './pages/Admin/AdminHelpCenter';
@@ -35,6 +36,10 @@ import { FeedbackDetail } from './pages/Webpage/FeedbackDetail';
 import { PublicFaqs } from './pages/Webpage/PublicFaqs';
 import { AdminFaqs } from './pages/Admin/AdminFaqs';
 import { BadgeManage } from './pages/Admin/BadgeManage';
+import { FundingPage } from './pages/Users/FundingPage';
+import { FundExpenses } from './pages/Users/FundExpenses';
+import { AdminFundingManage } from './pages/Admin/AdminFundingManage';
+import { FoundSummary } from './pages/Admin/FoundSummary';
 import { PublicLayout } from './components/PublicLayout';
 import { UserRole, RolePermissions } from './types';
 import { ThemeProvider } from './ThemeContext';
@@ -122,6 +127,9 @@ const App = () => {
           <Route path="/requested-donor" element={<ProtectedRoute><RequestedDonor /></ProtectedRoute>} />
           <Route path="/feedback" element={<ProtectedRoute><DonationFeedbackPage /></ProtectedRoute>} />
           <Route path="/notices" element={<ProtectedRoute><MyNotice /></ProtectedRoute>} />
+          <Route path="/donation-found" element={<ProtectedRoute requiredPermission="donationFound"><FundingPage /></ProtectedRoute>} />
+          <Route path="/found-expenses" element={<ProtectedRoute requiredPermission="foundExpenses"><FundExpenses /></ProtectedRoute>} />
+          <Route path="/found-summary" element={<ProtectedRoute requiredPermission="foundSummary"><FoundSummary /></ProtectedRoute>} />
           <Route path="/user-notifications" element={<ProtectedRoute><UserNotifications /></ProtectedRoute>} />
 
           <Route path="/summary" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="summary"><AdminSummary /></ProtectedRoute>} />
@@ -130,6 +138,7 @@ const App = () => {
           <Route path="/manage-donations" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="manageDonations"><AdminDonations /></ProtectedRoute>} />
           <Route path="/approve-feedback" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="approveFeedback"><FeedbackApprovalPage /></ProtectedRoute>} />
           <Route path="/help-center-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="helpCenterManage"><AdminHelpCenter /></ProtectedRoute>} />
+          <Route path="/found-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="foundManage"><AdminFundingManage /></ProtectedRoute>} />
           <Route path="/moderate-faqs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPERADMIN]} requiredPermission="moderateFaqs"><AdminFaqs /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="notifications"><AdminPermissions /></ProtectedRoute>} />
           <Route path="/badge-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="badgeManage"><BadgeManage /></ProtectedRoute>} />
@@ -142,6 +151,7 @@ const App = () => {
           <Route path="/deleted-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="deletedUsers"><AdminArchives /></ProtectedRoute>} />
           <Route path="/logs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="logs"><AdminSystemLogs /></ProtectedRoute>} />
           <Route path="/server-status" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="serverStatus"><AdminServerStatus /></ProtectedRoute>} />
+          <Route path="/avatar-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="avatarManage"><AdminAvatarManage /></ProtectedRoute>} />
           <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="teamIdCards"><AdminIDCards /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

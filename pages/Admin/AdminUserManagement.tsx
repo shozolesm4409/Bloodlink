@@ -12,6 +12,7 @@ import {
   handleFeedbackAccess,
   handleIDCardAccess,
   handleRequestedDonorAccess,
+  handleDonationFoundAccess,
   toggleUserSuspension,
   getDonations,
   generateUserId,
@@ -20,7 +21,7 @@ import {
 } from '../../services/api';
 import { Card, Badge, Button, Input, Toast, useToast, ConfirmModal, Select, RoleBadge } from '../../components/UI';
 import { User, UserRole, BloodGroup, DonationStatus } from '../../types';
-import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter, LogIn, Mail, BadgeCheck, Droplet } from 'lucide-react';
+import { Search, User as UserIcon, Trash2, Key, Layout, Shield, ShieldCheck, UserCheck, MessageSquare, LifeBuoy, X, Edit2, Ban, IdCard, MoreVertical, Phone, MapPin, Star, Trophy, Medal, Award, Wand2, Settings, Fingerprint, Edit, Filter, LogIn, Mail, BadgeCheck, Droplet, HeartHandshake } from 'lucide-react';
 import { getVerificationBadge, getRankBadge } from '../Users/Profile';
 import clsx from 'clsx';
 
@@ -28,7 +29,7 @@ import clsx from 'clsx';
 
 const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: { 
   users: User[], 
-  onAction: (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard', approve: boolean) => void,
+  onAction: (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor' | 'donation_found', approve: boolean) => void,
   searchQuery: string,
   accessType: string,
   accessStatus: string
@@ -62,6 +63,9 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
     } else if (accessType === 'requested_donor') {
       hasAccess = !!u.hasRequestedDonorAccess;
       isRequested = !!u.requestedDonorAccessRequested;
+    } else if (accessType === 'donation_found') {
+      hasAccess = !!u.hasDonationFoundAccess;
+      isRequested = !!u.donationFoundAccessRequested;
     }
 
     if (accessStatus === 'ALL') return true;
@@ -158,6 +162,7 @@ const AccessHub = ({ users, onAction, searchQuery, accessType, accessStatus }: {
             <AccessItem title="Feedback Access" requested={u.feedbackAccessRequested} has={u.hasFeedbackAccess} type="feedback" uid={u.id} icon={MessageSquare} color="bg-green-500/20 text-green-500" />
             <AccessItem title="ID Card Access" requested={u.idCardAccessRequested} has={u.hasIDCardAccess} type="idcard" uid={u.id} icon={IdCard} color="bg-orange-500/20 text-orange-500" />
             <AccessItem title="Req. Donor Access" requested={u.requestedDonorAccessRequested} has={u.hasRequestedDonorAccess} type="requested_donor" uid={u.id} icon={Droplet} color="bg-red-500/20 text-red-500" />
+            <AccessItem title="Donation Fund Access" requested={u.donationFoundAccessRequested} has={u.hasDonationFoundAccess} type="donation_found" uid={u.id} icon={HeartHandshake} color="bg-red-500/20 text-red-500" />
           </div>
         </Card>
       )) : (
@@ -251,7 +256,7 @@ export const AdminUserManagement = () => {
     } catch (e) { showToast("Update failed.", "error"); }
   };
 
-  const handleAccessAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor', approve: boolean) => {
+  const handleAccessAction = async (uid: string, type: 'directory' | 'support' | 'feedback' | 'idcard' | 'requested_donor' | 'donation_found', approve: boolean) => {
     if (!admin) return;
     try {
       if (type === 'directory') await handleDirectoryAccess(uid, approve, admin);
@@ -259,6 +264,7 @@ export const AdminUserManagement = () => {
       else if (type === 'feedback') await handleFeedbackAccess(uid, approve, admin);
       else if (type === 'idcard') await handleIDCardAccess(uid, approve, admin);
       else if (type === 'requested_donor') await handleRequestedDonorAccess(uid, approve, admin);
+      else if (type === 'donation_found') await handleDonationFoundAccess(uid, approve, admin);
       showToast("Access updated.");
       fetchData();
     } catch (e) { showToast("Update failed.", "error"); }
@@ -782,7 +788,8 @@ export const AdminUserManagement = () => {
                       { id: 'support', label: 'Support', icon: LifeBuoy },
                       { id: 'feedback', label: 'Feedback', icon: MessageSquare },
                       { id: 'idcard', label: 'ID Card', icon: IdCard },
-                      { id: 'requested_donor', label: 'Req. Donor', icon: Droplet }
+                      { id: 'requested_donor', label: 'Req. Donor', icon: Droplet },
+                      { id: 'donation_found', label: 'Donation Fund', icon: HeartHandshake }
                     ].map((t) => (
                       <button 
                         key={t.id} 

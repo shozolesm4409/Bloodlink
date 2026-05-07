@@ -72,7 +72,16 @@ import {
   Globe,
   MessageCircle,
   Send,
+  Loader2,
 } from "lucide-react";
+import { 
+  collection, 
+  onSnapshot, 
+  query, 
+  orderBy,
+  Timestamp 
+} from "firebase/firestore";
+import { db } from "../../services/firebase";
 import { IDCardFrame } from "../Admin/AdminIDCards";
 import { toJpeg } from "html-to-image";
 import Cropper from "react-easy-crop";
@@ -207,14 +216,14 @@ export const getRankBadge = (
 };
 
 const AVATAR_TEMPLATES = [
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Aneka",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Zack",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Bella",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Jack",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Sasha",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Leo",
-  "https://api.dicebear.com/9.x/avataaars/svg?seed=Maya",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=Felix&backgroundColor=b6e3f4",
+  "https://api.dicebear.com/9.x/personas/svg?seed=Aneka&backgroundColor=ffdfbf",
+  "https://api.dicebear.com/9.x/adventurer/svg?seed=Zack&backgroundColor=c0aede",
+  "https://api.dicebear.com/9.x/lorelei/svg?seed=Bella&backgroundColor=d1d4f9",
+  "https://api.dicebear.com/9.x/notionists/svg?seed=Jack&backgroundColor=ffadad",
+  "https://api.dicebear.com/9.x/bottts/svg?seed=Maya&backgroundColor=ffd6a5",
+  "https://api.dicebear.com/9.x/avataaars/svg?seed=Leo&backgroundColor=fdffb6",
+  "https://api.dicebear.com/9.x/big-ears/svg?seed=Sasha&backgroundColor=caffbf",
 ];
 
 const COVER_TEMPLATES = [
@@ -278,6 +287,11 @@ export const Profile = () => {
     user?.coverImage || "",
   );
 
+  // System Templates from Firestore
+  const [systemAvatars, setSystemAvatars] = useState<any[]>([]);
+  const [systemCovers, setSystemCovers] = useState<any[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+
   // Stats State
   const [donations, setDonations] = useState<DonationRecord[]>([]);
   const [feedbacks, setFeedbacks] = useState<DonationFeedback[]>([]);
@@ -312,6 +326,65 @@ export const Profile = () => {
       );
     }
   }, [user]);
+
+  // Fetch System Templates
+  useEffect(() => {
+    const avatarsRef = collection(db, "system_avatars");
+    const coversRef = collection(db, "system_covers");
+    
+    const avatarsQuery = query(avatarsRef);
+    const coversQuery = query(coversRef);
+
+    const unsubAvatars = onSnapshot(avatarsQuery, (snapshot) => {
+      const avatarList = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter((a: any) => a.visibility !== 'hidden');
+
+      // Sort client-side to respect manual order and avoid index errors
+      avatarList.sort((a: any, b: any) => {
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        
+        const dateA = a.createdAt?.toMillis?.() || (a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0);
+        const dateB = b.createdAt?.toMillis?.() || (b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0);
+        return dateB - dateA;
+      });
+
+      setSystemAvatars(avatarList);
+    });
+
+    const unsubCovers = onSnapshot(coversQuery, (snapshot) => {
+      const coverList = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }))
+        .filter((c: any) => c.visibility !== 'hidden');
+
+      // Sort client-side to respect manual order and avoid index errors
+      coverList.sort((a: any, b: any) => {
+        const orderA = a.order ?? Number.MAX_SAFE_INTEGER;
+        const orderB = b.order ?? Number.MAX_SAFE_INTEGER;
+        if (orderA !== orderB) return orderA - orderB;
+        
+        const dateA = a.createdAt?.toMillis?.() || (a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : 0);
+        const dateB = b.createdAt?.toMillis?.() || (b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : 0);
+        return dateB - dateA;
+      });
+
+      setSystemCovers(coverList);
+      setTemplatesLoading(false);
+    });
+
+    return () => {
+      unsubAvatars();
+      unsubCovers();
+    };
+  }, []);
 
   if (!user) return null;
 
@@ -862,23 +935,24 @@ export const Profile = () => {
       {viewMode === "edit" && (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 animate-in fade-in slide-in-from-right-4">
           {/* Sidebar Navigation */}
-          <div className="lg:col-span-1 space-y-2">
+          <div className="lg:col-span-1 grid grid-cols-2 lg:flex lg:flex-col gap-2 h-fit">
             <button
               onClick={() => setEditTab("profile")}
               className={clsx(
-                "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
                 editTab === "profile"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <UserCircle size={18} />
-                <span className="font-bold text-sm">Profile</span>
+                <span className="font-bold text-[11px] lg:text-sm">Profile</span>
               </div>
               <ChevronRight
                 size={16}
                 className={clsx(
+                  "hidden lg:block",
                   editTab === "profile"
                     ? "text-white"
                     : "text-slate-300 dark:text-slate-600",
@@ -888,19 +962,20 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("image")}
               className={clsx(
-                "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
                 editTab === "image"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <ImageIcon size={18} />
-                <span className="font-bold text-sm">Image Upload</span>
+                <span className="font-bold text-[11px] lg:text-sm">Image Upload</span>
               </div>
               <ChevronRight
                 size={16}
                 className={clsx(
+                  "hidden lg:block",
                   editTab === "image"
                     ? "text-white"
                     : "text-slate-300 dark:text-slate-600",
@@ -910,19 +985,20 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("social")}
               className={clsx(
-                "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
                 editTab === "social"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <LinkIcon size={18} />
-                <span className="font-bold text-sm">Social Links</span>
+                <span className="font-bold text-[11px] lg:text-sm">Social Links</span>
               </div>
               <ChevronRight
                 size={16}
                 className={clsx(
+                  "hidden lg:block",
                   editTab === "social"
                     ? "text-white"
                     : "text-slate-300 dark:text-slate-600",
@@ -932,19 +1008,20 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("password")}
               className={clsx(
-                "w-full flex items-center justify-between p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
                 editTab === "password"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
               )}
             >
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 lg:gap-3">
                 <Key size={18} />
-                <span className="font-bold text-sm">Change Password</span>
+                <span className="font-bold text-[11px] lg:text-sm truncate">Password</span>
               </div>
               <ChevronRight
                 size={16}
                 className={clsx(
+                  "hidden lg:block",
                   editTab === "password"
                     ? "text-white"
                     : "text-slate-300 dark:text-slate-600",
@@ -956,13 +1033,13 @@ export const Profile = () => {
           {/* Content Area */}
           <div className="lg:col-span-3">
             {editTab === "profile" && (
-              <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-8 flex items-center gap-3 transition-colors">
+              <Card className="p-5 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-3 transition-colors">
                   <Upload size={16} /> Identity Details
                 </h3>
                 <form
                   onSubmit={handleSubmit}
-                  className="grid grid-cols-1 md:grid-cols-2 gap-6"
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
                   <div className="md:col-span-2">
                     <Input
@@ -1014,7 +1091,7 @@ export const Profile = () => {
                       disabled={isRestricted}
                     />
                   </div>
-                  <div className="md:col-span-2 pt-6 flex justify-end">
+                  <div className="md:col-span-2 pt-4 flex justify-end">
                     <Button
                       type="submit"
                       isLoading={loading}
@@ -1031,14 +1108,14 @@ export const Profile = () => {
             )}
 
             {editTab === "image" && (
-              <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
+              <Card className="p-5 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
                 {/* Avatar Upload Section */}
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-8 flex items-center gap-3 transition-colors">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-3 transition-colors">
                   <ImageIcon size={16} /> Avatar Upload
                 </h3>
 
-                <div className="flex flex-col items-center gap-8 mb-12">
-                  <div className="w-40 h-40 bg-slate-50 dark:bg-slate-800 rounded-sm border-4 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group transition-colors">
+                <div className="flex flex-col items-center gap-4 mb-6">
+                  <div className="w-32 h-32 bg-slate-50 dark:bg-slate-800 rounded-sm border-4 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden relative group transition-colors">
                     {avatarPreview ? (
                       <img
                         src={avatarPreview}
@@ -1071,53 +1148,91 @@ export const Profile = () => {
                         disabled={isRestricted}
                       />
                     </label>
-                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-3 mb-8">
+                    <p className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-2 mb-4">
                       Supported formats: JPG, PNG. Max size: 2MB.
                     </p>
                   </div>
 
-                  <div className="w-full pt-8 border-t border-slate-100 dark:border-slate-800">
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-6 text-center transition-colors">
+                  <div className="w-full pt-4 border-t border-slate-100 dark:border-slate-800">
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 text-center transition-colors">
                       Or Select Avatar Template
                     </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                      {AVATAR_TEMPLATES.map((url, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => handleAvatarTemplateClick(url)}
-                          disabled={imgUploading || isRestricted}
-                          className={clsx(
-                            "aspect-square rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
-                            avatarPreview === url
-                              ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
-                              : "border-slate-100 dark:border-slate-700",
-                          )}
-                        >
-                          <img
-                            src={url}
-                            alt={`Template ${idx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          {avatarPreview === url && (
-                            <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
-                              <div className="bg-red-600 text-white rounded-full p-1">
-                                <Check size={12} />
+                    {templatesLoading && systemAvatars.length === 0 ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="animate-spin text-red-600" size={24} />
+                      </div>
+                    ) : systemAvatars.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+                        {systemAvatars.map((avatar, idx) => (
+                          <button
+                            key={avatar.id || idx}
+                            onClick={() => handleAvatarTemplateClick(avatar.url)}
+                            disabled={imgUploading || isRestricted}
+                            className={clsx(
+                              "aspect-square rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
+                              avatarPreview === avatar.url
+                                ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
+                                : "border-slate-100 dark:border-slate-700",
+                            )}
+                          >
+                            <img
+                              src={avatar.url}
+                              alt={avatar.name || `Template ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            {avatarPreview === avatar.url && (
+                              <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
+                                <div className="bg-red-600 text-white rounded-full p-1">
+                                  <Check size={12} />
+                                </div>
                               </div>
+                            )}
+                            <div className="absolute bottom-0 left-0 right-0 bg-black/40 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                               <p className="text-[8px] text-white font-black uppercase truncate px-2">{avatar.name}</p>
                             </div>
-                          )}
-                        </button>
-                      ))}
-                    </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-6 gap-4">
+                        {AVATAR_TEMPLATES.map((url, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => handleAvatarTemplateClick(url)}
+                            disabled={imgUploading || isRestricted}
+                            className={clsx(
+                              "aspect-square rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
+                              avatarPreview === url
+                                ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
+                                : "border-slate-100 dark:border-slate-700",
+                            )}
+                          >
+                            <img
+                              src={url}
+                              alt={`Template ${idx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            {avatarPreview === url && (
+                              <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
+                                <div className="bg-red-600 text-white rounded-full p-1">
+                                  <Check size={12} />
+                                </div>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Cover Upload Section */}
-                <div className="pt-8 border-t-2 border-dashed border-slate-100 dark:border-slate-800 transition-colors">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-8 flex items-center gap-3 transition-colors">
+                <div className="pt-4 border-t-2 border-dashed border-slate-100 dark:border-slate-800 transition-colors">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-3 transition-colors">
                     <Wallpaper size={16} /> Cover Upload
                   </h3>
 
-                  <div className="flex flex-col gap-8">
+                  <div className="flex flex-col gap-4">
                     <div className="w-full h-32 bg-slate-50 dark:bg-slate-800 rounded-sm border-4 border-dashed border-slate-200 dark:border-slate-700 overflow-hidden relative group transition-colors">
                       {coverPreview ? (
                         <img
@@ -1150,38 +1265,76 @@ export const Profile = () => {
                       </label>
                     </div>
 
-                    <div className="w-full pt-8">
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-6 text-center transition-colors">
+                    <div className="w-full pt-4">
+                      <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 text-center transition-colors">
                         Blood Related Templates
                       </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                        {COVER_TEMPLATES.map((url, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => handleCoverTemplateClick(url)}
-                            disabled={imgUploading || isRestricted}
-                            className={clsx(
-                              "h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
-                              coverPreview === url
-                                ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
-                                : "border-slate-100 dark:border-slate-700",
-                            )}
-                          >
-                            <img
-                              src={url}
-                              alt={`Cover Template ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            {coverPreview === url && (
-                              <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
-                                <div className="bg-red-600 text-white rounded-full p-1">
-                                  <Check size={12} />
+                      {templatesLoading && systemCovers.length === 0 ? (
+                        <div className="flex justify-center py-4">
+                          <Loader2 className="animate-spin text-red-600" size={24} />
+                        </div>
+                      ) : systemCovers.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          {systemCovers.map((cover, idx) => (
+                            <button
+                              key={cover.id || idx}
+                              onClick={() => handleCoverTemplateClick(cover.url)}
+                              disabled={imgUploading || isRestricted}
+                              className={clsx(
+                                "h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
+                                coverPreview === cover.url
+                                  ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
+                                  : "border-slate-100 dark:border-slate-700",
+                              )}
+                            >
+                              <img
+                                src={cover.url}
+                                alt={cover.name || `Cover Template ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {coverPreview === cover.url && (
+                                <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
+                                  <div className="bg-red-600 text-white rounded-full p-1">
+                                    <Check size={12} />
+                                  </div>
                                 </div>
+                              )}
+                              <div className="absolute bottom-0 left-0 right-0 bg-black/40 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                 <p className="text-[8px] text-white font-black uppercase truncate px-2">{cover.name}</p>
                               </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          {COVER_TEMPLATES.map((url, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => handleCoverTemplateClick(url)}
+                              disabled={imgUploading || isRestricted}
+                              className={clsx(
+                                "h-24 rounded-2xl bg-slate-50 dark:bg-slate-800 border-2 overflow-hidden hover:border-red-500 hover:shadow-md transition-all relative group",
+                                coverPreview === url
+                                  ? "border-red-600 ring-2 ring-red-100 dark:ring-red-900/50"
+                                  : "border-slate-100 dark:border-slate-700",
+                              )}
+                            >
+                              <img
+                                src={url}
+                                alt={`Cover Template ${idx + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              {coverPreview === url && (
+                                <div className="absolute inset-0 bg-red-600/10 flex items-center justify-center">
+                                  <div className="bg-red-600 text-white rounded-full p-1">
+                                    <Check size={12} />
+                                  </div>
+                                </div>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1189,8 +1342,8 @@ export const Profile = () => {
             )}
 
             {editTab === "social" && (
-              <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-8 flex items-center gap-3 transition-colors">
+              <Card className="p-5 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-3 transition-colors">
                   <LinkIcon size={16} /> Social Media Profiles
                 </h3>
                 <form
@@ -1213,9 +1366,9 @@ export const Profile = () => {
                       setLoading(false);
                     }
                   }}
-                  className="space-y-4"
+                  className="space-y-3"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Input 
                       label="Facebook URL" 
                       name="facebook" 
@@ -1265,7 +1418,7 @@ export const Profile = () => {
                       placeholder="https://t.me/username"
                     />
                   </div>
-                  <div className="pt-6 flex justify-end">
+                  <div className="pt-4 flex justify-end">
                     <Button
                       type="submit"
                       isLoading={loading}
@@ -1279,13 +1432,13 @@ export const Profile = () => {
             )}
 
             {editTab === "password" && (
-              <Card className="p-8 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-6 flex items-center gap-3 transition-colors">
+              <Card className="p-5 border-0 shadow-xl bg-white dark:bg-slate-900 rounded-[2.5rem] animate-in fade-in transition-colors border border-slate-100 dark:border-slate-800">
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 flex items-center gap-3 transition-colors">
                   <Lock size={16} /> Security Center Layout
                 </h3>
                 <form
                   onSubmit={handlePasswordChange}
-                  className="space-y-5 max-w-md mx-auto"
+                  className="space-y-4 max-w-md mx-auto"
                 >
                   <Input
                     label="Current PIN"
@@ -1308,14 +1461,16 @@ export const Profile = () => {
                     required
                     className="dark:bg-slate-800"
                   />
-                  <Button
-                    type="submit"
-                    variant="secondary"
-                    className="w-full py-4 rounded-2xl shadow-xl dark:bg-slate-800 dark:hover:bg-slate-700 transition-all"
-                    isLoading={pwdLoading}
-                  >
-                    Update Credentials
-                  </Button>
+                  <div className="pt-2">
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      className="w-full py-4 rounded-2xl shadow-xl dark:bg-slate-800 dark:hover:bg-slate-700 transition-all"
+                      isLoading={pwdLoading}
+                    >
+                      Update Credentials
+                    </Button>
+                  </div>
                 </form>
               </Card>
             )}

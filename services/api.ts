@@ -51,7 +51,11 @@ import {
   BloodRequest,
   BadgeConfig,
   UserNotification,
-  SocialMediaConfig
+  SocialMediaConfig,
+  FundingContribution,
+  FundingConfig,
+  FundingStatus,
+  FundExpense
 } from "../types";
 
 export const ADMIN_EMAIL = "shozolesm4409@gmail.com";
@@ -72,6 +76,10 @@ const COLLECTIONS = {
   BLOOD_REQUESTS: 'blood_requests',
   DELETED_USERS: 'deleted_users', // Changed from 'archived_users'
   SOCIAL_MEDIA: 'social_media',
+  FUNDING: 'funding',
+  FUND_EXPENSES: 'fund_expenses',
+  DELETED_FUND_EXPENSES: 'deleted_fund_expenses',
+  DELETED_FUNDING: 'deleted_funding',
   DELETED_DONATIONS: 'deleted_donations',
   DELETED_LOGS: 'deleted_logs',
   DELETED_FEEDBACKS: 'deleted_feedbacks',
@@ -345,9 +353,9 @@ export const getAppPermissions = async (): Promise<AppPermissions> => {
     return snap.data() as AppPermissions;
   }
   return {
-    user: { sidebar: { requestedDonor: true }, rules: { canEditProfile: true, canViewDonorDirectory: false, canRequestDonation: true, canPostNotice: false } } as RolePermissions,
-    editor: { sidebar: { requestedDonor: true }, rules: {} } as RolePermissions,
-    admin: { sidebar: { requestedDonor: true }, rules: {} } as RolePermissions
+    user: { sidebar: { requestedDonor: true, myNotice: true, boardNotices: true, dashboard: true, profile: true, history: true, donors: true, feedback: true, donationFound: true, foundExpenses: true, foundSummary: true }, rules: { canEditProfile: true, canViewDonorDirectory: false, canRequestDonation: true, canPostNotice: false } } as RolePermissions,
+    editor: { sidebar: { requestedDonor: true, myNotice: true, boardNotices: true, donationFound: true, foundExpenses: true, foundSummary: true }, rules: {} } as RolePermissions,
+    admin: { sidebar: { requestedDonor: true, myNotice: true, boardNotices: true, donationFound: true, foundExpenses: true, foundSummary: true }, rules: {} } as RolePermissions
   };
 };
 
@@ -388,6 +396,27 @@ export const requestRequestedDonorAccess = async (user: User) => {
   await updateDoc(doc(db, COLLECTIONS.USERS, user.id), { requestedDonorAccessRequested: true });
 };
 export const handleRequestedDonorAccess = (uid: string, approve: boolean, admin: User) => handleAccess(uid, 'hasRequestedDonorAccess', 'requestedDonorAccessRequested', approve, admin);
+
+export const requestDonationFoundAccess = async (user: User) => {
+  await updateDoc(doc(db, COLLECTIONS.USERS, user.id), { donationFoundAccessRequested: true });
+};
+export const handleDonationFoundAccess = (uid: string, approve: boolean, admin: User) => handleAccess(uid, 'hasDonationFoundAccess', 'donationFoundAccessRequested', approve, admin);
+
+export const requestMenuAccess = async (userId: string, menuKey: string) => {
+  const ref = doc(db, COLLECTIONS.USERS, userId);
+  await updateDoc(ref, {
+    [`menuAccessRequests.${menuKey}`]: true
+  });
+};
+
+export const handleMenuAccess = async (uid: string, menuKey: string, approve: boolean, admin: User) => {
+  const ref = doc(db, COLLECTIONS.USERS, uid);
+  await updateDoc(ref, {
+    [`permissions.lockedMenus.${menuKey}`]: !approve, // if approve, unlocked is true (so locked is false)
+    [`menuAccessRequests.${menuKey}`]: deleteField()
+  });
+  await createLog('MENU_ACCESS_UPDATE', admin.id, admin.name, `${approve ? 'Granted' : 'Denied'} access to ${menuKey} for user ${uid}`);
+};
 
 // --- Donations ---
 
@@ -776,6 +805,239 @@ export const restoreDeletedHelpRequest = async (id: string, user: User) => {
 export const permanentlyDeleteArchivedHelpRequest = async (id: string, user: User) => {
   await deleteDoc(doc(db, COLLECTIONS.DELETED_HELP_REQUESTS, id));
   await createLog('HELP_PURGE', user.id, user.name, 'Permanently deleted archived help request');
+};
+
+// --- Funding Services ---
+
+export const subscribeToFundingConfig = (callback: (data: FundingConfig) => void) => {
+  const docRef = doc(db, COLLECTIONS.SETTINGS, 'funding');
+  const defaults = {
+    isEnabled: true,
+    goalAmount: 50000,
+    currentAmount: 0,
+    title: 'Donation Fund',
+    description: 'Help us save lives by supporting our platform costs and emergency assistance.',
+    paymentInfo: 'বিকাশ (পার্সোনাল): ০১৭XXXXXXXX\nনগদ (পার্সোনাল): ০১৭XXXXXXXX\nব্যাংক: ডাচ-বাংলা ব্যাংক (সঞ্চয়ী হিসাব নং - XXXXXXXX)'
+  };
+  return onSnapshot(docRef, (snap) => {
+    if (snap.exists()) {
+      callback({ ...defaults, ...snap.data() } as FundingConfig);
+    } else {
+      callback(defaults);
+    }
+  });
+};
+
+export const subscribeToFundingContributions = (callback: (data: FundingContribution[]) => void) => {
+  const q = query(collection(db, COLLECTIONS.FUNDING), orderBy('timestamp', 'desc'));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as FundingContribution)));
+  });
+};
+
+export const subscribeToFundExpenses = (callback: (data: FundExpense[]) => void) => {
+  const q = query(collection(db, COLLECTIONS.FUND_EXPENSES), orderBy('createdAt', 'desc'));
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundExpense)));
+  });
+};
+
+export const getFundingContributions = async (): Promise<FundingContribution[]> => {
+  const q = query(collection(db, COLLECTIONS.FUNDING), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as FundingContribution));
+};
+
+export const getUserFundingContributions = async (userId: string): Promise<FundingContribution[]> => {
+  const q = query(collection(db, COLLECTIONS.FUNDING), where('userId', '==', userId));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as FundingContribution)).sort((a,b) => b.timestamp.localeCompare(a.timestamp));
+};
+
+export const addFundingContribution = async (contribution: any, user: User) => {
+  await addDoc(collection(db, COLLECTIONS.FUNDING), {
+    ...contribution,
+    userId: user.id,
+    userName: user.name,
+    userAvatar: user.avatar || '',
+    status: FundingStatus.PENDING,
+    timestamp: new Date().toISOString()
+  });
+  await createLog('FUNDING_ADD', user.id, user.name, `Submitted funding contribution request`);
+};
+
+export const updateFundingStatus = async (id: string, status: FundingStatus, admin: User, remark?: string) => {
+  const ref = doc(db, COLLECTIONS.FUNDING, id);
+  const snapBefore = await getDoc(ref);
+  const oldData = snapBefore.data();
+
+  await updateDoc(ref, { status, adminRemark: remark || deleteField() });
+  
+  const configRef = doc(db, COLLECTIONS.SETTINGS, 'funding');
+  const configSnap = await getDoc(configRef);
+  let current = 0;
+  if (configSnap.exists()) {
+    current = configSnap.data().currentAmount || 0;
+  }
+
+  if (status === FundingStatus.APPROVED && oldData?.status !== FundingStatus.APPROVED) {
+    await setDoc(configRef, { currentAmount: current + (oldData?.amount || 0) }, { merge: true });
+  } else if (status !== FundingStatus.APPROVED && oldData?.status === FundingStatus.APPROVED) {
+    await setDoc(configRef, { currentAmount: Math.max(0, current - (oldData?.amount || 0)) }, { merge: true });
+  }
+  
+  await createLog('FUNDING_UPDATE', admin.id, admin.name, `Updated funding contribution ${id} to ${status}`);
+};
+
+export const updateFundExpense = async (id: string, data: Partial<Omit<FundExpense, 'id' | 'createdAt'>>, admin: User): Promise<void> => {
+  await updateDoc(doc(db, COLLECTIONS.FUND_EXPENSES, id), data);
+  await createLog('FUND_EXPENSE_UPDATE', admin.id, admin.name, `Updated fund expense ${id}`);
+};
+
+export const deleteFundExpense = async (id: string, admin: User): Promise<void> => {
+  const ref = doc(db, COLLECTIONS.FUND_EXPENSES, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await addDoc(collection(db, COLLECTIONS.DELETED_FUND_EXPENSES), {
+      ...snap.data(),
+      id: snap.id, // Ensure ID is preserved if needed
+      deletedAt: new Date().toISOString(),
+      deletedBy: admin.name
+    });
+    await deleteDoc(ref);
+    await createLog('FUND_EXPENSE_ARCHIVE', admin.id, admin.name, `Archived fund expense ${id}`);
+  }
+};
+
+export const getDeletedFundExpenses = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_FUND_EXPENSES), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+};
+
+export const restoreDeletedFundExpense = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.DELETED_FUND_EXPENSES, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const { deletedAt, deletedBy, ...data } = snap.data();
+    await setDoc(doc(db, COLLECTIONS.FUND_EXPENSES, data.id || id), data);
+    await deleteDoc(ref);
+    await createLog('FUND_EXPENSE_RESTORE', user.id, user.name, `Restored fund expense record`);
+  }
+};
+
+export const permanentlyDeleteArchivedFundExpense = async (id: string, user: User) => {
+  await deleteDoc(doc(db, COLLECTIONS.DELETED_FUND_EXPENSES, id));
+  await createLog('FUND_EXPENSE_PURGE', user.id, user.name, 'Permanently deleted archived fund expense');
+};
+
+export const purgeAllArchivedFundExpenses = async (admin: User) => {
+  const q = query(collection(db, COLLECTIONS.DELETED_FUND_EXPENSES));
+  const snap = await getDocs(q);
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + 500).forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
+  await createLog('ARCHIVE_PURGE_ALL', admin.id, admin.name, 'Purged all archived fund expenses');
+};
+
+export const getFundExpenses = async (): Promise<FundExpense[]> => {
+  const q = query(collection(db, COLLECTIONS.FUND_EXPENSES), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FundExpense));
+};
+
+export const addFundExpense = async (data: Omit<FundExpense, 'id' | 'createdAt'>, admin: User): Promise<void> => {
+  await addDoc(collection(db, COLLECTIONS.FUND_EXPENSES), {
+    ...data,
+    createdAt: Date.now()
+  });
+  await createLog('FUND_EXPENSE_ADD', admin.id, admin.name, `Added fund expense for ${data.purpose} - ৳${data.amount}`);
+};
+
+export const getFundingConfig = async (): Promise<FundingConfig | null> => {
+  const docRef = doc(db, COLLECTIONS.SETTINGS, 'funding');
+  const snap = await getDoc(docRef);
+  const defaults = {
+    isEnabled: true,
+    goalAmount: 50000,
+    currentAmount: 0,
+    title: 'Donation Fund',
+    description: 'Help us save lives by supporting our platform costs and emergency assistance.',
+    paymentInfo: 'বিকাশ (পার্সোনাল): ০১৭XXXXXXXX\nনগদ (পার্সোনাল): ০১৭XXXXXXXX\nব্যাংক: ডাচ-বাংলা ব্যাংক (সঞ্চয়ী হিসাব নং - XXXXXXXX)'
+  };
+  
+  if (snap.exists()) {
+    return { ...defaults, ...snap.data() } as FundingConfig;
+  }
+  return defaults;
+};
+
+export const updateFundingConfig = async (config: FundingConfig, admin: User) => {
+  await setDoc(doc(db, COLLECTIONS.SETTINGS, 'funding'), config);
+  await createLog('FUNDING_CONFIG_UPDATE', admin.id, admin.name, 'Updated funding configuration');
+};
+
+export const deleteFundingContribution = async (id: string, admin: User) => {
+  const ref = doc(db, COLLECTIONS.FUNDING, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data();
+    
+    // Archive before deleting
+    await addDoc(collection(db, COLLECTIONS.DELETED_FUNDING), {
+      ...data,
+      deletedAt: new Date().toISOString(),
+      deletedBy: admin.name
+    });
+
+    if (data.status === FundingStatus.APPROVED) {
+        const configRef = doc(db, COLLECTIONS.SETTINGS, 'funding');
+        const configSnap = await getDoc(configRef);
+        if (configSnap.exists()) {
+            const current = configSnap.data().currentAmount || 0;
+            await setDoc(configRef, { currentAmount: Math.max(0, current - (data.amount || 0)) }, { merge: true });
+        }
+    }
+    await deleteDoc(ref);
+    await createLog('FUNDING_ARCHIVE', admin.id, admin.name, `Archived funding contribution ${id}`);
+  }
+};
+
+export const getDeletedFunding = async () => {
+    const q = query(collection(db, COLLECTIONS.DELETED_FUNDING), orderBy('deletedAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+};
+
+export const restoreDeletedFunding = async (id: string, user: User) => {
+    const ref = doc(db, COLLECTIONS.DELETED_FUNDING, id);
+    const snap = await getDoc(ref);
+    if (snap.exists()) {
+        const { deletedAt, deletedBy, ...data } = snap.data();
+        await setDoc(doc(db, COLLECTIONS.FUNDING, data.id || id), data);
+        await deleteDoc(ref);
+        await createLog('FUNDING_RESTORE', user.id, user.name, `Restored funding contribution record`);
+    }
+};
+
+export const permanentlyDeleteArchivedFunding = async (id: string, user: User) => {
+    await deleteDoc(doc(db, COLLECTIONS.DELETED_FUNDING, id));
+    await createLog('FUNDING_PURGE', user.id, user.name, 'Permanently deleted archived funding contribution');
+};
+
+export const purgeAllArchivedFunding = async (admin: User) => {
+    const q = query(collection(db, COLLECTIONS.DELETED_FUNDING));
+    const snap = await getDocs(q);
+    const docs = snap.docs;
+    for (let i = 0; i < docs.length; i += 500) {
+        const batch = writeBatch(db);
+        docs.slice(i, i + 500).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+    }
+    await createLog('ARCHIVE_PURGE_ALL', admin.id, admin.name, 'Purged all archived funding contributions');
 };
 
 // --- Logs & Verification ---

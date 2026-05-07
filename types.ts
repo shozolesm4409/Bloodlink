@@ -160,6 +160,11 @@ export interface LandingPageConfig {
   sentGoToLoginLabel?: string;
   sentTryAgainLabel?: string;
 
+  // Lock Modal Customization
+  lockSubtitle?: string;
+  lockButtonLabel?: string;
+  lockFooterText?: string;
+
   softwareVersion?: string;
 
   // Privacy Policy Customization
@@ -204,6 +209,7 @@ export interface LandingPageConfig {
   badgeGoldColor?: string;
   badgeSilverName?: string;
   badgeSilverColor?: string;
+  dashboardFooterContent?: string;
 }
 
 export interface CustomRankBadge {
@@ -254,6 +260,9 @@ export interface User {
   idCardAccessRequested?: boolean;
   hasRequestedDonorAccess?: boolean;
   requestedDonorAccessRequested?: boolean;
+  hasDonationFoundAccess?: boolean;
+  donationFoundAccessRequested?: boolean;
+  menuAccessRequests?: { [key: string]: boolean };
   isSuspended?: boolean;
   permissions?: RolePermissions;
   approvedBadge?: 'pink' | 'red' | 'green' | 'blue';
@@ -334,6 +343,7 @@ export interface RolePermissions {
     approveFeedback?: boolean;
     landingSettings?: boolean;
     myNotice?: boolean;
+    boardNotices?: boolean;
     summary?: boolean;
     notifications?: boolean;
     adminVerify?: boolean;
@@ -344,6 +354,43 @@ export interface RolePermissions {
     moderateFaqs?: boolean;
     serverStatus?: boolean;
     requestedDonor?: boolean;
+    donationFound?: boolean;
+    foundManage?: boolean;
+    foundExpenses?: boolean;
+    foundSummary?: boolean;
+    avatarManage?: boolean;
+  };
+  lockedMenus?: {
+    dashboard?: boolean;
+    profile?: boolean;
+    history?: boolean;
+    donors?: boolean;
+    users?: boolean;
+    manageDonations?: boolean;
+    logs?: boolean;
+    rolePermissions?: boolean;
+    supportCenter?: boolean;
+    badgeManage?: boolean;
+    feedback?: boolean;
+    approveFeedback?: boolean;
+    landingSettings?: boolean;
+    myNotice?: boolean;
+    boardNotices?: boolean;
+    summary?: boolean;
+    notifications?: boolean;
+    adminVerify?: boolean;
+    verificationHistory?: boolean;
+    teamIdCards?: boolean;
+    deletedUsers?: boolean;
+    helpCenterManage?: boolean;
+    moderateFaqs?: boolean;
+    serverStatus?: boolean;
+    requestedDonor?: boolean;
+    donationFound?: boolean;
+    foundManage?: boolean;
+    foundExpenses?: boolean;
+    foundSummary?: boolean;
+    avatarManage?: boolean;
   };
   rules: {
     canEditProfile: boolean;
@@ -379,4 +426,48 @@ export interface RevokedPermission {
   type: 'DIRECTORY' | 'SUPPORT' | 'FEEDBACK';
   revokedAt?: string;
   revokedBy?: string;
+}
+
+export enum FundingStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
+}
+
+export interface FundingContribution {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar?: string;
+  amount: number;
+  paymentMethod: string;
+  transactionId: string;
+  purpose: string;
+  status: FundingStatus;
+  timestamp: string;
+  adminRemark?: string;
+}
+
+export interface FundExpense {
+  id: string;
+  purpose: string;
+  amount: number;
+  date: string; // ISO string
+  notes?: string;
+  addedBy: {
+    uid: string;
+    name: string;
+    phone?: string;
+  };
+  createdAt: number;
+}
+
+export interface FundingConfig {
+  isEnabled: boolean;
+  goalAmount: number;
+  currentAmount: number;
+  totalExpense?: number;
+  title: string;
+  description: string;
+  paymentInfo?: string;
 }

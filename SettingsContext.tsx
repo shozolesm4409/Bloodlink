@@ -1,16 +1,19 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { BadgeConfig, SocialMediaConfig } from './types';
-import { getBadgeConfig, getLandingConfig, getSocialMediaConfig } from './services/api';
+import { BadgeConfig, SocialMediaConfig, FundingConfig, LandingPageConfig } from './types';
+import { getBadgeConfig, getLandingConfig, getSocialMediaConfig, getFundingConfig } from './services/api';
 
 interface SettingsContextType {
   badgeConfig: BadgeConfig;
+  landingConfig: LandingPageConfig | null;
   socialMediaConfig: SocialMediaConfig;
+  fundingConfig: FundingConfig | null;
   softwareVersion: string;
   loading: boolean;
   refreshBadgeConfig: () => Promise<void>;
   refreshLandingConfig: () => Promise<void>;
   refreshSocialMediaConfig: () => Promise<void>;
+  refreshFundingConfig: () => Promise<void>;
 }
 
 export const defaultBadgeConfig: BadgeConfig = {
@@ -38,9 +41,20 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 
 export const SettingsProvider = ({ children }: { children?: ReactNode }) => {
   const [badgeConfig, setBadgeConfig] = useState<BadgeConfig>(defaultBadgeConfig);
+  const [landingConfig, setLandingConfig] = useState<LandingPageConfig | null>(null);
   const [socialMediaConfig, setSocialMediaConfig] = useState<SocialMediaConfig>({ links: [] });
+  const [fundingConfig, setFundingConfig] = useState<FundingConfig | null>(null);
   const [softwareVersion, setSoftwareVersion] = useState<string>('');
   const [loading, setLoading] = useState(true);
+
+  const fetchFundingConfig = async () => {
+    try {
+      const config = await getFundingConfig();
+      setFundingConfig(config);
+    } catch (e) {
+      console.error("Failed to fetch funding config:", e);
+    }
+  };
 
   const fetchBadgeConfig = async () => {
     try {
@@ -67,8 +81,11 @@ export const SettingsProvider = ({ children }: { children?: ReactNode }) => {
   const fetchLandingConfig = async () => {
     try {
       const config = await getLandingConfig();
-      if (config && config.softwareVersion) {
-        setSoftwareVersion(config.softwareVersion);
+      if (config) {
+        setLandingConfig(config);
+        if (config.softwareVersion) {
+          setSoftwareVersion(config.softwareVersion);
+        }
       }
     } catch (e) {
       console.error("Failed to fetch landing config:", e);
@@ -77,7 +94,7 @@ export const SettingsProvider = ({ children }: { children?: ReactNode }) => {
 
   const fetchAll = async () => {
     setLoading(true);
-    await Promise.all([fetchBadgeConfig(), fetchLandingConfig(), fetchSocialMediaConfig()]);
+    await Promise.all([fetchBadgeConfig(), fetchLandingConfig(), fetchSocialMediaConfig(), fetchFundingConfig()]);
     setLoading(false);
   };
 
@@ -88,12 +105,15 @@ export const SettingsProvider = ({ children }: { children?: ReactNode }) => {
   return (
     <SettingsContext.Provider value={{ 
       badgeConfig, 
+      landingConfig,
       socialMediaConfig,
+      fundingConfig,
       softwareVersion, 
       loading, 
       refreshBadgeConfig: fetchBadgeConfig,
       refreshLandingConfig: fetchLandingConfig,
-      refreshSocialMediaConfig: fetchSocialMediaConfig
+      refreshSocialMediaConfig: fetchSocialMediaConfig,
+      refreshFundingConfig: fetchFundingConfig
     }}>
       {children}
     </SettingsContext.Provider>

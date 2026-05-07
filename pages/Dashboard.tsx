@@ -281,8 +281,8 @@ export const Dashboard = () => {
  
                 <div className="lg:w-40 flex flex-col items-center justify-center text-center space-y-4">
                    <div className="relative w-24 h-24 flex items-center justify-center">
-                      <Heart className={clsx("w-full h-full stroke-[1.5] transition-colors duration-500", isEligible ? "text-green-100 dark:text-green-950/30" : "text-blue-100 dark:text-blue-950/30")} />
-                      <Activity className={clsx("absolute text-red-600 animate-pulse", isEligible ? "opacity-100" : "opacity-30")} size={24} />
+                      <Heart className={clsx("w-full h-full transition-colors duration-500", isEligible ? "text-green-100 dark:text-green-950/30" : "text-blue-100 dark:text-blue-950/30")} strokeWidth={2} />
+                      <Activity className={clsx("absolute text-red-600 animate-pulse", isEligible ? "opacity-100" : "opacity-30")} size={24} strokeWidth={2} />
                       <div className="absolute -bottom-1 right-0 bg-white dark:bg-slate-800 shadow-lg border border-slate-50 dark:border-slate-700 px-2 py-0.5 rounded-full flex items-center gap-1">
                         <span className="text-base font-black text-slate-900 dark:text-slate-100">{Math.round(progressPercent)}%</span>
                       </div>
@@ -339,7 +339,7 @@ export const Dashboard = () => {
             <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.05),transparent_70%)] pointer-events-none"></div>
             <div className="relative z-10 flex flex-col items-center text-center">
               <div className="inline-flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 px-3 py-0.5 rounded-full mb-4">
-                <Trophy size={14} className="text-yellow-500 fill-current" />
+                <Trophy size={14} className="text-yellow-500" strokeWidth={2} />
                 <span className="text-[9px] font-black uppercase tracking-[0.2em] text-yellow-600 dark:text-yellow-500">Top Contributor</span>
               </div>
 
@@ -393,7 +393,7 @@ export const Dashboard = () => {
 const StatCard = ({ title, value, icon: Icon, color }: any) => (
   <Card className="p-2 sm:p-3 border-0 shadow-lg flex items-center gap-2 sm:gap-3 hover:shadow-2xl transition-all group rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 w-full">
     <div className="w-9 h-9 sm:w-12 sm:h-12 flex-shrink-0 rounded-lg flex items-center justify-center bg-slate-50 dark:bg-slate-800/50 shadow-inner transition-transform group-hover:scale-105">
-      <Icon className={clsx("w-4.5 h-4.5 sm:w-6 sm:h-6", color, "fill-current")} />
+      <Icon className={clsx("w-4.5 h-4.5 sm:w-6 sm:h-6", color)} strokeWidth={2} />
     </div>
     <div className="flex flex-col min-w-0">
       <p className="text-[8px] sm:text-[9.5px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 sm:mb-1 leading-none truncate transition-colors">

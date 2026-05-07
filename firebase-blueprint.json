@@ -1,0 +1,46 @@
+{
+  "entities": {
+    "SystemAvatar": {
+      "title": "System Avatar",
+      "description": "Pre-defined avatars available for users to select",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string", "description": "Download URL or base64 data" },
+        "name": { "type": "string" },
+        "category": { "type": "string", "enum": ["Male", "Female", "Neutral", "Anime", "Icon"] },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "visibility": { "type": "string", "enum": ["visible", "hidden"] },
+        "order": { "type": "number", "description": "Sort order" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["url", "name", "category", "status", "createdAt"]
+    },
+    "SystemCover": {
+      "title": "System Cover",
+      "description": "Pre-defined profile covers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "url": { "type": "string" },
+        "name": { "type": "string" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "visibility": { "type": "string", "enum": ["visible", "hidden"] },
+        "order": { "type": "number", "description": "Sort order" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["url", "name", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/system_avatars/{avatarId}": {
+      "schema": "SystemAvatar",
+      "description": "Collection of system avatars"
+    },
+    "/system_covers/{coverId}": {
+      "schema": "SystemCover",
+      "description": "Collection of system covers"
+    }
+  }
+}

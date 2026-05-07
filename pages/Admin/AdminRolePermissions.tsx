@@ -11,8 +11,8 @@ import clsx from 'clsx';
 const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
   'dashboard', 'profile', 'history', 'donors', 'users', 'manageDonations', 
   'logs', 'rolePermissions', 'supportCenter', 'feedback', 'approveFeedback', 
-  'landingSettings', 'myNotice', 'summary', 'notifications', 'badgeManage', 'adminVerify', 
-  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus', 'requestedDonor'
+  'landingSettings', 'myNotice', 'boardNotices', 'summary', 'notifications', 'badgeManage', 'adminVerify', 
+  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus', 'requestedDonor', 'donationFound', 'foundManage', 'foundExpenses', 'foundSummary', 'avatarManage'
 ];
 
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [
@@ -26,7 +26,7 @@ export const AdminRolePermissions = () => {
   const location = useLocation();
   const { toastState, showToast, hideToast } = useToast();
   const [permissions, setPermissions] = useState<AppPermissions | null>(null);
-  const [activeTab, setActiveTab] = useState<'global' | 'individual'>('global');
+  const [activeTab, setActiveTab] = useState<'global' | 'individual' | 'menu-lock'>('global');
   const [activeRole, setActiveRole] = useState<UserRole>(UserRole.USER);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -99,6 +99,20 @@ export const AdminRolePermissions = () => {
     setPermissions({
       ...permissions,
       [roleKey]: { ...currentRole, sidebar: sidebar }
+    });
+  };
+
+  const handleToggleLock = (key: keyof RolePermissions['sidebar']) => {
+    if (!permissions) return;
+    const roleKey = activeRole.toLowerCase() as keyof AppPermissions;
+    const currentRole = (permissions as any)[roleKey] || { sidebar: {}, rules: {}, lockedMenus: {} };
+    const lockedMenus = { ...(currentRole.lockedMenus || {}) };
+    const currentVal = lockedMenus[key] ?? false;
+    lockedMenus[key] = !currentVal;
+    
+    setPermissions({
+      ...permissions,
+      [roleKey]: { ...currentRole, lockedMenus: lockedMenus }
     });
   };
 
@@ -204,6 +218,7 @@ export const AdminRolePermissions = () => {
         
         <div className="inline-flex bg-white dark:bg-slate-900 p-1 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800">
           <button onClick={() => { setActiveTab('global'); setSelectedUser(null); }} className={clsx("px-4 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all", activeTab === 'global' ? "bg-red-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100")}>Roles</button>
+          <button onClick={() => { setActiveTab('menu-lock'); setSelectedUser(null); }} className={clsx("px-4 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all", activeTab === 'menu-lock' ? "bg-red-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100")}>Menu Lock</button>
           <button onClick={() => setActiveTab('individual')} className={clsx("px-4 py-1 rounded-sm text-[10px] font-black uppercase tracking-wider transition-all", activeTab === 'individual' ? "bg-red-600 text-white shadow-lg" : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-100")}>User Wish</button>
         </div>
       </div>
@@ -222,14 +237,14 @@ export const AdminRolePermissions = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4">
              <Card className="p-3 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl transition-all hover:shadow-md">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white mb-5 flex items-center gap-2">
-                  <Layout className="text-blue-500" size={16} /> Sidebar Visibility
+                   <Layout className="text-blue-500" size={16} /> Sidebar Visibility
                 </h3>
                 <div className="space-y-1.5 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                    {SIDEBAR_KEYS.map((key) => {
                      const value = currentRole?.sidebar?.[key] ?? false;
                      return (
                        <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleSidebar(key)}>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{((key as string) === 'myNotice' ? 'Notifications' : key.replace(/([A-Z])/g, ' $1').trim())}</span>
                           <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", value ? "bg-blue-500" : "bg-slate-200 dark:bg-slate-700")}>
                              <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", value ? "translate-x-4" : "translate-x-0")} />
                           </div>
@@ -250,7 +265,7 @@ export const AdminRolePermissions = () => {
                      const value = currentRole?.rules?.[key] ?? false;
                      return (
                        <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleRule(key)}>
-                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{((key as string) === 'myNotice' ? 'Notifications' : key.replace(/([A-Z])/g, ' $1').trim())}</span>
                           <div className={clsx("w-9 h-5 rounded-full relative transition-all shadow-inner p-0.5", value ? "bg-red-500" : "bg-slate-200 dark:bg-slate-700")}>
                              <div className={clsx("w-4 h-4 bg-white rounded-full transition-all shadow-sm", value ? "translate-x-4" : "translate-x-0")} />
                           </div>
@@ -260,6 +275,49 @@ export const AdminRolePermissions = () => {
                  </div>
              </Card>
           </div>
+        </div>
+      ) : activeTab === 'menu-lock' ? (
+        <div className="space-y-4 lg:space-y-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex bg-slate-100 dark:bg-slate-900 p-0.5 rounded-lg shadow-inner border border-slate-200 dark:border-slate-800 w-full lg:w-fit overflow-x-auto no-scrollbar transition-colors">
+              {[UserRole.USER, UserRole.EDITOR, UserRole.ADMIN, UserRole.SUPERADMIN].map((role) => (
+                <button key={role} onClick={() => setActiveRole(role)} className={clsx("flex-1 lg:flex-none px-3 py-1 rounded-md text-[9px] font-black uppercase transition-all whitespace-nowrap transition-colors", activeRole === role ? "bg-white dark:bg-slate-800 shadow-sm text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-600")}>{role}</button>
+              ))}
+            </div>
+            <Button onClick={handleSaveGlobal} isLoading={saving} className="rounded-sm px-2 py-0.5 text-[12px] font-bold uppercase tracking-wider hidden lg:block">Save</Button>
+          </div>
+
+          <Card className="p-3 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl transition-all hover:shadow-md">
+            <h3 className="text-sm font-black text-slate-900 dark:text-white mb-5 flex items-center gap-2">
+              <Lock className="text-amber-500" size={16} /> Restricted Menus (Lock/Unlock)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+               {SIDEBAR_KEYS.map((key) => {
+                 const isVisible = currentRole?.sidebar?.[key] ?? false;
+                 const isLocked = currentRole?.lockedMenus?.[key] ?? false;
+                 
+                 return (
+                   <div key={key} className={clsx("flex items-center justify-between p-2.5 bg-white dark:bg-slate-900 rounded-xl border transition-all group", isVisible ? "border-slate-200 dark:border-slate-800 opacity-100" : "border-slate-100 dark:border-slate-900 opacity-50")}>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-tight">{(key as string) === 'myNotice' ? 'NOTIFICATIONS' : ((key as string) === 'myNotice' ? 'Notifications' : key.replace(/([A-Z])/g, ' $1').trim())}</span>
+                        {!isVisible && <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">Hidden for this role</span>}
+                      </div>
+                      <button 
+                        onClick={() => isVisible && handleToggleLock(key)}
+                        disabled={!isVisible}
+                        className={clsx(
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                          !isVisible ? "bg-slate-50 dark:bg-slate-900 text-slate-300" :
+                          isLocked ? "bg-red-50 text-red-600 ring-1 ring-red-100" : "bg-green-50 text-green-600 ring-1 ring-green-100"
+                        )}
+                      >
+                         {isLocked ? <Lock size={18} /> : <Unlock size={18} />}
+                      </button>
+                   </div>
+                 );
+               })}
+            </div>
+          </Card>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-start">
@@ -331,7 +389,7 @@ export const AdminRolePermissions = () => {
                                return (
                                  <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleSidebar(key, true)}>
                                     <div className="flex flex-col">
-                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{((key as string) === 'myNotice' ? 'Notifications' : key.replace(/([A-Z])/g, ' $1').trim())}</span>
                                       {isInherited && <span className="text-[8px] font-bold text-blue-500 uppercase tracking-wider">Role Default</span>}
                                     </div>
                                     <div className="flex items-center gap-2">
@@ -361,7 +419,7 @@ export const AdminRolePermissions = () => {
                                return (
                                  <div key={key} className="flex items-center justify-between p-1.5 bg-slate-50 dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all group" onClick={() => handleToggleRule(key, true)}>
                                     <div className="flex flex-col">
-                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{((key as string) === 'myNotice' ? 'Notifications' : key.replace(/([A-Z])/g, ' $1').trim())}</span>
                                       {isInherited && <span className="text-[8px] font-bold text-blue-500 uppercase tracking-wider">Role Default</span>}
                                     </div>
                                     <div className="flex items-center gap-2">

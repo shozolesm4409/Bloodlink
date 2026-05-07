@@ -174,7 +174,7 @@ export const RoleBadge: React.FC<{ role: string; className?: string }> = ({
         )}
       >
         <badgeData.icon size={10} />
-        {badgeData.name}
+        {badgeData.name.toUpperCase()}
       </span>
     );
   }
