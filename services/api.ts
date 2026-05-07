@@ -62,7 +62,7 @@ export const ADMIN_EMAIL = "shozolesm4409@gmail.com";
 export { db, auth };
 
 // Collections matching firestore.rules
-const COLLECTIONS = {
+export const COLLECTIONS = {
   USERS: 'users',
   DONATIONS: 'donations',
   FEEDBACKS: 'feedbacks',
@@ -87,7 +87,9 @@ const COLLECTIONS = {
   DELETED_HELP_REQUESTS: 'deleted_help_requests',
   DELETED_VERIFICATION_LOGS: 'deleted_verification_logs',
   REVOKED_PERMISSIONS: 'revoked_permissions',
-  USER_NOTIFICATIONS: 'user_notifications'
+  USER_NOTIFICATIONS: 'user_notifications',
+  TYPING_STATES: 'typing_states',
+  ADVERTISEMENTS: 'advertisements'
 };
 
 // --- Helpers ---
@@ -710,34 +712,46 @@ export const sendMessage = async (msg: any) => {
 };
 
 export const subscribeToRoomMessages = (roomId: string, callback: (msgs: ChatMessage[]) => void, onError?: (err: any) => void) => {
-  const q = query(collection(db, COLLECTIONS.MESSAGES), where('roomId', '==', roomId), orderBy('timestamp', 'asc'));
+  const q = query(collection(db, COLLECTIONS.MESSAGES), where('roomId', '==', roomId));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage)));
+    let msgs = snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage));
+    msgs.sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+    callback(msgs);
   }, onError);
 };
 
 export const subscribeToAllSupportRooms = (callback: (msgs: ChatMessage[]) => void, onError?: (err: any) => void) => {
-  const q = query(collection(db, COLLECTIONS.MESSAGES), orderBy('timestamp', 'desc'));
+  const q = query(collection(db, COLLECTIONS.MESSAGES));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage)));
+    let msgs = snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage));
+    msgs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+    callback(msgs);
   }, onError);
 };
 
-export const subscribeToAllIncomingMessages = (userId: string, callback: (msgs: ChatMessage[]) => void, onError?: (err: any) => void) => {
-  const q = query(collection(db, COLLECTIONS.MESSAGES), where('receiverId', 'in', [userId, 'SYSTEM']), where('read', '==', false));
+export const subscribeToAllIncomingMessages = (userId: string, isStaff: boolean, callback: (msgs: ChatMessage[]) => void, onError?: (err: any) => void) => {
+  const receivers = isStaff ? [userId, 'SYSTEM'] : [userId];
+  // Fetch messages where receiverId is in receivers. Filtering for read=false is done locally to avoid composite index requirement.
+  const q = query(collection(db, COLLECTIONS.MESSAGES), where('receiverId', 'in', receivers));
   return onSnapshot(q, (snap) => {
-    callback(snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage)));
+    const msgs = snap.docs.map(d => ({...d.data(), id: d.id} as ChatMessage));
+    callback(msgs.filter(m => !m.read));
   }, onError);
 };
 
 export const markMessagesAsRead = async (roomId: string, userId: string) => {
-  const q = query(collection(db, COLLECTIONS.MESSAGES), where('roomId', '==', roomId), where('receiverId', '==', userId), where('read', '==', false));
+  const q = query(collection(db, COLLECTIONS.MESSAGES), where('roomId', '==', roomId));
   const snap = await getDocs(q);
   const batch = writeBatch(db);
+  let count = 0;
   snap.docs.forEach(doc => {
-    batch.update(doc.ref, { read: true });
+    const data = doc.data();
+    if (data.receiverId === userId && data.read === false) {
+      batch.update(doc.ref, { read: true });
+      count++;
+    }
   });
-  await batch.commit();
+  if (count > 0) await batch.commit();
 };
 
 // --- Help Center ---
@@ -1413,4 +1427,40 @@ export const closeBloodRequest = async (requestId: string, user: User, confirmed
   });
   console.log("Request closed successfully in Firestore");
   await createLog('CLOSE_BLOOD_REQUEST', user.id, user.name, `Closed blood request ${requestId}${confirmedUserId ? ` (Confirmed donor: ${confirmedUserId})` : ''}`);
+};
+
+// --- Presence / Typing ---
+
+export const setTypingStatus = async (roomId: string, userId: string, userName: string, isTyping: boolean) => {
+  const ref = doc(db, COLLECTIONS.TYPING_STATES, `${roomId}_${userId}`);
+  if (isTyping) {
+    await setDoc(ref, {
+      roomId,
+      userId,
+      userName,
+      isTyping,
+      timestamp: serverTimestamp()
+    });
+  } else {
+    await deleteDoc(ref);
+  }
+};
+
+export const subscribeToTypingStatus = (roomId: string, callback: (users: {userId: string, userName: string}[]) => void) => {
+  const q = query(
+    collection(db, COLLECTIONS.TYPING_STATES), 
+    where('roomId', '==', roomId),
+    where('isTyping', '==', true)
+  );
+  return onSnapshot(q, (snap) => {
+    const typingUsers = snap.docs
+      .map(d => d.data())
+      .filter(d => {
+        // Filter out stale typing indicators (older than 10 seconds)
+        const ts = d.timestamp?.toMillis?.() || 0;
+        return Date.now() - ts < 10000;
+      })
+      .map(d => ({ userId: d.userId, userName: d.userName }));
+    callback(typingUsers);
+  });
 };

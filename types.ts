@@ -359,6 +359,7 @@ export interface RolePermissions {
     foundExpenses?: boolean;
     foundSummary?: boolean;
     avatarManage?: boolean;
+    addManagement?: boolean;
   };
   lockedMenus?: {
     dashboard?: boolean;
@@ -391,6 +392,7 @@ export interface RolePermissions {
     foundExpenses?: boolean;
     foundSummary?: boolean;
     avatarManage?: boolean;
+    addManagement?: boolean;
   };
   rules: {
     canEditProfile: boolean;
