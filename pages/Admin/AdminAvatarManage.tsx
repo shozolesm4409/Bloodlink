@@ -36,7 +36,8 @@ import {
   Timestamp,
   writeBatch
 } from 'firebase/firestore';
-import { db, auth } from '../../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { db, auth, storage } from '../../services/firebase';
 import clsx from 'clsx';
 import {
   DndContext, 
@@ -80,7 +81,7 @@ interface SystemAsset {
 interface SortableAssetProps {
   asset: SystemAsset;
   index: number;
-  activeTab: 'avatars' | 'covers';
+  activeTab: 'avatars' | 'covers' | 'logos' | 'landing';
   onEdit: (asset: SystemAsset) => void;
   onDelete: (id: string) => void;
   onMove: (index: number, direction: 'up' | 'down') => void;
@@ -122,6 +123,16 @@ const SortableAsset = ({ asset, index, activeTab, onEdit, onDelete, onMove, tota
           <Edit size={12} />
         </button>
         <button 
+          onClick={() => {
+            const newVisibility = asset.visibility === 'visible' ? 'hidden' : 'visible';
+            updateDoc(doc(db, activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing', asset.id), { visibility: newVisibility });
+          }}
+          title={asset.visibility === 'visible' ? "Hide" : "Show"}
+          className="p-1.5 bg-white dark:bg-slate-800 text-slate-400 hover:text-red-500 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-all"
+        >
+          {asset.visibility === 'visible' ? <EyeOff size={12} /> : <Eye size={12} />}
+        </button>
+        <button 
           onClick={() => onDelete(asset.id)}
           title="Delete" 
           className="p-1.5 bg-white dark:bg-slate-800 text-slate-400 hover:text-red-500 rounded-lg shadow-sm border border-slate-100 dark:border-slate-700 transition-all"
@@ -155,13 +166,16 @@ const SortableAsset = ({ asset, index, activeTab, onEdit, onDelete, onMove, tota
       </div>
 
       <div className={clsx(
-        "rounded-xl bg-slate-50 dark:bg-slate-950 shadow-inner p-1 border border-slate-100 dark:border-slate-800 group-hover:scale-105 transition-transform",
-        activeTab === 'avatars' ? "w-16 h-16" : "w-full aspect-[3/1]"
+        "rounded-xl bg-slate-50 dark:bg-slate-950 shadow-inner p-1 border border-slate-100 dark:border-slate-800 group-hover:scale-105 transition-transform flex items-center justify-center",
+        activeTab === 'avatars' || activeTab === 'logos' ? "w-16 h-16" : "w-full aspect-[3/1]"
       )}>
         <img 
           src={asset.url} 
           alt={asset.name} 
-          className="w-full h-full object-cover rounded-lg"
+          className={clsx(
+            "w-full h-full rounded-lg",
+            activeTab === 'logos' ? "object-contain" : "object-cover"
+          )}
           draggable={false}
         />
       </div>
@@ -196,7 +210,7 @@ const SortableAsset = ({ asset, index, activeTab, onEdit, onDelete, onMove, tota
 
 export const AdminAvatarManage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'avatars' | 'covers'>('avatars');
+  const [activeTab, setActiveTab] = useState<'avatars' | 'covers' | 'landing' | 'logos'>('avatars');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -205,6 +219,7 @@ export const AdminAvatarManage = () => {
   const [newAssetName, setNewAssetName] = useState('');
   const [newAssetCategory, setNewAssetCategory] = useState('Male');
   const [newAssetFile, setNewAssetFile] = useState<string | null>(null);
+  const [newAssetFileObject, setNewAssetFileObject] = useState<File | null>(null);
   const [newAssetVisibility, setNewAssetVisibility] = useState<'visible' | 'hidden'>('visible');
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -212,6 +227,8 @@ export const AdminAvatarManage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [avatars, setAvatars] = useState<SystemAsset[]>([]);
   const [covers, setCovers] = useState<SystemAsset[]>([]);
+  const [landings, setLandings] = useState<SystemAsset[]>([]);
+  const [logos, setLogos] = useState<SystemAsset[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -288,14 +305,40 @@ export const AdminAvatarManage = () => {
       handleFirestoreError(error, OperationType.LIST, 'system_covers');
     });
 
+    const unsubLandings = onSnapshot(query(collection(db, 'system_landing')), (snapshot) => {
+      const landingList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as SystemAsset[];
+      
+      setLandings(landingList);
+      if (activeTab === 'landing') setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'system_landing');
+    });
+
+    const unsubLogos = onSnapshot(query(collection(db, 'system_logos')), (snapshot) => {
+      const logoList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as SystemAsset[];
+      
+      setLogos(logoList);
+      if (activeTab === 'logos') setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'system_logos');
+    });
+
     return () => {
       unsubAvatars();
       unsubCovers();
+      unsubLandings();
+      unsubLogos();
     };
   }, [activeTab]);
 
   const filteredAssets = useMemo(() => {
-    let list = activeTab === 'avatars' ? [...avatars] : [...covers];
+    let list = activeTab === 'avatars' ? [...avatars] : activeTab === 'covers' ? [...covers] : activeTab === 'logos' ? [...logos] : [...landings];
     
     return list.filter(a => {
       const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -304,7 +347,7 @@ export const AdminAvatarManage = () => {
         : true;
       return matchesSearch && matchesCategory;
     });
-  }, [activeTab, avatars, covers, searchTerm, categoryFilter]);
+  }, [activeTab, avatars, covers, landings, searchTerm, categoryFilter]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -322,8 +365,20 @@ export const AdminAvatarManage = () => {
           const sortedList = [...newList, ...others];
           return sortedList;
         });
-      } else {
+      } else if (activeTab === 'covers') {
         setCovers(prev => {
+          const others = prev.filter(p => !filteredAssets.find(f => f.id === p.id));
+          const sortedList = [...newList, ...others];
+          return sortedList;
+        });
+      } else if (activeTab === 'logos') {
+        setLogos(prev => {
+          const others = prev.filter(p => !filteredAssets.find(f => f.id === p.id));
+          const sortedList = [...newList, ...others];
+          return sortedList;
+        });
+      } else {
+        setLandings(prev => {
           const others = prev.filter(p => !filteredAssets.find(f => f.id === p.id));
           const sortedList = [...newList, ...others];
           return sortedList;
@@ -332,7 +387,7 @@ export const AdminAvatarManage = () => {
 
       try {
         const batch = writeBatch(db);
-        const collectionName = activeTab === 'avatars' ? 'system_avatars' : 'system_covers';
+        const collectionName = activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing';
         
         // Update order values for all visible items to fix them in place
         newList.forEach((item, index) => {
@@ -356,9 +411,35 @@ export const AdminAvatarManage = () => {
       const reader = new FileReader();
       reader.onloadend = () => {
         setNewAssetFile(reader.result as string);
+        setNewAssetFileObject(file);
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const compressImage = (dataUrl: string, maxWidth: number = 1920): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
+        } else {
+          resolve(dataUrl);
+        }
+      };
+      img.src = dataUrl;
+    });
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -367,10 +448,32 @@ export const AdminAvatarManage = () => {
 
     try {
       setIsUploading(true);
-      const collectionName = activeTab === 'avatars' ? 'system_avatars' : 'system_covers';
+      const config = {
+        avatars: { collection: 'system_avatars', label: 'Avatar' },
+        covers: { collection: 'system_covers', label: 'Cover' },
+        logos: { collection: 'system_logos', label: 'Logo' },
+        landing: { collection: 'system_landing', label: 'Background' }
+      }[activeTab];
+      
+      const collectionName = config.collection;
+      
+      let finalUrl = newAssetFile;
+      
+      // Compress if it's a data URL to avoid hitting 1MB Firestore limit
+      if (finalUrl.startsWith('data:image')) {
+        if (!finalUrl.startsWith('data:image/gif')) {
+          console.log("Compressing image before saving...");
+          finalUrl = await compressImage(finalUrl);
+        } else {
+          console.log("Skipping compression for GIF to preserve animation...");
+        }
+        if (finalUrl.length > 1000000) {
+           throw new Error("The image is too large. Please use an image with smaller dimensions or file size.");
+        }
+      }
       
       const assetData: any = {
-        url: newAssetFile,
+        url: finalUrl,
         name: newAssetName,
         status: 'active',
         visibility: newAssetVisibility,
@@ -387,7 +490,7 @@ export const AdminAvatarManage = () => {
         const updateData: any = {
           name: newAssetName,
           visibility: newAssetVisibility,
-          url: newAssetFile
+          url: finalUrl
         };
 
         if (activeTab === 'avatars') {
@@ -404,8 +507,15 @@ export const AdminAvatarManage = () => {
       setNewAssetName('');
       setNewAssetCategory('Male');
       setNewAssetFile(null);
+      setNewAssetFileObject(null);
     } catch (error) {
-      handleFirestoreError(error, editingAsset ? OperationType.UPDATE : OperationType.CREATE, activeTab === 'avatars' ? 'system_avatars' : 'system_covers');
+      const config = {
+        avatars: { collection: 'system_avatars', label: 'Avatar' },
+        covers: { collection: 'system_covers', label: 'Cover' },
+        logos: { collection: 'system_logos', label: 'Logo' },
+        landing: { collection: 'system_landing', label: 'Background' }
+      }[activeTab];
+      handleFirestoreError(error, editingAsset ? OperationType.UPDATE : OperationType.CREATE, config.collection);
     } finally {
       setIsUploading(false);
     }
@@ -417,6 +527,7 @@ export const AdminAvatarManage = () => {
     setNewAssetCategory(asset.category || 'Male');
     setNewAssetVisibility(asset.visibility || 'visible');
     setNewAssetFile(asset.url);
+    setNewAssetFileObject(null);
     setIsUploadModalOpen(true);
   };
 
@@ -430,7 +541,7 @@ export const AdminAvatarManage = () => {
     const itemB = list[targetIndex];
 
     try {
-      const collectionName = activeTab === 'avatars' ? 'system_avatars' : 'system_covers';
+      const collectionName = activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing';
       const orderA = itemA.order || Date.now() + index;
       const orderB = itemB.order || Date.now() + targetIndex;
 
@@ -450,12 +561,12 @@ export const AdminAvatarManage = () => {
     if (!assetToDelete) return;
     
     try {
-      const collectionName = activeTab === 'avatars' ? 'system_avatars' : 'system_covers';
+      const collectionName = activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing';
       await deleteDoc(doc(db, collectionName, assetToDelete));
       setIsDeleteModalOpen(false);
       setAssetToDelete(null);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `${activeTab === 'avatars' ? 'system_avatars' : 'system_covers'}/${assetToDelete}`);
+      handleFirestoreError(error, OperationType.DELETE, `${activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing'}/${assetToDelete}`);
     }
   };
 
@@ -477,11 +588,18 @@ export const AdminAvatarManage = () => {
         </div>
         
         <button 
-          onClick={() => setIsUploadModalOpen(true)}
+          onClick={() => {
+            setEditingAsset(null);
+            setNewAssetName('');
+            setNewAssetCategory('Male');
+            setNewAssetFile(null);
+            setNewAssetFileObject(null);
+            setIsUploadModalOpen(true);
+          }}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-md active:scale-95 whitespace-nowrap"
         >
           <Plus size={16} />
-          Upload New {activeTab === 'avatars' ? 'Avatar' : 'Cover'}
+          Upload New {activeTab === 'avatars' ? 'Avatar' : activeTab === 'covers' ? 'Cover' : activeTab === 'logos' ? 'Logo' : 'Background'}
         </button>
       </div>
 
@@ -490,24 +608,46 @@ export const AdminAvatarManage = () => {
           <button 
             onClick={() => setActiveTab('avatars')}
             className={clsx(
-              "px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2",
+              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
               activeTab === 'avatars' 
                 ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
                 : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
-            System Avatars
+            <span className="hidden md:inline">System </span>Avatars
           </button>
           <button 
             onClick={() => setActiveTab('covers')}
             className={clsx(
-              "px-6 py-4 text-xs font-black uppercase tracking-widest transition-all border-b-2",
+              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
               activeTab === 'covers' 
                 ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
                 : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
             )}
           >
-            System Covers
+            <span className="hidden md:inline">System </span>Covers
+          </button>
+          <button 
+            onClick={() => setActiveTab('logos')}
+            className={clsx(
+              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
+              activeTab === 'logos' 
+                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
+                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+            )}
+          >
+            <span className="hidden md:inline">System </span>Logos
+          </button>
+          <button 
+            onClick={() => setActiveTab('landing')}
+            className={clsx(
+              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
+              activeTab === 'landing' 
+                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
+                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+            )}
+          >
+            <span className="hidden md:inline">Landing </span>Background
           </button>
         </div>
 
@@ -587,7 +727,14 @@ export const AdminAvatarManage = () => {
 
                   <button 
                     type="button"
-                    onClick={() => setIsUploadModalOpen(true)}
+                    onClick={() => {
+                      setEditingAsset(null);
+                      setNewAssetName('');
+                      setNewAssetCategory('Male');
+                      setNewAssetFile(null);
+                      setNewAssetFileObject(null);
+                      setIsUploadModalOpen(true);
+                    }}
                     className="flex flex-col items-center justify-center gap-3 p-3 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 hover:border-red-400 transition-all group lg:min-h-[140px]"
                   >
                     <div className="w-16 h-16 rounded-xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-300 group-hover:text-red-400 transition-colors">
@@ -614,7 +761,7 @@ export const AdminAvatarManage = () => {
                 </div>
                 <div>
                   <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none mb-1">
-                    {editingAsset ? 'Edit' : 'Upload'} {activeTab === 'avatars' ? 'Avatar' : 'Cover'}
+                    {editingAsset ? 'Edit' : 'Upload'} {activeTab === 'avatars' ? 'Avatar' : activeTab === 'covers' ? 'Cover' : activeTab === 'logos' ? 'Logo' : 'Background'}
                   </h2>
                   <p className="text-[10px] font-black text-red-600 uppercase tracking-widest leading-none">
                     Asset Repository
@@ -628,6 +775,7 @@ export const AdminAvatarManage = () => {
                   setNewAssetName('');
                   setNewAssetVisibility('visible');
                   setNewAssetFile(null);
+                  setNewAssetFileObject(null);
                 }}
                 className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 transition-colors"
               >
@@ -639,7 +787,7 @@ export const AdminAvatarManage = () => {
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
-                    {activeTab === 'avatars' ? 'Avatar' : 'Cover'} Name
+                    {activeTab === 'avatars' ? 'Avatar' : activeTab === 'covers' ? 'Cover' : activeTab === 'logos' ? 'Logo' : 'Background'} Name
                   </label>
                   <input
                     type="text"
@@ -686,11 +834,30 @@ export const AdminAvatarManage = () => {
 
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1" id="file-upload-label">
-                    Select {activeTab === 'avatars' ? 'Avatar' : 'Cover'} File
+                    Select {activeTab === 'avatars' ? 'Avatar' : activeTab === 'covers' ? 'Cover' : activeTab === 'logos' ? 'Logo' : 'Background'} File
                   </label>
                   {!newAssetFile ? (
                     <div 
                       onClick={() => fileInputRef.current?.click()}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files?.[0];
+                        if (file) {
+                          const fileName = file.name.split('.').slice(0, -1).join('.') || file.name;
+                          setNewAssetName(fileName);
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setNewAssetFile(reader.result as string);
+                            setNewAssetFileObject(file);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
                       className="group cursor-pointer border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-3xl p-10 flex flex-col items-center gap-3 hover:border-red-400 hover:bg-red-50/5 dark:hover:bg-red-950/5 transition-all"
                     >
                       <div className="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-950 flex items-center justify-center text-slate-300 group-hover:text-red-400 group-hover:scale-110 transition-all duration-300">
@@ -698,19 +865,22 @@ export const AdminAvatarManage = () => {
                       </div>
                       <div className="text-center">
                         <p className="text-xs font-black text-slate-600 dark:text-slate-300 uppercase tracking-tight">Click or Drag Image</p>
-                        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 italic">SVG, PNG, JPG (Max 2MB)</p>
+              <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 italic">GIF, PNG, JPG (Max 2MB)</p>
                       </div>
                     </div>
                   ) : (
                     <div className={clsx(
                       "relative mx-auto group",
-                      activeTab === 'avatars' ? "w-48 aspect-square" : "w-full aspect-[3/1]"
+                      activeTab === 'avatars' || activeTab === 'logos' ? "w-48 aspect-square" : "w-full aspect-[3/1]"
                     )}>
-                      <div className="w-full h-full rounded-2xl bg-slate-50 dark:bg-slate-950 p-2 shadow-inner border border-slate-200 dark:border-slate-800 overflow-hidden">
+                      <div className="w-full h-full rounded-2xl bg-slate-50 dark:bg-slate-950 p-2 shadow-inner border border-slate-200 dark:border-slate-800 overflow-hidden flex items-center justify-center">
                         <img 
                           src={newAssetFile} 
                           alt="Preview" 
-                          className="w-full h-full object-cover rounded-xl"
+                          className={clsx(
+                            "w-full h-full rounded-xl",
+                            activeTab === 'logos' ? "object-contain" : "object-cover"
+                          )}
                         />
                       </div>
                       <button 
@@ -726,7 +896,7 @@ export const AdminAvatarManage = () => {
                     type="file"
                     ref={fileInputRef}
                     className="hidden"
-                    accept="image/*"
+                    accept="image/png, image/jpeg, image/gif"
                     onChange={handleFileChange}
                   />
                 </div>
@@ -743,7 +913,7 @@ export const AdminAvatarManage = () => {
                   ) : (
                     <CheckCircle2 size={18} />
                   )}
-                  {isUploading ? 'Processing...' : `${editingAsset ? 'Update' : 'Save'} ${activeTab === 'avatars' ? 'Avatar' : 'Cover'} Asset`}
+                  {isUploading ? 'Processing...' : `${editingAsset ? 'Update' : 'Save'} ${activeTab === 'avatars' ? 'Avatar' : activeTab === 'covers' ? 'Cover' : activeTab === 'logos' ? 'Logo' : 'Background'} Asset`}
                 </button>
               </div>
             </form>
@@ -764,7 +934,7 @@ export const AdminAvatarManage = () => {
                 Are you sure?
               </h3>
               <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest leading-relaxed mb-8 px-4">
-                This action will permanently delete this {activeTab === 'avatars' ? 'avatar' : 'cover'}. This cannot be undone.
+                This action will permanently delete this {activeTab === 'avatars' ? 'avatar' : activeTab === 'covers' ? 'cover' : 'background'}. This cannot be undone.
               </p>
 
               <div className="flex flex-col w-full gap-3">

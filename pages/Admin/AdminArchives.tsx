@@ -131,11 +131,18 @@ export const AdminArchives = () => {
     <button 
       onClick={() => setActiveTab(tab)} 
       className={clsx(
-        "flex items-center gap-2 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-        activeTab === tab ? "bg-white dark:bg-slate-900 shadow-md text-red-600 dark:text-red-400" : "text-slate-500 dark:text-slate-400 hover:bg-white/50 dark:hover:bg-slate-800/50 transition-colors"
+        "flex items-center gap-2.5 px-3 py-2 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all lg:w-full text-left group shrink-0 whitespace-nowrap lg:whitespace-normal",
+        activeTab === tab 
+          ? "bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-sm" 
+          : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/50 hover:text-slate-700 dark:hover:text-slate-200"
       )}
     >
-      <Icon size={20} /> <span className="hidden lg:inline">{label}</span>
+      <Icon size={16} className={clsx(
+        "transition-colors",
+        activeTab === tab ? "text-red-600 dark:text-red-400" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
+      )} /> 
+      <span className="truncate">{label}</span>
+      {activeTab === tab && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-red-500 shadow-lg shadow-red-500/50"></div>}
     </button>
   );
 
@@ -151,30 +158,43 @@ export const AdminArchives = () => {
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium transition-colors">Recover or purge deleted records.</p>
         </div>
         {items.length > 0 && (
-          <Button onClick={() => setConfirmAll(true)} className="bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xl shadow-red-100 dark:shadow-red-900/20 text-xs font-black px-6">
+          <Button onClick={() => setConfirmAll(true)} className="bg-red-600 hover:bg-red-700 text-white rounded-sm shadow-xl shadow-red-100 dark:shadow-red-900/20 text-xs font-black px-6">
             <Trash2 size={16} className="mr-2" /> ALL DELETE
           </Button>
         )}
       </div>
 
-      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl overflow-x-auto custom-scrollbar pb-2 lg:pb-1.5 transition-colors border border-slate-200 dark:border-slate-700">
-         <TabButton tab="USERS" label="Users" icon={UserIcon} />
-         <TabButton tab="DONATIONS" label="Blood Donation" icon={Droplet} />
-         <TabButton tab="FUNDING" label="Funding" icon={DollarSign} />
-         <TabButton tab="FEEDBACKS" label="Feedback" icon={MessageSquare} />
-         <TabButton tab="NOTICES" label="Notices" icon={Megaphone} />
-         <TabButton tab="HELP" label="Help Desk" icon={AlertCircle} />
-         <TabButton tab="LOGS" label="Audit Logs" icon={Activity} />
-         <TabButton tab="VERIFICATION" label="Verification" icon={ClipboardList} />
-         <TabButton tab="EXPENSES" label="Found Expenses" icon={Receipt} />
-      </div>
+      <div className="flex flex-col lg:flex-row gap-4">
+        {/* Sub Menu Sidebar */}
+        <div className="w-full lg:w-52 shrink-0">
+          <div className="bg-white dark:bg-slate-900 rounded-sm border border-slate-200 dark:border-slate-800 p-1.5 shadow-sm sticky top-4">
+            <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1.5">
+              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Archives Menu</h3>
+            </div>
+            <div className="flex lg:flex-col gap-0.5 overflow-x-auto lg:overflow-x-visible pb-1.5 lg:pb-0 custom-scrollbar">
+              <TabButton tab="USERS" label="Users" icon={UserIcon} />
+              <TabButton tab="DONATIONS" label="Donations" icon={Droplet} />
+              <TabButton tab="FUNDING" label="Funding" icon={DollarSign} />
+              <TabButton tab="FEEDBACKS" label="Feedback" icon={MessageSquare} />
+              <TabButton tab="NOTICES" label="Notices" icon={Megaphone} />
+              <TabButton tab="HELP" label="Help Desk" icon={AlertCircle} />
+              <TabButton tab="LOGS" label="Audit Logs" icon={Activity} />
+              <TabButton tab="VERIFICATION" label="Verification" icon={ClipboardList} />
+              <TabButton tab="EXPENSES" label="Expenses" icon={Receipt} />
+            </div>
+          </div>
+        </div>
 
-      {loading ? (
-        <div className="p-20 text-center font-black text-slate-300 dark:text-slate-700 animate-pulse">Scanning Archives...</div>
-      ) : (
-        <>
-          {/* Desktop Table View */}
-          <Card className="hidden lg:block overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 transition-colors">
+        {/* Content Area */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {loading ? (
+            <div className="p-20 text-center font-black text-slate-300 dark:text-slate-700 animate-pulse bg-white dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800">
+              Scanning Archives...
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table View */}
+              <Card className="hidden lg:block overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900 rounded-sm border border-slate-100 dark:border-slate-800 transition-colors">
             <div className="overflow-x-auto max-h-[600px] overflow-y-auto custom-scrollbar">
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest transition-colors">
@@ -226,7 +246,7 @@ export const AdminArchives = () => {
           {/* Mobile Card View */}
           <div className="lg:hidden space-y-4">
             {items.map(item => (
-              <Card key={item.id} className="p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-[2rem] relative overflow-hidden transition-colors border border-slate-100 dark:border-slate-800">
+              <Card key={item.id} className="p-6 border-0 shadow-lg bg-white dark:bg-slate-900 rounded-sm relative overflow-hidden transition-colors border border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="font-black text-slate-800 dark:text-white text-lg mb-1 transition-colors">
@@ -303,5 +323,7 @@ export const AdminArchives = () => {
         </>
       )}
     </div>
+  </div>
+</div>
   );
 };

@@ -62,7 +62,7 @@ export const ADMIN_EMAIL = "shozolesm4409@gmail.com";
 export { db, auth };
 
 // Collections matching firestore.rules
-const COLLECTIONS = {
+export const COLLECTIONS = {
   USERS: 'users',
   DONATIONS: 'donations',
   FEEDBACKS: 'feedbacks',
@@ -87,7 +87,9 @@ const COLLECTIONS = {
   DELETED_HELP_REQUESTS: 'deleted_help_requests',
   DELETED_VERIFICATION_LOGS: 'deleted_verification_logs',
   REVOKED_PERMISSIONS: 'revoked_permissions',
-  USER_NOTIFICATIONS: 'user_notifications'
+  USER_NOTIFICATIONS: 'user_notifications',
+  ADVERTISEMENTS: 'advertisements',
+  DELETED_ADVERTISEMENTS: 'deleted_advertisements'
 };
 
 // --- Helpers ---

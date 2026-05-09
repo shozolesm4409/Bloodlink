@@ -40,9 +40,30 @@ export const Landing = () => {
     footerTagline: 'প্রতিটি ফোঁটা একটি জীবনের আশা।'
   });
   
+  const [landingBackgrounds, setLandingBackgrounds] = useState<string[]>([]);
+  const [currentBgIndex, setCurrentBgIndex] = useState(0);
+  
   const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
+    if (landingBackgrounds.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBgIndex(prev => (prev + 1) % landingBackgrounds.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [landingBackgrounds]);
+
+  const activeBg = landingBackgrounds[currentBgIndex];
+
+  useEffect(() => {
+    onSnapshot(collection(db, 'system_landing'), snapshot => {
+       const activeAssets = snapshot.docs
+         .map(doc => doc.data() as any)
+         .filter(a => a.status === 'active' && a.visibility === 'visible')
+         .map(a => a.url);
+       setLandingBackgrounds(activeAssets);
+    });
+    
     getLandingConfig().then(data => {
       if (data) setConfig(prev => ({ ...prev, ...data }));
     });
@@ -114,7 +135,8 @@ export const Landing = () => {
 
   return (
     <PublicLayout>
-      <section className="bg-gradient-to-br from-[#c1121f] to-[#e63946] text-white text-center py-24 lg:py-30 px-[5%] flex flex-col items-center relative">
+      <section className={clsx("text-white text-center py-24 lg:py-30 px-[5%] flex flex-col items-center relative", activeBg ? "bg-cover bg-center transition-all duration-1000" : "bg-gradient-to-br from-[#c1121f] to-[#e63946]")} style={activeBg ? { backgroundImage: `url(${activeBg})` } : {}}>
+        {activeBg && <div className="absolute inset-0 bg-black/50 transition-all duration-1000"></div>}
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none overflow-hidden">
           <Droplet className="absolute top-10 left-[10%] rotate-12" size={120} />
           <Droplet className="absolute bottom-20 right-[15%] -rotate-12" size={160} />

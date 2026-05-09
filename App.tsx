@@ -24,6 +24,8 @@ import { MyNotice } from './pages/Users/MyNotice';
 import { RequestedDonor } from './pages/Users/RequestedDonor';
 import { UserNotifications } from './pages/Users/Notifications';
 import { AdminIDCards } from './pages/Admin/AdminIDCards';
+import { AddManagement } from './pages/Admin/AddManagement';
+import { AdvertisementsPage } from './pages/Users/AdvertisementsPage';
 import { VerifyMember } from './pages/Webpage/VerifyMember';
 import { AdminVerificationHistory } from './pages/Admin/AdminVerificationHistory';
 import { AdminAvatarManage } from './pages/Admin/AdminAvatarManage';
@@ -153,6 +155,8 @@ const App = () => {
           <Route path="/server-status" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="serverStatus"><AdminServerStatus /></ProtectedRoute>} />
           <Route path="/avatar-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="avatarManage"><AdminAvatarManage /></ProtectedRoute>} />
           <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="teamIdCards"><AdminIDCards /></ProtectedRoute>} />
+          <Route path="/add-management" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPERADMIN]}><AddManagement /></ProtectedRoute>} />
+          <Route path="/advertisements" element={<ProtectedRoute><AdvertisementsPage /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

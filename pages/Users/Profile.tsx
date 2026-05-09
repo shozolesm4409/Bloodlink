@@ -939,7 +939,7 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("profile")}
               className={clsx(
-                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2 lg:p-2.5 rounded-2xl transition-all",
                 editTab === "profile"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
@@ -962,7 +962,7 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("image")}
               className={clsx(
-                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2 lg:p-2.5 rounded-2xl transition-all",
                 editTab === "image"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
@@ -985,7 +985,7 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("social")}
               className={clsx(
-                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2 lg:p-2.5 rounded-2xl transition-all",
                 editTab === "social"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",
@@ -1008,7 +1008,7 @@ export const Profile = () => {
             <button
               onClick={() => setEditTab("password")}
               className={clsx(
-                "w-full flex items-center justify-between p-2.5 lg:p-4 rounded-2xl transition-all",
+                "w-full flex items-center justify-between p-2 lg:p-2.5 rounded-2xl transition-all",
                 editTab === "password"
                   ? "bg-red-600 text-white shadow-lg"
                   : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800",

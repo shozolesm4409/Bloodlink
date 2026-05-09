@@ -4,6 +4,7 @@ import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getAnalytics } from "firebase/analytics";
+import { getStorage } from "firebase/storage";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -23,6 +24,7 @@ export const auth = getAuth(app);
 // Initialize Firestore with default settings (Memory Cache)
 // Using persistentLocalCache caused "update time in future" errors due to clock skew
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 // Analytics is optional and depends on browser context
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;

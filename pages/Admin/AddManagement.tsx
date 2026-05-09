@@ -13,10 +13,49 @@ export const AddManagement = () => {
   const [loading, setLoading] = useState(true);
   const [adName, setAdName] = useState('');
   const [videoLink, setVideoLink] = useState('');
-  const [targetPage, setTargetPage] = useState('dashboard');
+  const [targetPages, setTargetPages] = useState<string[]>(['dashboard']);
   const [saving, setSaving] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
   const [adToDelete, setAdToDelete] = useState<any | null>(null);
+
+  const PAGE_OPTIONS = [
+    { value: 'add-management', label: 'Add Management' },
+    { value: 'advertisements', label: 'Advertisements' },
+    { value: 'dashboard', label: 'Dashboard' },
+    { value: 'directory', label: 'Donor Directory' },
+    { value: 'notices', label: 'Board Notices' },
+    { value: 'profile', label: 'Account Profile' },
+    { value: 'my-donations', label: 'My Donations' },
+    { value: 'requested-donor', label: 'Requested Donor' },
+    { value: 'support', label: 'Support Center' },
+    { value: 'feedback', label: 'Post Feedback' },
+    { value: 'donation-found', label: 'Donation Found' },
+    { value: 'found-expenses', label: 'Found Expenses' },
+    { value: 'found-summary', label: 'Found Summary' },
+    { value: 'users', label: 'Manage Users' },
+    { value: 'manage-donations', label: 'Donation Records' },
+    { value: 'approve-feedback', label: 'Moderate Feedback' },
+    { value: 'help-center-manage', label: 'Help Center Manage' },
+    { value: 'moderate-faqs', label: 'Moderate FAQs' },
+    { value: 'notifications', label: 'Access Requests' },
+    { value: 'badge-manage', label: 'Badge Manage' },
+    { value: 'admin/verify', label: 'Verify Identity' },
+    { value: 'verification-history', label: 'Verification History' },
+    { value: 'team-id-cards', label: 'Team ID Cards' },
+    { value: 'landing-settings', label: 'Global Customizer' },
+    { value: 'server-status', label: 'Server Status' },
+    { value: 'role-permissions', label: 'Role Permissions' },
+    { value: 'avatar-manage', label: 'Avatar & Cover' },
+    { value: 'deleted-users', label: 'System Archives' },
+    { value: 'logs', label: 'Activity Logs' },
+    { value: 'summary', label: 'System Summary' },
+  ];
+
+  const handleTogglePage = (page: string) => {
+    setTargetPages(prev => 
+      prev.includes(page) ? prev.filter(p => p !== page) : [...prev, page]
+    );
+  };
 
   useEffect(() => {
     const q = query(collection(db, COLLECTIONS.ADVERTISEMENTS), orderBy('createdAt', 'desc'));
@@ -31,17 +70,18 @@ export const AddManagement = () => {
 
   const handleAddOrUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!adName || !videoLink || !targetPage) {
+    if (!adName || !videoLink || targetPages.length === 0) {
         showToast("Please fill all fields", "error");
         return;
     }
     setSaving(true);
+    
     try {
       if (editingAd) {
         await updateDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, editingAd.id), {
           adName,
           videoLink,
-          targetPage,
+          targetPages,
           createdAt: editingAd.createdAt
         });
         showToast("Ad updated successfully.");
@@ -49,17 +89,19 @@ export const AddManagement = () => {
         await addDoc(collection(db, COLLECTIONS.ADVERTISEMENTS), {
           adName,
           videoLink,
-          targetPage,
+          targetPages,
           createdAt: new Date().toISOString()
         });
         showToast("Ad added successfully.");
       }
       setAdName('');
       setVideoLink('');
+      setTargetPages(['dashboard']);
       setEditingAd(null);
       setIsPopupOpen(false);
-    } catch (e) {
-      showToast("Operation failed.", "error");
+    } catch (e: any) {
+      console.error(e);
+      showToast("Operation failed: " + e.message, "error");
     } finally {
       setSaving(false);
     }
@@ -69,7 +111,7 @@ export const AddManagement = () => {
       setEditingAd(ad);
       setAdName(ad.adName);
       setVideoLink(ad.videoLink);
-      setTargetPage(ad.targetPage);
+      setTargetPages(ad.targetPages || [ad.targetPage] || []);
       setIsPopupOpen(true);
   };
 
@@ -77,7 +119,7 @@ export const AddManagement = () => {
     if (!adToDelete) return;
     try {
       // Archive first
-      await addDoc(collection(db, 'ad_archives'), { ...adToDelete, deletedAt: new Date().toISOString() });
+      await addDoc(collection(db, COLLECTIONS.DELETED_ADVERTISEMENTS), { ...adToDelete, deletedAt: new Date().toISOString() });
       await deleteDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, adToDelete.id));
       showToast("Ad archived.");
       setAdToDelete(null);
@@ -109,36 +151,19 @@ export const AddManagement = () => {
                   <Input label="Video URL" value={videoLink} onChange={(e: any) => setVideoLink(e.target.value)} />
                   <div className="space-y-2">
                       <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Target Page</label>
-                      <select value={targetPage} onChange={(e) => setTargetPage(e.target.value)} className="w-full h-10 bg-slate-50 border rounded-lg px-3 text-sm font-bold">
-                          <option value="dashboard">Dashboard</option>
-                          <option value="directory">Donor Directory</option>
-                          <option value="notices">Board Notices</option>
-                          <option value="profile">Account Profile</option>
-                          <option value="my-donations">My Donations</option>
-                          <option value="requested-donor">Requested Donor</option>
-                          <option value="support">Support Center</option>
-                          <option value="feedback">Post Feedback</option>
-                          <option value="donation-found">Donation Found</option>
-                          <option value="found-expenses">Found Expenses</option>
-                          <option value="found-summary">Found Summary</option>
-                          <option value="users">Manage Users</option>
-                          <option value="manage-donations">Donation Records</option>
-                          <option value="approve-feedback">Moderate Feedback</option>
-                          <option value="help-center-manage">Help Center Manage</option>
-                          <option value="moderate-faqs">Moderate FAQs</option>
-                          <option value="notifications">Access Requests</option>
-                          <option value="badge-manage">Badge Manage</option>
-                          <option value="admin/verify">Verify Identity</option>
-                          <option value="verification-history">Verification History</option>
-                          <option value="team-id-cards">Team ID Cards</option>
-                          <option value="landing-settings">Global Customizer</option>
-                          <option value="server-status">Server Status</option>
-                          <option value="role-permissions">Role Permissions</option>
-                          <option value="avatar-manage">Avatar & Cover</option>
-                          <option value="deleted-users">System Archives</option>
-                          <option value="logs">Activity Logs</option>
-                          <option value="summary">System Summary</option>
-                      </select>
+                      <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-slate-50 border rounded-lg">
+                          {PAGE_OPTIONS.map((option) => (
+                              <label key={option.value} className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                                  <input 
+                                    type="checkbox" 
+                                    checked={targetPages.includes(option.value)}
+                                    onChange={() => handleTogglePage(option.value)}
+                                    className="rounded border-slate-300 text-red-600 focus:ring-red-500"
+                                  />
+                                  {option.label}
+                              </label>
+                          ))}
+                      </div>
                   </div>
                   <Button type="submit" isLoading={saving} className="w-full bg-red-600 hover:bg-red-700 text-white rounded-xl h-12 font-black">
                      {editingAd ? 'Update' : 'Save'} AD
@@ -172,7 +197,7 @@ export const AddManagement = () => {
                         </button>
                     </div>
                 </div>
-                <p className="text-xs font-bold text-slate-500 mb-2">Page: {ad.targetPage}</p>
+                <p className="text-xs font-bold text-slate-500 mb-2">Pages: {(ad.targetPages || []).map((p: string) => PAGE_OPTIONS.find(o => o.value === p)?.label || p).join(', ')}</p>
             </Card>
         ))}
       </div>

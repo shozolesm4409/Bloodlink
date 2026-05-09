@@ -66,6 +66,8 @@ import { useTheme } from "../ThemeContext";
 import clsx from "clsx";
 import { User } from "../types";
 import { useToast, Toast } from "./UI";
+import { AdPopup } from "./AdPopup";
+import { PlayAdIcon } from "./PlayAdIcon";
 
 import { RoleBadge } from "./UI";
 import { getVerificationBadge } from "../pages/Users/Profile";
@@ -460,7 +462,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     boardNotices: true,
     requestedDonor: true,
     donationFound: true,
-    foundExpenses: true,
+    foundExpenses: isAdmin || isEditor || isSuperAdmin,
   };
 
   if (perms) {
@@ -494,6 +496,8 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
         foundManage: true,
         foundExpenses: true,
         avatarManage: true,
+        addManagement: true,
+        advertisements: true,
         ...(perms.superadmin?.sidebar || {}),
       };
       if (
@@ -585,6 +589,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] dark:bg-slate-950 flex transition-colors duration-300">
+      <AdPopup targetPage={location.pathname.startsWith('/admin/') ? location.pathname.substring(1) : location.pathname.substring(1) || 'dashboard'} />
       <Toast {...toastState} onClose={hideToast} />
       {isMobileMenuOpen && (
         <div
@@ -707,6 +712,15 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                     locked={l.myNotice}
                     menuKey="myNotice"
                     badges={[{ count: counts.userNotifications, color: "red" }]}
+                  />
+                )}
+                {s.advertisements && (
+                  <NavItem
+                    to="/advertisements"
+                    icon={Megaphone}
+                    label="Advertisements"
+                    locked={l.advertisements}
+                    menuKey="advertisements"
                   />
                 )}
               </SidebarSection>
@@ -868,6 +882,15 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                     menuKey="moderateFaqs"
                   />
                 )}
+                {s.addManagement && (
+                    <NavItem
+                        to="/add-management"
+                        icon={Megaphone}
+                        label="Add Management"
+                        locked={l.addManagement}
+                        menuKey="addManagement"
+                    />
+                )}
               </SidebarSection>
             )}
 
@@ -924,6 +947,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                     menuKey="adminVerify"
                   />
                 )}
+
                 {s.verificationHistory && (
                   <NavItem
                     to="/verification-history"
@@ -1108,6 +1132,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <PlayAdIcon targetPage={location.pathname.startsWith('/admin/') ? location.pathname.substring(1) : location.pathname.substring(1) || 'dashboard'} />
             <Link
               to="/user-notifications"
               className="p-2 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all relative"
