@@ -94,6 +94,20 @@ export interface Notice {
   mentions?: string[];
 }
 
+export interface News {
+  id: string;
+  subject: string;
+  details: string; 
+  imageUrl?: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar?: string;
+  authorApprovedBadge?: string;
+  authorRole?: string;
+  timestamp: string;
+  pinned?: boolean;
+}
+
 export interface HelpRequest {
   id: string;
   name: string;
@@ -359,6 +373,10 @@ export interface RolePermissions {
     foundExpenses?: boolean;
     foundSummary?: boolean;
     avatarManage?: boolean;
+    newsManagement?: boolean;
+    newsMedia?: boolean;
+    advertisements?: boolean;
+    addManagement?: boolean;
   };
   lockedMenus?: {
     dashboard?: boolean;
@@ -391,6 +409,10 @@ export interface RolePermissions {
     foundExpenses?: boolean;
     foundSummary?: boolean;
     avatarManage?: boolean;
+    newsManagement?: boolean;
+    newsMedia?: boolean;
+    advertisements?: boolean;
+    addManagement?: boolean;
   };
   rules: {
     canEditProfile: boolean;

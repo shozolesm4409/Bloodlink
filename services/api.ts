@@ -36,6 +36,7 @@ import {
   DonationRecord, 
   DonationFeedback, 
   Notice, 
+  News,
   HelpRequest, 
   LandingPageConfig, 
   AuditLog, 
@@ -67,6 +68,7 @@ export const COLLECTIONS = {
   DONATIONS: 'donations',
   FEEDBACKS: 'feedbacks',
   NOTICES: 'notices',
+  NEWS: 'news',
   HELP_REQUESTS: 'help_requests',
   LOGS: 'logs',
   MESSAGES: 'messages',      // Changed from 'chats' to match rules
@@ -84,12 +86,15 @@ export const COLLECTIONS = {
   DELETED_LOGS: 'deleted_logs',
   DELETED_FEEDBACKS: 'deleted_feedbacks',
   DELETED_NOTICES: 'deleted_notices',
+  DELETED_NEWS: 'deleted_news',
   DELETED_HELP_REQUESTS: 'deleted_help_requests',
   DELETED_VERIFICATION_LOGS: 'deleted_verification_logs',
+  DELETED_BLOOD_REQUESTS: 'deleted_blood_requests',
   REVOKED_PERMISSIONS: 'revoked_permissions',
   USER_NOTIFICATIONS: 'user_notifications',
   ADVERTISEMENTS: 'advertisements',
-  DELETED_ADVERTISEMENTS: 'deleted_advertisements'
+  DELETED_ADVERTISEMENTS: 'deleted_advertisements',
+  DELETED_SYSTEM_ASSETS: 'deleted_system_assets'
 };
 
 // --- Helpers ---
@@ -629,6 +634,93 @@ export const getWebNotices = async (): Promise<Notice[]> => {
     console.error("Failed to map users to notices:", e);
     return notices;
   }
+};
+
+// --- News ---
+
+export const getNews = async (): Promise<News[]> => {
+  const q = query(collection(db, COLLECTIONS.NEWS), orderBy('timestamp', 'desc'));
+  const snap = await getDocs(q);
+  const newsItems = snap.docs.map(doc => ({ ...doc.data(), id: doc.id } as News));
+  
+  try {
+    const usersSnap = await getDocs(collection(db, COLLECTIONS.USERS));
+    const userMap = new Map();
+    usersSnap.docs.forEach(d => userMap.set(d.id, d.data()));
+    
+    return newsItems.map(n => {
+      const u = userMap.get(n.authorId);
+      if (u) {
+        return {
+          ...n,
+          authorApprovedBadge: u.approvedBadge || n.authorApprovedBadge,
+          authorRole: u.role || n.authorRole
+        };
+      }
+      return n;
+    });
+  } catch (e) {
+    console.error("Failed to map users to news:", e);
+    return newsItems;
+  }
+};
+
+export const addNews = async (news: any, user: User) => {
+  await addDoc(collection(db, COLLECTIONS.NEWS), news);
+  await createLog('NEWS_ADD', user.id, user.name, `Posted news: ${news.subject}`);
+};
+
+export const updateNews = async (id: string, updates: any, user: User) => {
+  await updateDoc(doc(db, COLLECTIONS.NEWS, id), updates);
+  await createLog('NEWS_UPDATE', user.id, user.name, `Updated news: ${updates.subject || id}`);
+};
+
+export const deleteNews = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.NEWS, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await addDoc(collection(db, COLLECTIONS.DELETED_NEWS), {
+      ...snap.data(),
+      deletedAt: new Date().toISOString(),
+      deletedBy: user.name
+    });
+    await deleteDoc(ref);
+    await createLog('NEWS_DELETE', user.id, user.name, `Deleted news: ${snap.data().subject}`);
+  }
+};
+
+export const getDeletedNews = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_NEWS), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+};
+
+export const restoreDeletedNews = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.DELETED_NEWS, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const { deletedAt, deletedBy, ...data } = snap.data();
+    await setDoc(doc(db, COLLECTIONS.NEWS, data.id || id), data);
+    await deleteDoc(ref);
+    await createLog('NEWS_RESTORE', user.id, user.name, `Restored news: ${data.subject}`);
+  }
+};
+
+export const permanentlyDeleteArchivedNews = async (id: string, user: User) => {
+  await deleteDoc(doc(db, COLLECTIONS.DELETED_NEWS, id));
+  await createLog('NEWS_PURGE', user.id, user.name, 'Permanently deleted archived news');
+};
+
+export const purgeAllArchivedNews = async (admin: User) => {
+  const q = query(collection(db, COLLECTIONS.DELETED_NEWS));
+  const snap = await getDocs(q);
+  const docs = snap.docs;
+  for (let i = 0; i < docs.length; i += 500) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + 500).forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
+  await createLog('ARCHIVE_PURGE_ALL', admin.id, admin.name, 'Purged all archived news');
 };
 
 export const getNoticeById = async (id: string): Promise<Notice | null> => {
@@ -1394,6 +1486,13 @@ export const deleteBloodRequest = async (requestId: string, user: User) => {
      throw new Error("Permission denied");
   }
 
+  await addDoc(collection(db, COLLECTIONS.DELETED_BLOOD_REQUESTS), {
+    ...reqData,
+    deletedAt: new Date().toISOString(),
+    deletedBy: user.name,
+    deletedById: user.id
+  });
+
   await deleteDoc(reqRef);
   await createLog('DELETE_BLOOD_REQUEST', user.id, user.name, `Deleted blood request ${requestId}`);
 };
@@ -1416,3 +1515,117 @@ export const closeBloodRequest = async (requestId: string, user: User, confirmed
   console.log("Request closed successfully in Firestore");
   await createLog('CLOSE_BLOOD_REQUEST', user.id, user.name, `Closed blood request ${requestId}${confirmedUserId ? ` (Confirmed donor: ${confirmedUserId})` : ''}`);
 };
+
+export const getDeletedBloodRequests = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_BLOOD_REQUESTS), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data(), id: d.id }));
+};
+
+export const permanentlyDeleteArchivedBloodRequest = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.DELETED_BLOOD_REQUESTS, id);
+  await deleteDoc(ref);
+  await createLog('PURGE_BLOOD_REQUEST_PERMANENT', user.id, user.name, `Permanently purged blood request ${id}`);
+};
+
+export const restoreDeletedBloodRequest = async (id: string, user: User) => {
+  const archiveRef = doc(db, COLLECTIONS.DELETED_BLOOD_REQUESTS, id);
+  const snap = await getDoc(archiveRef);
+  if (snap.exists()) {
+    const data = snap.data();
+    const { deletedAt, deletedBy, deletedById, ...originalData } = data;
+    await setDoc(doc(db, COLLECTIONS.BLOOD_REQUESTS, id), originalData);
+    await deleteDoc(archiveRef);
+    await createLog('RESTORE_BLOOD_REQUEST', user.id, user.name, `Restored blood request ${id}`);
+  }
+};
+
+
+export const getDeletedAds = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_ADVERTISEMENTS), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data(), id: d.id }));
+};
+
+export const permanentlyDeleteArchivedAd = async (id: string, user: User) => {
+  const ref = doc(db, COLLECTIONS.DELETED_ADVERTISEMENTS, id);
+  await deleteDoc(ref);
+  await createLog('PURGE_AD_PERMANENT', user.id, user.name, `Permanently purged advertisement ${id}`);
+};
+
+export const restoreDeletedAd = async (id: string, user: User) => {
+  const archiveRef = doc(db, COLLECTIONS.DELETED_ADVERTISEMENTS, id);
+  const snap = await getDoc(archiveRef);
+  if (snap.exists()) {
+    const data = snap.data();
+    const { deletedAt, deletedBy, deletedById, ...originalData } = data;
+    await setDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, id), originalData);
+    await deleteDoc(archiveRef);
+    await createLog('RESTORE_AD', user.id, user.name, `Restored advertisement ${id}`);
+  }
+};
+
+export const archiveSystemAsset = async (id: string, collectionName: string, user: User) => {
+  const ref = doc(db, collectionName, id);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    await addDoc(collection(db, COLLECTIONS.DELETED_SYSTEM_ASSETS), {
+      ...snap.data(),
+      originalCollection: collectionName,
+      deletedAt: new Date().toISOString(),
+      deletedBy: user.name
+    });
+    await deleteDoc(ref);
+    await createLog('SYSTEM_ASSET_ARCHIVE', user.id, user.name, `Archived asset ${id} from ${collectionName}`);
+  }
+};
+
+export const getDeletedSystemAssets = async () => {
+  const q = query(collection(db, COLLECTIONS.DELETED_SYSTEM_ASSETS), orderBy('deletedAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ ...d.data(), id: d.id }));
+};
+
+export const restoreDeletedSystemAsset = async (id: string, user: User) => {
+  const archiveRef = doc(db, COLLECTIONS.DELETED_SYSTEM_ASSETS, id);
+  const snap = await getDoc(archiveRef);
+  if (snap.exists()) {
+    const { deletedAt, deletedBy, originalCollection, ...originalData } = snap.data();
+    await setDoc(doc(db, originalCollection, id), originalData);
+    await deleteDoc(archiveRef);
+    await createLog('SYSTEM_ASSET_RESTORE', user.id, user.name, `Restored asset ${id} to ${originalCollection}`);
+  }
+};
+
+export const permanentlyDeleteArchivedSystemAsset = async (id: string, user: User) => {
+    await deleteDoc(doc(db, COLLECTIONS.DELETED_SYSTEM_ASSETS, id));
+    await createLog('SYSTEM_ASSET_PURGE', user.id, user.name, `Permanently purged system asset ${id}`);
+};
+
+export const purgeAllArchivedSystemAssets = async (user: User) => {
+    const q = query(collection(db, COLLECTIONS.DELETED_SYSTEM_ASSETS));
+    const snap = await getDocs(q);
+    const batch = writeBatch(db);
+    snap.docs.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    await createLog('PURGE_ALL_SYSTEM_ASSETS_ARCHIVE', user.id, user.name, "Purged ALL archived system assets");
+};
+
+export const purgeAllArchivedAds = async (user: User) => {
+  const q = query(collection(db, COLLECTIONS.DELETED_ADVERTISEMENTS));
+  const snap = await getDocs(q);
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  await createLog('PURGE_ALL_ADS_ARCHIVE', user.id, user.name, "Purged ALL archived advertisements");
+};
+
+export const purgeAllArchivedBloodRequests = async (user: User) => {
+  const q = query(collection(db, COLLECTIONS.DELETED_BLOOD_REQUESTS));
+  const snap = await getDocs(q);
+  const batch = writeBatch(db);
+  snap.docs.forEach(d => batch.delete(d.ref));
+  await batch.commit();
+  await createLog('PURGE_ALL_BLOOD_REQUESTS_ARCHIVE', user.id, user.name, "Purged ALL archived blood requests");
+};
+

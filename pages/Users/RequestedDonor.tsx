@@ -7,6 +7,7 @@ import {
   Badge,
   Toast,
   useToast,
+  ConfirmModal,
 } from "../../components/UI";
 import { useAuth } from "../../AuthContext";
 import {
@@ -228,11 +229,14 @@ export const RequestedDonor = () => {
     return { name: u.name, avatar: u.avatar, badge, role: u.role, roleBadgeData };
   };
 
-  const handleDeleteRequest = async (id: string) => {
-    if (!window.confirm("Are you sure you want to delete this request?"))
-      return;
+  const handleDeleteRequest = (id: string) => {
+    setDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteId) return;
     try {
-      await deleteBloodRequest(id, user!);
+      await deleteBloodRequest(deleteId, user!);
       showToast("Request deleted successfully", "success");
       setDeleteId(null);
     } catch (err: any) {
@@ -1542,6 +1546,13 @@ export const RequestedDonor = () => {
           )}
         </div>
       </div>
+      <ConfirmModal
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Request"
+        message="Are you sure you want to delete this blood request? This action cannot be undone."
+      />
     </div>
   );
 };

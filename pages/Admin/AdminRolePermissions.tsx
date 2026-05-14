@@ -12,7 +12,7 @@ const SIDEBAR_KEYS: (keyof RolePermissions['sidebar'])[] = [
   'dashboard', 'profile', 'history', 'donors', 'users', 'manageDonations', 
   'logs', 'rolePermissions', 'supportCenter', 'feedback', 'approveFeedback', 
   'landingSettings', 'myNotice', 'boardNotices', 'summary', 'notifications', 'badgeManage', 'adminVerify', 
-  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus', 'requestedDonor', 'donationFound', 'foundManage', 'foundExpenses', 'foundSummary', 'avatarManage', 'addManagement', 'advertisements'
+  'verificationHistory', 'teamIdCards', 'deletedUsers', 'helpCenterManage', 'moderateFaqs', 'serverStatus', 'requestedDonor', 'donationFound', 'foundManage', 'foundExpenses', 'foundSummary', 'avatarManage', 'addManagement', 'advertisements', 'newsManagement', 'newsMedia'
 ];
 
 const RULE_KEYS: (keyof RolePermissions['rules'])[] = [
@@ -234,12 +234,12 @@ export const AdminRolePermissions = () => {
             <Button onClick={handleSaveGlobal} isLoading={saving} className="rounded-sm px-2 py-0.5 text-[12px] font-bold uppercase tracking-wider hidden lg:block">Save</Button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 lg:gap-4">
              <Card className="p-3 border-slate-200 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900/50 rounded-2xl transition-all hover:shadow-md">
                 <h3 className="text-sm font-black text-slate-900 dark:text-white mb-5 flex items-center gap-2">
                    <Layout className="text-blue-500" size={16} /> Sidebar Visibility
                 </h3>
-                <div className="space-y-1.5 max-h-[300px] lg:max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="space-y-1.5 max-h-[400px] lg:max-h-[500px] xl:max-h-[600px] overflow-y-auto pr-1 custom-scrollbar">
                    {SIDEBAR_KEYS.map((key) => {
                      const value = currentRole?.sidebar?.[key] ?? false;
                      return (
@@ -260,7 +260,7 @@ export const AdminRolePermissions = () => {
                       <Lock className="text-red-500" size={16} /> Functional Rules
                     </h3>
                  </div>
-                <div className="space-y-1.5 flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[300px] lg:max-h-[400px]">
+                <div className="space-y-1.5 flex-1 overflow-y-auto pr-1 custom-scrollbar max-h-[400px] lg:max-h-[500px] xl:max-h-[600px]">
                    {RULE_KEYS.map((key) => {
                      const value = currentRole?.rules?.[key] ?? false;
                      return (
@@ -379,7 +379,7 @@ export const AdminRolePermissions = () => {
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm transition-colors">
                          <h4 className="font-black text-lg mb-3 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Layout size={18} className="text-blue-500"/> Custom Sidebar</h4>
-                         <div className="space-y-2 max-h-[350px] lg:max-h-[450px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
+                         <div className="space-y-2 max-h-[400px] lg:max-h-[500px] xl:max-h-[600px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
                             {SIDEBAR_KEYS.map((key) => {
                                const userVal = selectedUser.permissions?.sidebar?.[key];
                                const baseRolePerms = getBasePermsForRole(selectedUser.role);
@@ -409,7 +409,7 @@ export const AdminRolePermissions = () => {
 
                       <Card className="p-3 border border-slate-200 dark:border-slate-800 shadow-xl bg-white dark:bg-slate-900 rounded-sm transition-colors">
                          <h4 className="font-black text-lg mb-3 flex items-center gap-3 text-slate-900 dark:text-white transition-colors"><Lock size={18} className="text-red-500"/> Custom Rules</h4>
-                         <div className="space-y-2 max-h-[350px] lg:max-h-[450px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
+                         <div className="space-y-2 max-h-[400px] lg:max-h-[500px] xl:max-h-[600px] overflow-y-auto pr-2 custom-scrollbar transition-colors">
                             {RULE_KEYS.map((key) => {
                                const userVal = selectedUser.permissions?.rules?.[key];
                                const baseRolePerms = getBasePermsForRole(selectedUser.role);

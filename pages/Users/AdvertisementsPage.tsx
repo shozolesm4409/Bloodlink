@@ -30,15 +30,15 @@ export const AdvertisementsPage = () => {
        <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-6">Advertisements</h1>
        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {activeAds.map(ad => (
-            <Card key={ad.id} className="p-4 rounded-3xl border border-slate-200 shadow-lg bg-white overflow-hidden relative">
+            <Card key={ad.id} className="p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg bg-white dark:bg-slate-900 overflow-hidden relative">
                 <button 
                   onClick={() => setDismissAd(ad.id)}
                   className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition-colors"
                 >
                   <X size={20} />
                 </button>
-                <h3 className="font-black text-slate-900 mb-2 pr-8">{ad.adName}</h3>
-                <p className="text-xs font-bold text-slate-500 mb-4 bg-slate-100 px-2 py-1 rounded inline-block">Target: {ad.targetPage}</p>
+                <h3 className="font-black text-slate-900 dark:text-white mb-2 pr-8">{ad.adName}</h3>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-4 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded inline-block">Target: {ad.targetPage}</p>
                 {ad.videoLink.includes('youtube.com') || ad.videoLink.includes('youtu.be') ? (
                     <iframe 
                       className="w-full aspect-video rounded-xl"

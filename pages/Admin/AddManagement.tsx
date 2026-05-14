@@ -119,7 +119,12 @@ export const AddManagement = () => {
     if (!adToDelete) return;
     try {
       // Archive first
-      await addDoc(collection(db, COLLECTIONS.DELETED_ADVERTISEMENTS), { ...adToDelete, deletedAt: new Date().toISOString() });
+      await addDoc(collection(db, COLLECTIONS.DELETED_ADVERTISEMENTS), { 
+        ...adToDelete, 
+        deletedAt: new Date().toISOString(),
+        deletedBy: user?.name || 'Unknown Admin',
+        deletedById: user?.id || ''
+      });
       await deleteDoc(doc(db, COLLECTIONS.ADVERTISEMENTS, adToDelete.id));
       showToast("Ad archived.");
       setAdToDelete(null);
@@ -185,19 +190,19 @@ export const AddManagement = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {ads.map(ad => (
-            <Card key={ad.id} className="p-4 rounded-3xl border border-slate-200 shadow-lg bg-white">
+            <Card key={ad.id} className="p-4 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-lg bg-white dark:bg-slate-900">
                 <div className="flex justify-between items-start mb-4">
-                    <h3 className="font-black text-slate-900">{ad.adName}</h3>
+                    <h3 className="font-black text-slate-900 dark:text-white">{ad.adName}</h3>
                     <div className="flex gap-2">
-                        <button onClick={() => startEdit(ad)} className="p-2 rounded-lg bg-blue-50 text-blue-600 hover:scale-110 transition-transform">
+                        <button onClick={() => startEdit(ad)} className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:scale-110 transition-transform">
                             <Edit size={16} />
                         </button>
-                        <button onClick={() => setAdToDelete(ad)} className="p-2 rounded-lg bg-red-50 text-red-600 hover:scale-110 transition-transform">
+                        <button onClick={() => setAdToDelete(ad)} className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:scale-110 transition-transform">
                             <Trash2 size={16} />
                         </button>
                     </div>
                 </div>
-                <p className="text-xs font-bold text-slate-500 mb-2">Pages: {(ad.targetPages || []).map((p: string) => PAGE_OPTIONS.find(o => o.value === p)?.label || p).join(', ')}</p>
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">Pages: {(ad.targetPages || []).map((p: string) => PAGE_OPTIONS.find(o => o.value === p)?.label || p).join(', ')}</p>
             </Card>
         ))}
       </div>

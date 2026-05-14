@@ -61,6 +61,7 @@ import {
   Receipt,
   X,
   TrendingUp,
+  Newspaper,
 } from "lucide-react";
 import { useTheme } from "../ThemeContext";
 import clsx from "clsx";
@@ -340,6 +341,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     badges,
     locked,
     menuKey,
+    exact = false,
   }: {
     to: string;
     icon: any;
@@ -347,8 +349,9 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
     badges?: BadgeConfig[];
     locked?: boolean;
     menuKey?: string;
+    exact?: boolean;
   }) => {
-    const isActive = location.pathname.startsWith(to);
+    const isActive = exact ? location.pathname === to : location.pathname.startsWith(to);
     return (
       <Link
         to={locked ? location.pathname : to}
@@ -627,6 +630,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                   { id: "System Customizer", icon: Settings, label: "System Customizer" },
                   { id: "People Control", icon: ShieldCheck, label: "People Control" },
                   { id: "System Intel", icon: Database, label: "System Intel" },
+                  { id: "News & Media", icon: Newspaper, label: "News & Media" },
                 ].map((hub) => (
                   <button
                     key={hub.id}
@@ -690,7 +694,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
                   <NavItem
                     to="/profile"
                     icon={UserCircle}
-                    label="Account Profile"
+                    label="My Profile"
                     locked={l.profile}
                     menuKey="profile"
                   />
@@ -969,6 +973,31 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
               </SidebarSection>
             )}
 
+            {(activeHub === "News & Media" || activeHub === "All") && (
+              <SidebarSection title="News & Media">
+                {s.newsMedia && (
+                  <NavItem
+                    to="/news-media"
+                    icon={Newspaper}
+                    label="News & Media"
+                    locked={l.newsMedia}
+                    menuKey="newsMedia"
+                    exact={true}
+                  />
+                )}
+                {s.newsManagement && (
+                  <NavItem
+                    to="/news-media-manage"
+                    icon={FileText}
+                    label="News Management"
+                    locked={l.newsManagement}
+                    menuKey="newsManagement"
+                    exact={true}
+                  />
+                )}
+              </SidebarSection>
+            )}
+
             {(activeHub === "System Intel" || activeHub === "All") && (
               <SidebarSection title="System Intel">
                 {s.landingSettings && (
@@ -1183,7 +1212,7 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-1 lg:p-3 custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300">
+        <div className="flex-1 overflow-auto p-1 lg:p-3 lg:pb-0 pb-0 custom-scrollbar bg-[#f8fafc] dark:bg-slate-950 transition-colors duration-300">
           {impersonatingAdmin && user?.role !== UserRole.SUPERADMIN && (
             <div className="mb-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 p-4 rounded-xl flex items-center justify-between shadow-sm">
               <div>
@@ -1234,12 +1263,12 @@ export const Layout = ({ children }: { children?: React.ReactNode }) => {
             </div>
           ) : (
             <div className="max-w-7xl mx-auto flex flex-col min-h-full">
-              <div className="flex-1">{children}</div>
+              <div className="flex-1 p-0">{children}</div>
               {landingConfig?.dashboardFooterContent && (
                 <footer className="mt-2 py-3 border-t border-slate-100 dark:border-slate-900 text-center overflow-hidden">
                   <div 
                     className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-600 tracking-[0.2em] max-w-4xl mx-auto leading-loose mb-0.5"
-                    dangerouslySetInnerHTML={{ __html: landingConfig.dashboardFooterContent.replace(/\n/g, '<br />') }}
+                    dangerouslySetInnerHTML={{ __html: landingConfig.dashboardFooterContent.trim().replace(/\n/g, '<br />') }}
                   />
                   <div className="flex items-center justify-center gap-3">
                     <span className="w-6 h-[1px] bg-slate-100 dark:bg-slate-800/50"></span>

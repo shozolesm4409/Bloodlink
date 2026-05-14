@@ -28,6 +28,8 @@ import { AddManagement } from './pages/Admin/AddManagement';
 import { AdvertisementsPage } from './pages/Users/AdvertisementsPage';
 import { VerifyMember } from './pages/Webpage/VerifyMember';
 import { AdminVerificationHistory } from './pages/Admin/AdminVerificationHistory';
+import { AdminNewsMedia } from './pages/Admin/AdminNewsMedia';
+import { NewsMediaPage } from './pages/Admin/NewsMediaPage';
 import { AdminAvatarManage } from './pages/Admin/AdminAvatarManage';
 import { PrivacyPolicy } from './pages/Webpage/PrivacyPolicy';
 import { HelpCenter } from './pages/Webpage/HelpCenter';
@@ -154,6 +156,8 @@ const App = () => {
           <Route path="/logs" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="logs"><AdminSystemLogs /></ProtectedRoute>} />
           <Route path="/server-status" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="serverStatus"><AdminServerStatus /></ProtectedRoute>} />
           <Route path="/avatar-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="avatarManage"><AdminAvatarManage /></ProtectedRoute>} />
+<Route path="/news-media" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="avatarManage"><NewsMediaPage /></ProtectedRoute>} />
+<Route path="/news-media-manage" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.EDITOR]} requiredPermission="avatarManage"><AdminNewsMedia /></ProtectedRoute>} />
           <Route path="/team-id-cards" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN]} requiredPermission="teamIdCards"><AdminIDCards /></ProtectedRoute>} />
           <Route path="/add-management" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPERADMIN]}><AddManagement /></ProtectedRoute>} />
           <Route path="/advertisements" element={<ProtectedRoute><AdvertisementsPage /></ProtectedRoute>} />

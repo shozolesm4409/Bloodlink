@@ -325,7 +325,7 @@ export const VerifyMember = () => {
                 </p>
                 <div className="flex justify-center lg:justify-start mb-4">
                   <div className="inline-flex items-center gap-1.5 bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-400 px-3 py-1.5 rounded-sm border border-green-200 dark:border-green-900/30 shadow-sm transition-colors">
-                    <CheckCircle2 size={14} className="fill-current" />
+                    <CheckCircle2 size={14} />
                     <span className="text-[9px] lg:text-[10px] font-black uppercase tracking-widest">
                       Verified Member of BloodLink
                     </span>
@@ -355,7 +355,7 @@ export const VerifyMember = () => {
               <div className="grid grid-cols-2 gap-1.5 lg:gap-3">
                 <div className="p-1.5 lg:p-2 rounded-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-1.5 lg:gap-3 transition-colors shadow-sm lg:shadow-none hover:shadow-md">
                   <div className="w-8 h-8 lg:w-10 lg:h-10 bg-red-100 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-sm flex items-center justify-center shadow-sm transition-colors flex-shrink-0">
-                    <Droplet size={16} className="lg:w-5 lg:h-5 fill-current" />
+                    <Droplet size={16} className="lg:w-5 lg:h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors mb-0.5">
@@ -368,7 +368,7 @@ export const VerifyMember = () => {
                 </div>
                 <div className="p-1.5 lg:p-2 rounded-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-1.5 lg:gap-3 transition-colors shadow-sm lg:shadow-none hover:shadow-md">
                   <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-100 dark:bg-blue-950/20 text-blue-600 dark:text-blue-400 rounded-sm flex items-center justify-center shadow-sm transition-colors flex-shrink-0">
-                    <MapPin size={16} className="lg:w-5 lg:h-5 fill-current" />
+                    <MapPin size={16} className="lg:w-5 lg:h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors mb-0.5">
@@ -381,7 +381,7 @@ export const VerifyMember = () => {
                 </div>
                 <div className="p-1.5 lg:p-2 rounded-sm bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 flex items-center gap-1.5 lg:gap-3 transition-colors shadow-sm lg:shadow-none hover:shadow-md">
                   <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-100 dark:bg-purple-950/20 text-purple-600 dark:text-purple-400 rounded-sm flex items-center justify-center shadow-sm transition-colors flex-shrink-0">
-                    <Award size={16} className="lg:w-5 lg:h-5 fill-current" />
+                    <Award size={16} className="lg:w-5 lg:h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[8px] lg:text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest transition-colors mb-0.5">
@@ -396,7 +396,7 @@ export const VerifyMember = () => {
                   <div className="w-8 h-8 lg:w-10 lg:h-10 bg-orange-100 dark:bg-orange-950/20 text-orange-600 dark:text-orange-400 rounded-sm flex items-center justify-center shadow-sm transition-colors flex-shrink-0">
                     <Calendar
                       size={16}
-                      className="lg:w-5 lg:h-5 fill-current"
+                      className="lg:w-5 lg:h-5"
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -465,7 +465,7 @@ export const VerifyMember = () => {
                     <div>
                       <Quote
                         size={14}
-                        className="absolute top-3 left-3 text-slate-300 dark:text-slate-700 fill-current transition-colors lg:top-4 lg:left-4 lg:w-4 lg:h-4"
+                        className="absolute top-3 left-3 text-slate-300 dark:text-slate-700 transition-colors lg:top-4 lg:left-4 lg:w-4 lg:h-4"
                       />
                       <p className="text-xs lg:text-sm text-slate-600 dark:text-slate-400 font-medium pl-6 lg:pl-6 italic mb-4 transition-colors leading-relaxed">
                         "{f.message}"

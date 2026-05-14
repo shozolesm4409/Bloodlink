@@ -20,7 +20,8 @@ import {
   Edit,
   ArrowUp,
   ArrowDown,
-  GripVertical
+  GripVertical,
+  Layout
 } from 'lucide-react';
 import { useAuth } from '../../AuthContext';
 import { 
@@ -36,6 +37,7 @@ import {
   Timestamp,
   writeBatch
 } from 'firebase/firestore';
+import { archiveSystemAsset } from '../../services/api';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, auth, storage } from '../../services/firebase';
 import clsx from 'clsx';
@@ -81,7 +83,7 @@ interface SystemAsset {
 interface SortableAssetProps {
   asset: SystemAsset;
   index: number;
-  activeTab: 'avatars' | 'covers' | 'logos' | 'landing';
+  activeTab: 'avatars' | 'covers' | 'logos' | 'landing' | 'news';
   onEdit: (asset: SystemAsset) => void;
   onDelete: (id: string) => void;
   onMove: (index: number, direction: 'up' | 'down') => void;
@@ -210,7 +212,7 @@ const SortableAsset = ({ asset, index, activeTab, onEdit, onDelete, onMove, tota
 
 export const AdminAvatarManage = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'avatars' | 'covers' | 'landing' | 'logos'>('avatars');
+  const [activeTab, setActiveTab] = useState<'avatars' | 'covers' | 'landing' | 'logos' | 'news'>('avatars');
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -229,6 +231,7 @@ export const AdminAvatarManage = () => {
   const [covers, setCovers] = useState<SystemAsset[]>([]);
   const [landings, setLandings] = useState<SystemAsset[]>([]);
   const [logos, setLogos] = useState<SystemAsset[]>([]);
+  const [news, setNews] = useState<SystemAsset[]>([]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -329,16 +332,29 @@ export const AdminAvatarManage = () => {
       handleFirestoreError(error, OperationType.LIST, 'system_logos');
     });
 
+    const unsubNews = onSnapshot(query(collection(db, 'system_news_thumbnails')), (snapshot) => {
+      const newsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as SystemAsset[];
+      
+      setNews(newsList);
+      if (activeTab === 'news') setIsLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'system_news_thumbnails');
+    });
+
     return () => {
       unsubAvatars();
       unsubCovers();
       unsubLandings();
       unsubLogos();
+      unsubNews();
     };
   }, [activeTab]);
 
   const filteredAssets = useMemo(() => {
-    let list = activeTab === 'avatars' ? [...avatars] : activeTab === 'covers' ? [...covers] : activeTab === 'logos' ? [...logos] : [...landings];
+    let list = activeTab === 'avatars' ? [...avatars] : activeTab === 'covers' ? [...covers] : activeTab === 'logos' ? [...logos] : activeTab === 'news' ? [...news] : [...landings];
     
     return list.filter(a => {
       const matchesSearch = a.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -347,7 +363,7 @@ export const AdminAvatarManage = () => {
         : true;
       return matchesSearch && matchesCategory;
     });
-  }, [activeTab, avatars, covers, landings, searchTerm, categoryFilter]);
+  }, [activeTab, avatars, covers, logos, news, landings, searchTerm, categoryFilter]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -377,6 +393,12 @@ export const AdminAvatarManage = () => {
           const sortedList = [...newList, ...others];
           return sortedList;
         });
+      } else if (activeTab === 'news') {
+        setNews(prev => {
+          const others = prev.filter(p => !filteredAssets.find(f => f.id === p.id));
+          const sortedList = [...newList, ...others];
+          return sortedList;
+        });
       } else {
         setLandings(prev => {
           const others = prev.filter(p => !filteredAssets.find(f => f.id === p.id));
@@ -387,7 +409,7 @@ export const AdminAvatarManage = () => {
 
       try {
         const batch = writeBatch(db);
-        const collectionName = activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing';
+        const collectionName = getCollectionName(activeTab);
         
         // Update order values for all visible items to fix them in place
         newList.forEach((item, index) => {
@@ -399,6 +421,16 @@ export const AdminAvatarManage = () => {
       } catch (error) {
         handleFirestoreError(error, OperationType.UPDATE, 'batch_reorder');
       }
+    }
+  };
+
+  const getCollectionName = (tab: 'avatars' | 'covers' | 'landing' | 'logos' | 'news') => {
+    switch (tab) {
+      case 'avatars': return 'system_avatars';
+      case 'covers': return 'system_covers';
+      case 'logos': return 'system_logos';
+      case 'news': return 'system_news_thumbnails';
+      default: return 'system_landing';
     }
   };
 
@@ -452,7 +484,8 @@ export const AdminAvatarManage = () => {
         avatars: { collection: 'system_avatars', label: 'Avatar' },
         covers: { collection: 'system_covers', label: 'Cover' },
         logos: { collection: 'system_logos', label: 'Logo' },
-        landing: { collection: 'system_landing', label: 'Background' }
+        landing: { collection: 'system_landing', label: 'Background' },
+        news: { collection: 'system_news_thumbnails', label: 'News Thumbnail' }
       }[activeTab];
       
       const collectionName = config.collection;
@@ -513,7 +546,8 @@ export const AdminAvatarManage = () => {
         avatars: { collection: 'system_avatars', label: 'Avatar' },
         covers: { collection: 'system_covers', label: 'Cover' },
         logos: { collection: 'system_logos', label: 'Logo' },
-        landing: { collection: 'system_landing', label: 'Background' }
+        landing: { collection: 'system_landing', label: 'Background' },
+        news: { collection: 'system_news_thumbnails', label: 'News Thumbnail' }
       }[activeTab];
       handleFirestoreError(error, editingAsset ? OperationType.UPDATE : OperationType.CREATE, config.collection);
     } finally {
@@ -558,15 +592,15 @@ export const AdminAvatarManage = () => {
   };
 
   const confirmDelete = async () => {
-    if (!assetToDelete) return;
+    if (!assetToDelete || !user) return;
     
     try {
-      const collectionName = activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing';
-      await deleteDoc(doc(db, collectionName, assetToDelete));
+      const collectionName = getCollectionName(activeTab);
+      await archiveSystemAsset(assetToDelete, collectionName, user);
       setIsDeleteModalOpen(false);
       setAssetToDelete(null);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `${activeTab === 'avatars' ? 'system_avatars' : activeTab === 'covers' ? 'system_covers' : activeTab === 'logos' ? 'system_logos' : 'system_landing'}/${assetToDelete}`);
+      handleFirestoreError(error, OperationType.DELETE, `${getCollectionName(activeTab)}/${assetToDelete}`);
     }
   };
 
@@ -603,55 +637,77 @@ export const AdminAvatarManage = () => {
         </button>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-        <div className="flex border-b border-slate-200 dark:border-slate-800">
-          <button 
-            onClick={() => setActiveTab('avatars')}
-            className={clsx(
-              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
-              activeTab === 'avatars' 
-                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
-                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            <span className="hidden md:inline">System </span>Avatars
-          </button>
-          <button 
-            onClick={() => setActiveTab('covers')}
-            className={clsx(
-              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
-              activeTab === 'covers' 
-                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
-                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            <span className="hidden md:inline">System </span>Covers
-          </button>
-          <button 
-            onClick={() => setActiveTab('logos')}
-            className={clsx(
-              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
-              activeTab === 'logos' 
-                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
-                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            <span className="hidden md:inline">System </span>Logos
-          </button>
-          <button 
-            onClick={() => setActiveTab('landing')}
-            className={clsx(
-              "px-3 py-3 text-[10px] md:px-6 md:py-4 md:text-xs font-black uppercase tracking-widest transition-all border-b-2",
-              activeTab === 'landing' 
-                ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400" 
-                : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
-            )}
-          >
-            <span className="hidden md:inline">Landing </span>Background
-          </button>
+      <div className="flex flex-col md:flex-row bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+        <div className="w-full md:w-48 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30">
+          <h3 className="hidden md:block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] p-4">
+            Avatar & Cover Menu
+          </h3>
+          <div className="flex flex-row md:flex-col overflow-x-auto">
+              <button 
+              onClick={() => setActiveTab('avatars')}
+              className={clsx(
+                "px-2 py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-4 md:border-b-0 md:border-l-4 flex-1 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-2",
+                activeTab === 'avatars' 
+                  ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-white dark:bg-slate-900" 
+                  : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <UserCircle size={14} /> 
+              <span className="hidden md:inline">Avatars</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('covers')}
+              className={clsx(
+                "px-2 py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-4 md:border-b-0 md:border-l-4 flex-1 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-2",
+                activeTab === 'covers' 
+                  ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-white dark:bg-slate-900" 
+                  : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <ImageIcon size={14} />
+              <span className="hidden md:inline">Covers</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('logos')}
+              className={clsx(
+                "px-2 py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-4 md:border-b-0 md:border-l-4 flex-1 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-2",
+                activeTab === 'logos' 
+                  ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-white dark:bg-slate-900" 
+                  : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <Database size={14} />
+              <span className="hidden md:inline">Logos</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('landing')}
+              className={clsx(
+                "px-2 py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-4 md:border-b-0 md:border-l-4 flex-1 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-2",
+                activeTab === 'landing' 
+                  ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-white dark:bg-slate-900" 
+                  : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <Layout size={14} />
+              <span className="hidden md:inline">Banner</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('news')}
+              className={clsx(
+                "px-2 py-2 text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all border-b-4 md:border-b-0 md:border-l-4 flex-1 flex flex-col md:flex-row items-center justify-center md:justify-start gap-1 md:gap-2",
+                activeTab === 'news' 
+                  ? "text-red-600 dark:text-red-400 border-red-600 dark:border-red-400 bg-white dark:bg-slate-900" 
+                  : "text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300"
+              )}
+            >
+              <Layout size={14} />
+              <span className="hidden md:inline">News</span>
+            </button>
+          </div>
         </div>
 
-        <div className="p-4 bg-slate-50/50 dark:bg-slate-950/30 flex flex-col md:flex-row gap-4">
+        <div className="flex-1">
+          <div className="p-2 md:p-4 bg-slate-50/50 dark:bg-slate-950/30 border-b border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
@@ -686,7 +742,7 @@ export const AdminAvatarManage = () => {
           </div>
         </div>
 
-        <div className="p-4">
+        <div className="p-4 max-h-[70vh] overflow-y-auto">
           {isLoading ? (
             <div className="py-12 flex flex-col items-center justify-center gap-3">
               <Loader2 className="animate-spin text-red-600" size={32} />
@@ -750,6 +806,7 @@ export const AdminAvatarManage = () => {
           )}
         </div>
       </div>
+    </div>
 
       {isUploadModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm">
